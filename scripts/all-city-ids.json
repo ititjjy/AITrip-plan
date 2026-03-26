@@ -1,0 +1,1201 @@
+[
+  {
+    "id": "sanya",
+    "name": "三亚",
+    "nameEn": "Sanya",
+    "isDomestic": true
+  },
+  {
+    "id": "chengdu",
+    "name": "成都",
+    "nameEn": "Chengdu",
+    "isDomestic": true
+  },
+  {
+    "id": "hangzhou",
+    "name": "杭州",
+    "nameEn": "Hangzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "chongqing",
+    "name": "重庆",
+    "nameEn": "Chongqing",
+    "isDomestic": true
+  },
+  {
+    "id": "beijing",
+    "name": "北京",
+    "nameEn": "Beijing",
+    "isDomestic": true
+  },
+  {
+    "id": "shanghai",
+    "name": "上海",
+    "nameEn": "Shanghai",
+    "isDomestic": true
+  },
+  {
+    "id": "xian",
+    "name": "西安",
+    "nameEn": "Xiamen",
+    "isDomestic": true
+  },
+  {
+    "id": "xiamen",
+    "name": "厦门",
+    "nameEn": "Dali",
+    "isDomestic": true
+  },
+  {
+    "id": "dali",
+    "name": "大理",
+    "nameEn": "Lijiang",
+    "isDomestic": true
+  },
+  {
+    "id": "lijiang",
+    "name": "丽江",
+    "nameEn": "Guilin",
+    "isDomestic": true
+  },
+  {
+    "id": "guilin",
+    "name": "桂林",
+    "nameEn": "Suzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "suzhou",
+    "name": "苏州",
+    "nameEn": "Nanjing",
+    "isDomestic": true
+  },
+  {
+    "id": "nanjing",
+    "name": "南京",
+    "nameEn": "Qingdao",
+    "isDomestic": true
+  },
+  {
+    "id": "qingdao",
+    "name": "青岛",
+    "nameEn": "Changsha",
+    "isDomestic": true
+  },
+  {
+    "id": "changsha",
+    "name": "长沙",
+    "nameEn": "Wuhan",
+    "isDomestic": true
+  },
+  {
+    "id": "wuhan",
+    "name": "武汉",
+    "nameEn": "Lhasa",
+    "isDomestic": true
+  },
+  {
+    "id": "lasa",
+    "name": "拉萨",
+    "nameEn": "Zhangjiajie",
+    "isDomestic": true
+  },
+  {
+    "id": "zhangjiajie",
+    "name": "张家界",
+    "nameEn": "Huangshan",
+    "isDomestic": true
+  },
+  {
+    "id": "huangshan",
+    "name": "黄山",
+    "nameEn": "Kunming",
+    "isDomestic": true
+  },
+  {
+    "id": "kunming",
+    "name": "昆明",
+    "nameEn": "Guangzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "guangzhou",
+    "name": "广州",
+    "nameEn": "Shenzhen",
+    "isDomestic": true
+  },
+  {
+    "id": "shenzhen",
+    "name": "深圳",
+    "nameEn": "Tianjin",
+    "isDomestic": true
+  },
+  {
+    "id": "tianjin",
+    "name": "天津",
+    "nameEn": "Ningbo",
+    "isDomestic": true
+  },
+  {
+    "id": "ningbo",
+    "name": "宁波",
+    "nameEn": "Quanzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "quanzhou",
+    "name": "泉州",
+    "nameEn": "Luoyang",
+    "isDomestic": true
+  },
+  {
+    "id": "luoyang",
+    "name": "洛阳",
+    "nameEn": "Kaifeng",
+    "isDomestic": true
+  },
+  {
+    "id": "kaifeng",
+    "name": "开封",
+    "nameEn": "Wuzhen",
+    "isDomestic": true
+  },
+  {
+    "id": "wuzhen",
+    "name": "乌镇",
+    "nameEn": "Yangshuo",
+    "isDomestic": true
+  },
+  {
+    "id": "yangshuo",
+    "name": "阳朔",
+    "nameEn": "Beihai",
+    "isDomestic": true
+  },
+  {
+    "id": "beihai",
+    "name": "北海",
+    "nameEn": "Jiuzhaigou",
+    "isDomestic": true
+  },
+  {
+    "id": "jiuzhaigou",
+    "name": "九寨沟",
+    "nameEn": "Hulunbuir",
+    "isDomestic": true
+  },
+  {
+    "id": "hulunbuir",
+    "name": "呼伦贝尔",
+    "nameEn": "Shangri-La",
+    "isDomestic": true
+  },
+  {
+    "id": "xianggelila",
+    "name": "香格里拉",
+    "nameEn": "Xishuangbanna",
+    "isDomestic": true
+  },
+  {
+    "id": "xishuangbanna",
+    "name": "西双版纳",
+    "nameEn": "Weizhou Island",
+    "isDomestic": true
+  },
+  {
+    "id": "weizhoudao",
+    "name": "涠洲岛",
+    "nameEn": "Yantai",
+    "isDomestic": true
+  },
+  {
+    "id": "yantai",
+    "name": "烟台",
+    "nameEn": "Qinhuangdao",
+    "isDomestic": true
+  },
+  {
+    "id": "qinhuangdao",
+    "name": "秦皇岛",
+    "nameEn": "Hongcun",
+    "isDomestic": true
+  },
+  {
+    "id": "hongcun",
+    "name": "宏村",
+    "nameEn": "Pingyao",
+    "isDomestic": true
+  },
+  {
+    "id": "pingyao",
+    "name": "平遥",
+    "nameEn": "Dandong",
+    "isDomestic": true
+  },
+  {
+    "id": "dandong",
+    "name": "丹东",
+    "nameEn": "Yichang",
+    "isDomestic": true
+  },
+  {
+    "id": "yichang",
+    "name": "宜昌",
+    "nameEn": "Zhuhai",
+    "isDomestic": true
+  },
+  {
+    "id": "zhuhai",
+    "name": "珠海",
+    "nameEn": "Lanzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "lanzhou",
+    "name": "兰州",
+    "nameEn": "Zhangye",
+    "isDomestic": true
+  },
+  {
+    "id": "zhangye",
+    "name": "张掖",
+    "nameEn": "Dunhuang",
+    "isDomestic": true
+  },
+  {
+    "id": "dunhuang",
+    "name": "敦煌",
+    "nameEn": "Harbin",
+    "isDomestic": true
+  },
+  {
+    "id": "harbin",
+    "name": "哈尔滨",
+    "nameEn": "Jilin City",
+    "isDomestic": true
+  },
+  {
+    "id": "jilin",
+    "name": "吉林市",
+    "nameEn": "Shenyang",
+    "isDomestic": true
+  },
+  {
+    "id": "shenyang",
+    "name": "沈阳",
+    "nameEn": "Changchun",
+    "isDomestic": true
+  },
+  {
+    "id": "changchun",
+    "name": "长春",
+    "nameEn": "Xuzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "xuzhou",
+    "name": "徐州",
+    "nameEn": "Nanchang",
+    "isDomestic": true
+  },
+  {
+    "id": "nanchang",
+    "name": "南昌",
+    "nameEn": "Shaoxing",
+    "isDomestic": true
+  },
+  {
+    "id": "shaoxing",
+    "name": "绍兴",
+    "nameEn": "Jingdezhen",
+    "isDomestic": true
+  },
+  {
+    "id": "jingdezhen",
+    "name": "景德镇",
+    "nameEn": "Tongli",
+    "isDomestic": true
+  },
+  {
+    "id": "tongli",
+    "name": "同里",
+    "nameEn": "Zhengzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "zhengzhou",
+    "name": "郑州",
+    "nameEn": "Hohhot",
+    "isDomestic": true
+  },
+  {
+    "id": "hohhot",
+    "name": "呼和浩特",
+    "nameEn": "Xining",
+    "isDomestic": true
+  },
+  {
+    "id": "xining",
+    "name": "西宁",
+    "nameEn": "Yinchuan",
+    "isDomestic": true
+  },
+  {
+    "id": "yinchuan",
+    "name": "银川",
+    "nameEn": "Urumqi",
+    "isDomestic": true
+  },
+  {
+    "id": "wulumuqi",
+    "name": "乌鲁木齐",
+    "nameEn": "Jiujiang",
+    "isDomestic": true
+  },
+  {
+    "id": "jiujiang",
+    "name": "九江",
+    "nameEn": "Yibin",
+    "isDomestic": true
+  },
+  {
+    "id": "yibin",
+    "name": "宜宾",
+    "nameEn": "Baotou",
+    "isDomestic": true
+  },
+  {
+    "id": "baotou",
+    "name": "包头",
+    "nameEn": "Qufu",
+    "isDomestic": true
+  },
+  {
+    "id": "qufu",
+    "name": "曲阜",
+    "nameEn": "Hefei",
+    "isDomestic": true
+  },
+  {
+    "id": "hefei",
+    "name": "合肥",
+    "nameEn": "Lishan",
+    "isDomestic": true
+  },
+  {
+    "id": "lishan",
+    "name": "丽山",
+    "nameEn": "Zunyi",
+    "isDomestic": true
+  },
+  {
+    "id": "zunyi",
+    "name": "遵义",
+    "nameEn": "Datong",
+    "isDomestic": true
+  },
+  {
+    "id": "datong",
+    "name": "大同",
+    "nameEn": "Kashgar",
+    "isDomestic": true
+  },
+  {
+    "id": "kashgar",
+    "name": "喀什",
+    "nameEn": "Shantou",
+    "isDomestic": true
+  },
+  {
+    "id": "shantou",
+    "name": "汕头",
+    "nameEn": "Wuyishan",
+    "isDomestic": true
+  },
+  {
+    "id": "wuyishan",
+    "name": "武夷山",
+    "nameEn": "Tengchong",
+    "isDomestic": true
+  },
+  {
+    "id": "tengchong",
+    "name": "腾冲",
+    "nameEn": "Jinhua",
+    "isDomestic": true
+  },
+  {
+    "id": "jinhua",
+    "name": "金华",
+    "nameEn": "Binzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "binzhou",
+    "name": "滨州",
+    "nameEn": "Fuzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "fuzhou",
+    "name": "福州",
+    "nameEn": "Hengyang",
+    "isDomestic": true
+  },
+  {
+    "id": "hengyang",
+    "name": "衡阳",
+    "nameEn": "Liaocheng",
+    "isDomestic": true
+  },
+  {
+    "id": "liaocheng",
+    "name": "聊城",
+    "nameEn": "Baiyin",
+    "isDomestic": true
+  },
+  {
+    "id": "baiyin",
+    "name": "白银",
+    "nameEn": "Jixi",
+    "isDomestic": true
+  },
+  {
+    "id": "jixi",
+    "name": "鸡西",
+    "nameEn": "Guiyang",
+    "isDomestic": true
+  },
+  {
+    "id": "guiyang",
+    "name": "贵阳",
+    "nameEn": "Libo",
+    "isDomestic": true
+  },
+  {
+    "id": "libo",
+    "name": "荔波",
+    "nameEn": "Wuyuan",
+    "isDomestic": true
+  },
+  {
+    "id": "wuyuan",
+    "name": "婺源",
+    "nameEn": "Daocheng",
+    "isDomestic": true
+  },
+  {
+    "id": "daocheng",
+    "name": "稻城",
+    "nameEn": "Sedan",
+    "isDomestic": true
+  },
+  {
+    "id": "sedan",
+    "name": "色达",
+    "nameEn": "Wanning",
+    "isDomestic": true
+  },
+  {
+    "id": "waning",
+    "name": "万宁",
+    "nameEn": "Fenghuang",
+    "isDomestic": true
+  },
+  {
+    "id": "fenghuang",
+    "name": "凤凰古城",
+    "nameEn": "Lugu Lake",
+    "isDomestic": true
+  },
+  {
+    "id": "luguhu",
+    "name": "泸沽湖",
+    "nameEn": "Lishui",
+    "isDomestic": true
+  },
+  {
+    "id": "lishui",
+    "name": "丽水",
+    "nameEn": "Xiapu",
+    "isDomestic": true
+  },
+  {
+    "id": "xiapu",
+    "name": "霞浦",
+    "nameEn": "Yanji",
+    "isDomestic": true
+  },
+  {
+    "id": "yanji",
+    "name": "延吉",
+    "nameEn": "Mohe",
+    "isDomestic": true
+  },
+  {
+    "id": "mohe",
+    "name": "漠河",
+    "nameEn": "Yili",
+    "isDomestic": true
+  },
+  {
+    "id": "yili",
+    "name": "伊犁",
+    "nameEn": "Foshan",
+    "isDomestic": true
+  },
+  {
+    "id": "foshan",
+    "name": "佛山",
+    "nameEn": "Dalian",
+    "isDomestic": true
+  },
+  {
+    "id": "dalian",
+    "name": "大连",
+    "nameEn": "Taiyuan",
+    "isDomestic": true
+  },
+  {
+    "id": "taiyuan",
+    "name": "太原",
+    "nameEn": "Wuxi",
+    "isDomestic": true
+  },
+  {
+    "id": "wuxi",
+    "name": "无锡",
+    "nameEn": "Yangzhou",
+    "isDomestic": true
+  },
+  {
+    "id": "yangzhou",
+    "name": "扬州",
+    "nameEn": "Chaozhou",
+    "isDomestic": true
+  },
+  {
+    "id": "chaozhou",
+    "name": "潮州",
+    "nameEn": "Weihai",
+    "isDomestic": true
+  },
+  {
+    "id": "weihai",
+    "name": "威海",
+    "nameEn": "Haikou",
+    "isDomestic": true
+  },
+  {
+    "id": "haikou",
+    "name": "海口",
+    "nameEn": "Yabuli",
+    "isDomestic": true
+  },
+  {
+    "id": "yabuli",
+    "name": "亚布力",
+    "nameEn": "Tokyo",
+    "isDomestic": true
+  },
+  {
+    "id": "tokyo",
+    "name": "东京",
+    "nameEn": "Kyoto",
+    "isDomestic": false
+  },
+  {
+    "id": "kyoto",
+    "name": "京都",
+    "nameEn": "Osaka",
+    "isDomestic": false
+  },
+  {
+    "id": "osaka",
+    "name": "大阪",
+    "nameEn": "Hokkaido",
+    "isDomestic": false
+  },
+  {
+    "id": "hokkaido",
+    "name": "北海道",
+    "nameEn": "Bangkok",
+    "isDomestic": false
+  },
+  {
+    "id": "bangkok",
+    "name": "曼谷",
+    "nameEn": "Chiang Mai",
+    "isDomestic": false
+  },
+  {
+    "id": "chiangmai",
+    "name": "清迈",
+    "nameEn": "Phuket",
+    "isDomestic": false
+  },
+  {
+    "id": "phuket",
+    "name": "普吉岛",
+    "nameEn": "Seoul",
+    "isDomestic": false
+  },
+  {
+    "id": "seoul",
+    "name": "首尔",
+    "nameEn": "Jeju Island",
+    "isDomestic": false
+  },
+  {
+    "id": "jeju",
+    "name": "济州岛",
+    "nameEn": "Bali",
+    "isDomestic": false
+  },
+  {
+    "id": "bali",
+    "name": "巴厘岛",
+    "nameEn": "Paris",
+    "isDomestic": false
+  },
+  {
+    "id": "paris",
+    "name": "巴黎",
+    "nameEn": "Singapore",
+    "isDomestic": false
+  },
+  {
+    "id": "singapore",
+    "name": "新加坡",
+    "nameEn": "Maldives",
+    "isDomestic": false
+  },
+  {
+    "id": "maldives",
+    "name": "马尔代夫",
+    "nameEn": "London",
+    "isDomestic": false
+  },
+  {
+    "id": "london",
+    "name": "伦敦",
+    "nameEn": "Rome",
+    "isDomestic": false
+  },
+  {
+    "id": "rome",
+    "name": "罗马",
+    "nameEn": "Santorini",
+    "isDomestic": false
+  },
+  {
+    "id": "santorini",
+    "name": "圣托里尼",
+    "nameEn": "Sydney",
+    "isDomestic": false
+  },
+  {
+    "id": "sydney",
+    "name": "悉尼",
+    "nameEn": "Barcelona",
+    "isDomestic": false
+  },
+  {
+    "id": "barcelona",
+    "name": "巴塞罗那",
+    "nameEn": "Da Nang",
+    "isDomestic": false
+  },
+  {
+    "id": "danang",
+    "name": "岘港",
+    "nameEn": "Kuala Lumpur",
+    "isDomestic": false
+  },
+  {
+    "id": "kualalumpur",
+    "name": "吉隆坡",
+    "nameEn": "Hong Kong",
+    "isDomestic": false
+  },
+  {
+    "id": "hongkong",
+    "name": "香港",
+    "nameEn": "Taipei",
+    "isDomestic": false
+  },
+  {
+    "id": "taipei",
+    "name": "台北",
+    "nameEn": "Luang Prabang",
+    "isDomestic": false
+  },
+  {
+    "id": "luangprabang",
+    "name": "琅勃拉邦",
+    "nameEn": "Siem Reap",
+    "isDomestic": false
+  },
+  {
+    "id": "siemreap",
+    "name": "暹粒",
+    "nameEn": "Colombo",
+    "isDomestic": false
+  },
+  {
+    "id": "colombo",
+    "name": "科伦坡",
+    "nameEn": "Kathmandu",
+    "isDomestic": false
+  },
+  {
+    "id": "kathmandu",
+    "name": "加德满都",
+    "nameEn": "Vientiane",
+    "isDomestic": false
+  },
+  {
+    "id": "vientiane",
+    "name": "万象",
+    "nameEn": "Yangon",
+    "isDomestic": false
+  },
+  {
+    "id": "yangon",
+    "name": "仰光",
+    "nameEn": "Ho Chi Minh City",
+    "isDomestic": false
+  },
+  {
+    "id": "hochiminhcity",
+    "name": "胡志明市",
+    "nameEn": "Hanoi",
+    "isDomestic": false
+  },
+  {
+    "id": "hanoi",
+    "name": "河内",
+    "nameEn": "Cagayan de Oro",
+    "isDomestic": false
+  },
+  {
+    "id": "cagayan",
+    "name": "卡加延",
+    "nameEn": "Boracay",
+    "isDomestic": false
+  },
+  {
+    "id": "boracay",
+    "name": "长滩岛",
+    "nameEn": "Chittagong",
+    "isDomestic": false
+  },
+  {
+    "id": "chittagong",
+    "name": "吉大港",
+    "nameEn": "Jaipur",
+    "isDomestic": false
+  },
+  {
+    "id": "jaipur",
+    "name": "斋浦尔",
+    "nameEn": "Varanasi",
+    "isDomestic": false
+  },
+  {
+    "id": "varanasi",
+    "name": "瓦拉纳西",
+    "nameEn": "Kandy",
+    "isDomestic": false
+  },
+  {
+    "id": "kandy",
+    "name": "康提",
+    "nameEn": "Baguio",
+    "isDomestic": false
+  },
+  {
+    "id": "baguio",
+    "name": "碧瑶",
+    "nameEn": "Sapporo",
+    "isDomestic": false
+  },
+  {
+    "id": "sapporo",
+    "name": "札幌",
+    "nameEn": "Nagoya",
+    "isDomestic": false
+  },
+  {
+    "id": "nagoya",
+    "name": "名古屋",
+    "nameEn": "Fukuoka",
+    "isDomestic": false
+  },
+  {
+    "id": "fukuoka",
+    "name": "福冈",
+    "nameEn": "Busan",
+    "isDomestic": false
+  },
+  {
+    "id": "busan",
+    "name": "釜山",
+    "nameEn": "Macau",
+    "isDomestic": false
+  },
+  {
+    "id": "macau",
+    "name": "澳门",
+    "nameEn": "Penang",
+    "isDomestic": false
+  },
+  {
+    "id": "penang",
+    "name": "槟城",
+    "nameEn": "Hualien",
+    "isDomestic": false
+  },
+  {
+    "id": "hualien",
+    "name": "花莲",
+    "nameEn": "New York",
+    "isDomestic": false
+  },
+  {
+    "id": "newyork",
+    "name": "纽约",
+    "nameEn": "Amsterdam",
+    "isDomestic": false
+  },
+  {
+    "id": "amsterdam",
+    "name": "阿姆斯特丹",
+    "nameEn": "Prague",
+    "isDomestic": false
+  },
+  {
+    "id": "prague",
+    "name": "布拉格",
+    "nameEn": "Lisbon",
+    "isDomestic": false
+  },
+  {
+    "id": "lisbon",
+    "name": "里斯本",
+    "nameEn": "Vienna",
+    "isDomestic": false
+  },
+  {
+    "id": "vienna",
+    "name": "维也纳",
+    "nameEn": "Berlin",
+    "isDomestic": false
+  },
+  {
+    "id": "berlin",
+    "name": "柏林",
+    "nameEn": "Reykjavik",
+    "isDomestic": false
+  },
+  {
+    "id": "reykjavik",
+    "name": "雷克雅未克",
+    "nameEn": "Copenhagen",
+    "isDomestic": false
+  },
+  {
+    "id": "copenhaguen",
+    "name": "哥本哈根",
+    "nameEn": "Zurich",
+    "isDomestic": false
+  },
+  {
+    "id": "zurich",
+    "name": "苏黎世",
+    "nameEn": "Dubrovnik",
+    "isDomestic": false
+  },
+  {
+    "id": "dubrovnik",
+    "name": "杜布罗夫尼克",
+    "nameEn": "Budapest",
+    "isDomestic": false
+  },
+  {
+    "id": "budapest",
+    "name": "布达佩斯",
+    "nameEn": "Quebec City",
+    "isDomestic": false
+  },
+  {
+    "id": "quebec",
+    "name": "魁北克市",
+    "nameEn": "Vancouver",
+    "isDomestic": false
+  },
+  {
+    "id": "vancouver",
+    "name": "温哥华",
+    "nameEn": "Mexico City",
+    "isDomestic": false
+  },
+  {
+    "id": "mexicocity",
+    "name": "墨西哥城",
+    "nameEn": "Cancun",
+    "isDomestic": false
+  },
+  {
+    "id": "cancun",
+    "name": "坎昆",
+    "nameEn": "Lima",
+    "isDomestic": false
+  },
+  {
+    "id": "lima",
+    "name": "利马",
+    "nameEn": "Cusco",
+    "isDomestic": false
+  },
+  {
+    "id": "cusco",
+    "name": "库斯科",
+    "nameEn": "Santiago",
+    "isDomestic": false
+  },
+  {
+    "id": "santiago",
+    "name": "圣地亚哥",
+    "nameEn": "Valparaiso",
+    "isDomestic": false
+  },
+  {
+    "id": "valparaiso",
+    "name": "瓦尔帕莱索",
+    "nameEn": "Buenos Aires",
+    "isDomestic": false
+  },
+  {
+    "id": "buenosaires",
+    "name": "布宜诺斯艾利斯",
+    "nameEn": "Rio de Janeiro",
+    "isDomestic": false
+  },
+  {
+    "id": "rio",
+    "name": "里约热内卢",
+    "nameEn": "Salvador",
+    "isDomestic": false
+  },
+  {
+    "id": "salvador",
+    "name": "萨尔瓦多",
+    "nameEn": "Tromso",
+    "isDomestic": false
+  },
+  {
+    "id": "tromso",
+    "name": "特罗姆瑟",
+    "nameEn": "Stockholm",
+    "isDomestic": false
+  },
+  {
+    "id": "stockholm",
+    "name": "斯德哥尔摩",
+    "nameEn": "Helsinki",
+    "isDomestic": false
+  },
+  {
+    "id": "helsinki",
+    "name": "赫尔辛基",
+    "nameEn": "Krakow",
+    "isDomestic": false
+  },
+  {
+    "id": "krakow",
+    "name": "克拉科夫",
+    "nameEn": "Edmonton",
+    "isDomestic": false
+  },
+  {
+    "id": "edmonton",
+    "name": "埃德蒙顿",
+    "nameEn": "Halifax",
+    "isDomestic": false
+  },
+  {
+    "id": "halifax",
+    "name": "哈利法克斯",
+    "nameEn": "Santa Fe",
+    "isDomestic": false
+  },
+  {
+    "id": "santafe",
+    "name": "圣菲",
+    "nameEn": "Dubai",
+    "isDomestic": false
+  },
+  {
+    "id": "dubai",
+    "name": "迪拜",
+    "nameEn": "Cairo",
+    "isDomestic": false
+  },
+  {
+    "id": "cairo",
+    "name": "开罗",
+    "nameEn": "Tel Aviv",
+    "isDomestic": false
+  },
+  {
+    "id": "telaviv",
+    "name": "特拉维夫",
+    "nameEn": "Istanbul",
+    "isDomestic": false
+  },
+  {
+    "id": "istanbul",
+    "name": "伊斯坦布尔",
+    "nameEn": "Antalya",
+    "isDomestic": false
+  },
+  {
+    "id": "antalya",
+    "name": "安塔利亚",
+    "nameEn": "Cape Town",
+    "isDomestic": false
+  },
+  {
+    "id": "cape town",
+    "name": "开普敦",
+    "nameEn": "Marrakech",
+    "isDomestic": false
+  },
+  {
+    "id": "marrakech",
+    "name": "马拉喀什",
+    "nameEn": "Nairobi",
+    "isDomestic": false
+  },
+  {
+    "id": "nairobi",
+    "name": "内罗毕",
+    "nameEn": "Fiji",
+    "isDomestic": false
+  },
+  {
+    "id": "fiji",
+    "name": "斐济",
+    "nameEn": "Auckland",
+    "isDomestic": false
+  },
+  {
+    "id": "auckland",
+    "name": "奥克兰",
+    "nameEn": "Queenstown",
+    "isDomestic": false
+  },
+  {
+    "id": "queenstown",
+    "name": "皇后镇",
+    "nameEn": "Tahiti",
+    "isDomestic": false
+  },
+  {
+    "id": "tahiti",
+    "name": "大溪地",
+    "nameEn": "Almaty",
+    "isDomestic": false
+  },
+  {
+    "id": "almaty",
+    "name": "阿拉木图",
+    "nameEn": "Bishkek",
+    "isDomestic": false
+  },
+  {
+    "id": "bishkek",
+    "name": "比什凯克",
+    "nameEn": "Tashkent",
+    "isDomestic": false
+  },
+  {
+    "id": "tashkent",
+    "name": "塔什干",
+    "nameEn": "Samarkand",
+    "isDomestic": false
+  },
+  {
+    "id": "samarkand",
+    "name": "撒马尔罕",
+    "nameEn": "Port Louis",
+    "isDomestic": false
+  },
+  {
+    "id": "port louis",
+    "name": "路易港",
+    "nameEn": "Grand Baie",
+    "isDomestic": false
+  },
+  {
+    "id": "grand baie",
+    "name": "大湾",
+    "nameEn": "Petra",
+    "isDomestic": false
+  },
+  {
+    "id": "petra",
+    "name": "佩特拉",
+    "nameEn": "Amman",
+    "isDomestic": false
+  },
+  {
+    "id": "amman",
+    "name": "安曼",
+    "nameEn": "Windhoek",
+    "isDomestic": false
+  },
+  {
+    "id": "windhoek",
+    "name": "温得和克",
+    "nameEn": "Zanzibar",
+    "isDomestic": false
+  },
+  {
+    "id": "zanzibar",
+    "name": "桑给巴尔",
+    "nameEn": "Luanda",
+    "isDomestic": false
+  },
+  {
+    "id": "luanda",
+    "name": "罗安达",
+    "nameEn": "Nur-Sultan",
+    "isDomestic": false
+  },
+  {
+    "id": "astana",
+    "name": "努尔苏丹",
+    "nameEn": "George Town",
+    "isDomestic": false
+  },
+  {
+    "id": "george town",
+    "name": "乔治市",
+    "nameEn": "Valletta",
+    "isDomestic": false
+  },
+  {
+    "id": "valletta",
+    "name": "瓦莱塔",
+    "nameEn": "La Paz",
+    "isDomestic": false
+  },
+  {
+    "id": "la paz",
+    "name": "拉巴斯",
+    "isDomestic": false
+  }
+]

@@ -1,0 +1,502 @@
+[
+  {
+    "id": "guiyang",
+    "name": "贵阳",
+    "nameEn": "Guiyang",
+    "pinyin": "guiyang",
+    "pinyinAbbr": "gy",
+    "pinyinInitial": "G",
+    "province": "贵州",
+    "description": "林城绿肺苗侗风情",
+    "avgDailyBudget": 400,
+    "tags": [
+      "避暑",
+      "喀斯特",
+      "少数民族",
+      "美食"
+    ],
+    "lat": 26.647,
+    "lng": 106.63,
+    "hotness": 72
+  },
+  {
+    "id": "libo",
+    "name": "荔波",
+    "nameEn": "Libo",
+    "pinyin": "libo",
+    "pinyinAbbr": "lb",
+    "pinyinInitial": "L",
+    "province": "贵州",
+    "description": "地球绿宝石喀斯特秘境",
+    "avgDailyBudget": 380,
+    "tags": [
+      "世界自然遗产",
+      "小七孔",
+      "瑶山风情",
+      "森林氧吧"
+    ],
+    "lat": 25.409,
+    "lng": 107.883,
+    "hotness": 68
+  },
+  {
+    "id": "wuyuan",
+    "name": "婺源",
+    "nameEn": "Wuyuan",
+    "pinyin": "wuyuan",
+    "pinyinAbbr": "wy",
+    "pinyinInitial": "W",
+    "province": "江西",
+    "description": "中国最美乡村水墨画境",
+    "avgDailyBudget": 360,
+    "tags": [
+      "油菜花海",
+      "徽派古村",
+      "晒秋",
+      "生态田园"
+    ],
+    "lat": 29.234,
+    "lng": 117.876,
+    "hotness": 75
+  },
+  {
+    "id": "daocheng",
+    "name": "稻城",
+    "nameEn": "Daocheng",
+    "pinyin": "daocheng",
+    "pinyinAbbr": "dc",
+    "pinyinInitial": "D",
+    "province": "四川",
+    "description": "最后的香格里拉雪山圣境",
+    "avgDailyBudget": 420,
+    "tags": [
+      "高原湖泊",
+      "雪山垭口",
+      "藏地秘境",
+      "摄影天堂"
+    ],
+    "lat": 29.042,
+    "lng": 100.25,
+    "hotness": 70
+  },
+  {
+    "id": "sedan",
+    "name": "色达",
+    "nameEn": "Sedan",
+    "pinyin": "sedan",
+    "pinyinAbbr": "sd",
+    "pinyinInitial": "S",
+    "province": "四川",
+    "description": "红衣僧海天葬台信仰高地",
+    "avgDailyBudget": 430,
+    "tags": [
+      "藏传佛教",
+      "佛学院",
+      "高海拔",
+      "人文震撼"
+    ],
+    "lat": 32.029,
+    "lng": 100.307,
+    "hotness": 66
+  },
+  {
+    "id": "waning",
+    "name": "万宁",
+    "nameEn": "Wanning",
+    "pinyin": "waning",
+    "pinyinAbbr": "wn",
+    "pinyinInitial": "W",
+    "province": "海南",
+    "description": "冲浪天堂热带滨海秘境",
+    "avgDailyBudget": 450,
+    "tags": [
+      "冲浪",
+      "滨海温泉",
+      "兴隆咖啡",
+      "热带雨林"
+    ],
+    "lat": 18.797,
+    "lng": 110.388,
+    "hotness": 64
+  },
+  {
+    "id": "fenghuang",
+    "name": "凤凰古城",
+    "nameEn": "Fenghuang",
+    "pinyin": "fenghuang",
+    "pinyinAbbr": "fh",
+    "pinyinInitial": "F",
+    "province": "湖南",
+    "description": "湘西边城吊脚楼水墨画卷",
+    "avgDailyBudget": 370,
+    "tags": [
+      "古镇夜景",
+      "沱江泛舟",
+      "苗家银饰",
+      "沈从文故里"
+    ],
+    "lat": 27.943,
+    "lng": 109.607,
+    "hotness": 73
+  },
+  {
+    "id": "luguhu",
+    "name": "泸沽湖",
+    "nameEn": "Lugu Lake",
+    "pinyin": "luguhu",
+    "pinyinAbbr": "lgh",
+    "pinyinInitial": "L",
+    "province": "云南",
+    "description": "高原明珠摩梭母系秘境",
+    "avgDailyBudget": 410,
+    "tags": [
+      "走婚桥",
+      "猪槽船",
+      "女神山",
+      "星空露营"
+    ],
+    "lat": 27.794,
+    "lng": 101.23,
+    "hotness": 69
+  },
+  {
+    "id": "lishui",
+    "name": "丽水",
+    "nameEn": "Lishui",
+    "pinyin": "lishui",
+    "pinyinAbbr": "ls",
+    "pinyinInitial": "L",
+    "province": "浙江",
+    "description": "浙南林海古村山水画廊",
+    "avgDailyBudget": 390,
+    "tags": [
+      "云和梯田",
+      "古堰画乡",
+      "畲族文化",
+      "生态康养"
+    ],
+    "lat": 28.452,
+    "lng": 119.923,
+    "hotness": 67
+  },
+  {
+    "id": "xiapu",
+    "name": "霞浦",
+    "nameEn": "Xiapu",
+    "pinyin": "xiapu",
+    "pinyinAbbr": "xp",
+    "pinyinInitial": "X",
+    "province": "福建",
+    "description": "中国海带之乡光影滩涂",
+    "avgDailyBudget": 360,
+    "tags": [
+      "滩涂摄影",
+      "海上牧场",
+      "闽东渔村",
+      "日出日落"
+    ],
+    "lat": 26.887,
+    "lng": 120.032,
+    "hotness": 65
+  },
+  {
+    "id": "yanji",
+    "name": "延吉",
+    "nameEn": "Yanji",
+    "pinyin": "yanji",
+    "pinyinAbbr": "yj",
+    "pinyinInitial": "Y",
+    "province": "吉林",
+    "description": "中国朝鲜族文化第一城",
+    "avgDailyBudget": 380,
+    "tags": [
+      "韩风美食",
+      "民俗园",
+      "帽儿山",
+      "边境风情"
+    ],
+    "lat": 42.913,
+    "lng": 129.517,
+    "hotness": 68
+  },
+  {
+    "id": "mohe",
+    "name": "漠河",
+    "nameEn": "Mohe",
+    "pinyin": "mohe",
+    "pinyinAbbr": "mh",
+    "pinyinInitial": "M",
+    "province": "黑龙江",
+    "description": "神州北极极光冰雪边陲",
+    "avgDailyBudget": 460,
+    "tags": [
+      "北极村",
+      "极光观测",
+      "圣诞村",
+      "冻土奇观"
+    ],
+    "lat": 53.524,
+    "lng": 122.537,
+    "hotness": 62
+  },
+  {
+    "id": "yili",
+    "name": "伊犁",
+    "nameEn": "Yili",
+    "pinyin": "yili",
+    "pinyinAbbr": "yl",
+    "pinyinInitial": "Y",
+    "province": "新疆",
+    "description": "塞外江南草原花海丝路",
+    "avgDailyBudget": 480,
+    "tags": [
+      "昭苏油菜花",
+      "夏塔古道",
+      "喀赞其",
+      "薰衣草"
+    ],
+    "lat": 43.922,
+    "lng": 81.326,
+    "hotness": 74
+  },
+  {
+    "id": "foshan",
+    "name": "佛山",
+    "nameEn": "Foshan",
+    "pinyin": "foshan",
+    "pinyinAbbr": "fs",
+    "pinyinInitial": "F",
+    "province": "广东",
+    "description": "岭南武术陶艺美食名城",
+    "avgDailyBudget": 420,
+    "tags": [
+      "祖庙",
+      "南风古灶",
+      "顺德美食",
+      "咏春发源地"
+    ],
+    "lat": 23.023,
+    "lng": 113.123,
+    "hotness": 71
+  },
+  {
+    "id": "dalian",
+    "name": "大连",
+    "nameEn": "Dalian",
+    "pinyin": "dalian",
+    "pinyinAbbr": "dl",
+    "pinyinInitial": "D",
+    "province": "辽宁",
+    "description": "北方明珠滨海浪漫之都",
+    "avgDailyBudget": 440,
+    "tags": [
+      "滨海路",
+      "星海广场",
+      "俄罗斯风情街",
+      "海鲜盛宴"
+    ],
+    "lat": 38.914,
+    "lng": 121.619,
+    "hotness": 70
+  },
+  {
+    "id": "taiyuan",
+    "name": "太原",
+    "nameEn": "Taiyuan",
+    "pinyin": "taiyuan",
+    "pinyinAbbr": "ty",
+    "pinyinInitial": "T",
+    "province": "山西",
+    "description": "晋阳古都晋商文化重镇",
+    "avgDailyBudget": 350,
+    "tags": [
+      "晋祠",
+      "双塔寺",
+      "醋文化",
+      "面食之都"
+    ],
+    "lat": 37.87,
+    "lng": 112.549,
+    "hotness": 63
+  },
+  {
+    "id": "wuxi",
+    "name": "无锡",
+    "nameEn": "Wuxi",
+    "pinyin": "wuxi",
+    "pinyinAbbr": "wx",
+    "pinyinInitial": "W",
+    "province": "江苏",
+    "description": "太湖明珠江南水韵名城",
+    "avgDailyBudget": 410,
+    "tags": [
+      "鼋头渚",
+      "灵山大佛",
+      "惠山古镇",
+      "太湖佳绝处"
+    ],
+    "lat": 31.575,
+    "lng": 120.297,
+    "hotness": 72
+  },
+  {
+    "id": "yangzhou",
+    "name": "扬州",
+    "nameEn": "Yangzhou",
+    "pinyin": "yangzhou",
+    "pinyinAbbr": "yz",
+    "pinyinInitial": "Y",
+    "province": "江苏",
+    "description": "淮扬菜发源地千年诗城",
+    "avgDailyBudget": 390,
+    "tags": [
+      "瘦西湖",
+      "个园",
+      "大运河",
+      "早茶文化"
+    ],
+    "lat": 32.393,
+    "lng": 119.415,
+    "hotness": 74
+  },
+  {
+    "id": "chaozhou",
+    "name": "潮州",
+    "nameEn": "Chaozhou",
+    "pinyin": "chaozhou",
+    "pinyinAbbr": "cz",
+    "pinyinInitial": "C",
+    "province": "广东",
+    "description": "岭海名邦潮汕文化活化石",
+    "avgDailyBudget": 370,
+    "tags": [
+      "广济桥",
+      "开元寺",
+      "工夫茶",
+      "牌坊街"
+    ],
+    "lat": 23.667,
+    "lng": 116.622,
+    "hotness": 73
+  },
+  {
+    "id": "weihai",
+    "name": "威海",
+    "nameEn": "Weihai",
+    "pinyin": "weihai",
+    "pinyinAbbr": "wh",
+    "pinyinInitial": "W",
+    "province": "山东",
+    "description": "胶东半岛滨海花园城市",
+    "avgDailyBudget": 400,
+    "tags": [
+      "刘公岛",
+      "成山头",
+      "国际海水浴场",
+      "韩流中转"
+    ],
+    "lat": 37.507,
+    "lng": 122.113,
+    "hotness": 66
+  },
+  {
+    "id": "haikou",
+    "name": "海口",
+    "nameEn": "Haikou",
+    "pinyin": "haikou",
+    "pinyinAbbr": "hk",
+    "pinyinInitial": "H",
+    "province": "海南",
+    "description": "椰城骑楼老街热带门户",
+    "avgDailyBudget": 380,
+    "tags": [
+      "骑楼老街",
+      "火山群",
+      "五公祠",
+      "热带果园"
+    ],
+    "lat": 20.044,
+    "lng": 110.199,
+    "hotness": 67
+  },
+  {
+    "id": "yabuli",
+    "name": "亚布力",
+    "nameEn": "Yabuli",
+    "pinyin": "yabuli",
+    "pinyinAbbr": "ybl",
+    "pinyinInitial": "Y",
+    "province": "黑龙江",
+    "description": "中国首席滑雪胜地林海雪原",
+    "avgDailyBudget": 490,
+    "tags": [
+      "滑雪度假",
+      "森林小火车",
+      "雪乡中转",
+      "松峰山"
+    ],
+    "lat": 44.62,
+    "lng": 128.5,
+    "hotness": 61
+  },
+  {
+    "id": "enshi",
+    "name": "恩施",
+    "nameEn": "Enshi",
+    "pinyin": "enshi",
+    "pinyinAbbr": "es",
+    "pinyinInitial": "E",
+    "province": "湖北",
+    "description": "鄂西秘境峡谷溶洞硒都",
+    "avgDailyBudget": 370,
+    "tags": [
+      "恩施大峡谷",
+      "腾龙洞",
+      "土司城",
+      "富硒产品"
+    ],
+    "lat": 29.979,
+    "lng": 109.482,
+    "hotness": 69
+  },
+  {
+    "id": "qiandongnan",
+    "name": "黔东南",
+    "nameEn": "Qiandongnan",
+    "pinyin": "qiandongnan",
+    "pinyinAbbr": "qdn",
+    "pinyinInitial": "Q",
+    "province": "贵州",
+    "description": "苗侗大本营百里苗寨长廊",
+    "avgDailyBudget": 380,
+    "tags": [
+      "西江千户苗寨",
+      "肇兴侗寨",
+      "鼓楼风雨桥",
+      "非遗活态"
+    ],
+    "lat": 26.585,
+    "lng": 107.977,
+    "hotness": 71
+  },
+  {
+    "id": "aba",
+    "name": "阿坝",
+    "nameEn": "Aba",
+    "pinyin": "aba",
+    "pinyinAbbr": "ab",
+    "pinyinInitial": "A",
+    "province": "四川",
+    "description": "川西高原雪山草原秘境",
+    "avgDailyBudget": 430,
+    "tags": [
+      "四姑娘山",
+      "达古冰川",
+      "松潘古城",
+      "藏羌走廊"
+    ],
+    "lat": 31.895,
+    "lng": 102.215,
+    "hotness": 68
+  }
+]

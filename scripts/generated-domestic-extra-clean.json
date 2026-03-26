@@ -1,0 +1,262 @@
+[
+  {
+    "id": "zunyi",
+    "name": "遵义",
+    "nameEn": "Zunyi",
+    "pinyin": "zunyi",
+    "pinyinAbbr": "zy",
+    "pinyinInitial": "Z",
+    "province": "贵州",
+    "description": "红色圣地，茅台故乡，喀斯特山水（25字以内）",
+    "avgDailyBudget": 380,
+    "tags": [
+      "红色旅游",
+      "白酒文化",
+      "喀斯特",
+      "世界遗产"
+    ],
+    "lat": 27.6948,
+    "lng": 106.9333,
+    "hotness": 88
+  },
+  {
+    "id": "datong",
+    "name": "大同",
+    "nameEn": "Datong",
+    "pinyin": "datong",
+    "pinyinAbbr": "dt",
+    "pinyinInitial": "D",
+    "province": "山西",
+    "description": "北魏古都，云冈石窟悬空寺双世遗（25字以内）",
+    "avgDailyBudget": 410,
+    "tags": [
+      "世界遗产",
+      "石窟",
+      "古镇",
+      "边塞"
+    ],
+    "lat": 40.078,
+    "lng": 113.3017,
+    "hotness": 84
+  },
+  {
+    "id": "kashgar",
+    "name": "喀什",
+    "nameEn": "Kashgar",
+    "pinyin": "kashi",
+    "pinyinAbbr": "ks",
+    "pinyinInitial": "K",
+    "province": "新疆",
+    "description": "丝路活化石，喀什古城千年不熄（25字以内）",
+    "avgDailyBudget": 450,
+    "tags": [
+      "世界遗产预备",
+      "古镇",
+      "民俗",
+      "网红"
+    ],
+    "lat": 39.4711,
+    "lng": 75.9889,
+    "hotness": 83
+  },
+  {
+    "id": "shantou",
+    "name": "汕头",
+    "nameEn": "Shantou",
+    "pinyin": "shantou",
+    "pinyinAbbr": "st",
+    "pinyinInitial": "S",
+    "province": "广东",
+    "description": "潮汕文化核心区，小公园骑楼与牛肉丸天堂（25字以内）",
+    "avgDailyBudget": 390,
+    "tags": [
+      "美食",
+      "侨乡",
+      "古镇",
+      "非遗"
+    ],
+    "lat": 23.3541,
+    "lng": 116.682,
+    "hotness": 82
+  },
+  {
+    "id": "wuyishan",
+    "name": "武夷山",
+    "nameEn": "Wuyishan",
+    "pinyin": "wuyishan",
+    "pinyinAbbr": "wys",
+    "pinyinInitial": "W",
+    "province": "福建",
+    "description": "双世遗丹霞茶乡，九曲溪竹筏漂流首选（25字以内）",
+    "avgDailyBudget": 470,
+    "tags": [
+      "世界遗产",
+      "茶文化",
+      "山水",
+      "温泉"
+    ],
+    "lat": 27.7575,
+    "lng": 118.0172,
+    "hotness": 79
+  },
+  {
+    "id": "tengchong",
+    "name": "腾冲",
+    "nameEn": "Tengchong",
+    "pinyin": "tengchong",
+    "pinyinAbbr": "tc",
+    "pinyinInitial": "T",
+    "province": "云南",
+    "description": "火山热海边境小城，和顺古镇侨乡典范（25字以内）",
+    "avgDailyBudget": 440,
+    "tags": [
+      "温泉",
+      "古镇",
+      "边境",
+      "世界遗产预备"
+    ],
+    "lat": 25.0227,
+    "lng": 98.49,
+    "hotness": 78
+  },
+  {
+    "id": "jinhua",
+    "name": "金华",
+    "nameEn": "Jinhua",
+    "pinyin": "jinhuai",
+    "pinyinAbbr": "jh",
+    "pinyinInitial": "J",
+    "province": "浙江",
+    "description": "浙中枢纽，双龙洞+诸葛八卦村奇观（25字以内）",
+    "avgDailyBudget": 360,
+    "tags": [
+      "古镇",
+      "溶洞",
+      "非遗",
+      "网红"
+    ],
+    "lat": 29.0788,
+    "lng": 119.6473,
+    "hotness": 75
+  },
+  {
+    "id": "binzhou",
+    "name": "滨州",
+    "nameEn": "Binzhou",
+    "pinyin": "binzhou",
+    "pinyinAbbr": "bz",
+    "pinyinInitial": "B",
+    "province": "山东",
+    "description": "黄河三角洲生态城，魏集古镇水乡风情（25字以内）",
+    "avgDailyBudget": 330,
+    "tags": [
+      "古镇",
+      "生态",
+      "非遗",
+      "温泉"
+    ],
+    "lat": 37.3833,
+    "lng": 118.0222,
+    "hotness": 74
+  },
+  {
+    "id": "fuzhou",
+    "name": "福州",
+    "nameEn": "Fuzhou",
+    "pinyin": "fuzhou",
+    "pinyinAbbr": "fz",
+    "pinyinInitial": "F",
+    "province": "福建",
+    "description": "三山两塔一水，三坊七巷明清活化石（25字以内）",
+    "avgDailyBudget": 410,
+    "tags": [
+      "古镇",
+      "世界遗产预备",
+      "温泉",
+      "非遗"
+    ],
+    "lat": 26.0753,
+    "lng": 119.3062,
+    "hotness": 72
+  },
+  {
+    "id": "hengyang",
+    "name": "衡阳",
+    "nameEn": "Hengyang",
+    "pinyin": "hengyang",
+    "pinyinAbbr": "hy",
+    "pinyinInitial": "H",
+    "province": "湖南",
+    "description": "南岳衡山五岳独秀，温泉康养胜地（25字以内）",
+    "avgDailyBudget": 340,
+    "tags": [
+      "名山",
+      "温泉",
+      "宗教",
+      "网红"
+    ],
+    "lat": 27.2142,
+    "lng": 112.624,
+    "hotness": 71
+  },
+  {
+    "id": "liaocheng",
+    "name": "聊城",
+    "nameEn": "Liaocheng",
+    "pinyin": "liaocheng",
+    "pinyinAbbr": "lc",
+    "pinyinInitial": "L",
+    "province": "山东",
+    "description": "江北水城，东昌湖环抱光岳楼古韵（25字以内）",
+    "avgDailyBudget": 320,
+    "tags": [
+      "古镇",
+      "运河",
+      "非遗",
+      "网红"
+    ],
+    "lat": 36.4453,
+    "lng": 115.978,
+    "hotness": 70
+  },
+  {
+    "id": "baiyin",
+    "name": "白银",
+    "nameEn": "Baiyin",
+    "pinyin": "baiyin",
+    "pinyinAbbr": "by",
+    "pinyinInitial": "B",
+    "province": "甘肃",
+    "description": "黄河石林地质奇观，丝路驿站新晋网红（25字以内）",
+    "avgDailyBudget": 310,
+    "tags": [
+      "地质公园",
+      "网红",
+      "摄影",
+      "世界遗产预备"
+    ],
+    "lat": 36.5542,
+    "lng": 104.1815,
+    "hotness": 69
+  },
+  {
+    "id": "jixi",
+    "name": "鸡西",
+    "nameEn": "Jixi",
+    "pinyin": "jixi",
+    "pinyinAbbr": "jx",
+    "pinyinInitial": "J",
+    "province": "黑龙江",
+    "description": "兴凯湖畔雪乡门户，中俄界湖冬捕胜地（25字以内）",
+    "avgDailyBudget": 330,
+    "tags": [
+      "滑雪",
+      "湖泊",
+      "边境",
+      "温泉"
+    ],
+    "lat": 45.2972,
+    "lng": 130.9799,
+    "hotness": 68
+  }
+]
