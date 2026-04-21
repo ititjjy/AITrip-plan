@@ -162,7 +162,8 @@ function buildCategoryPrompt(
 ): string {
   const catLabel = CATEGORY_LABELS[category] || category
   const mealNote = category === 'food'
-    ? '每个对象额外增加 "mealType" 字段，值为 "breakfast"、"lunch"、"dinner" 或 "snack"。'
+    ? `每个对象额外增加 "mealType" 字段，值为 "breakfast"、"lunch"、"dinner" 或 "snack"。
+注意：餐饮推荐要合理分布在一天的不同时段，避免连续推荐多个餐厅。早餐推荐 2-3 个，午餐推荐 5-8 个，晚餐推荐 5-8 个，下午茶/小吃推荐 3-5 个。同一餐次（如午餐）的餐厅之间应该间隔至少 2 小时以上的游览时间。`
     : ''
 
   return `推荐${cityName}（${cityNameEn}）${seasonCtx}的${catLabel}类旅游地点，共50个。

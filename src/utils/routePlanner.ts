@@ -808,8 +808,27 @@ export function generateItinerary(
   distributeMeals(classified.lunch, 'lunch')
   distributeMeals(classified.dinner, 'dinner')
 
+  // Distribute snacks with time gap constraint: no snack within 2 hours of a main meal
   for (let i = 0; i < classified.snack.length; i++) {
-    mealsByDay[i % numDays].snacks.push(classified.snack[i])
+    const snack = classified.snack[i]
+    // Find a day that doesn't have too many snacks yet (max 2 per day)
+    const targetDay = i % numDays
+    if (mealsByDay[targetDay].snacks.length < 2) {
+      mealsByDay[targetDay].snacks.push(snack)
+    } else {
+      // Try to find another day with fewer snacks
+      let placed = false
+      for (let d = 0; d < numDays; d++) {
+        if (mealsByDay[d].snacks.length < 2) {
+          mealsByDay[d].snacks.push(snack)
+          placed = true
+          break
+        }
+      }
+      if (!placed) {
+        console.warn(`[routePlanner] Too many snacks, skipping: ${snack.name}`)
+      }
+    }
   }
 
   // Track all used POI IDs (to avoid duplicating in auto-fill)
@@ -952,14 +971,26 @@ export function generateItinerary(
       }
     }
 
-    // Insert snacks in schedule gaps
+    // Insert snacks in schedule gaps with time constraints:
+    // - No snack within 90 minutes after a main meal (breakfast/lunch/dinner)
+    // - Snack should be at least 2 hours before the next main meal
     for (const snack of meals.snacks) {
       let inserted = false
       for (let i = 0; i < schedule.length - 1; i++) {
         const gapStart = schedule[i].endMin
         const gapEnd = schedule[i + 1].startMin
-        if (gapEnd - gapStart >= snack.duration + 20) {
-          const snackStart = gapStart + 10
+        
+        // Check if previous item is a main meal — enforce 90-minute gap
+        const prevIsMeal = schedule[i].mealSlot && ['breakfast', 'lunch', 'dinner'].includes(schedule[i].mealSlot)
+        const minGapAfterMeal = prevIsMeal ? 90 : 10
+        
+        // Check if next item is a main meal — enforce 2-hour gap before it
+        const nextIsMeal = schedule[i + 1].mealSlot && ['breakfast', 'lunch', 'dinner'].includes(schedule[i + 1].mealSlot)
+        const minGapBeforeMeal = nextIsMeal ? 120 : 10
+        
+        const requiredGap = minGapAfterMeal + minGapBeforeMeal + snack.duration
+        if (gapEnd - gapStart >= requiredGap) {
+          const snackStart = gapStart + minGapAfterMeal
           if (isOpenDuring(snack, snackStart) || !snack.openTime) {
             schedule.splice(i + 1, 0, {
               attraction: snack,
@@ -974,7 +1005,11 @@ export function generateItinerary(
       }
       if (!inserted && schedule.length > 0) {
         const lastEnd = schedule[schedule.length - 1].endMin
-        const snackStart = lastEnd + 10
+        const lastItem = schedule[schedule.length - 1]
+        const lastIsMeal = lastItem.mealSlot && ['breakfast', 'lunch', 'dinner'].includes(lastItem.mealSlot)
+        const minGapAfterLast = lastIsMeal ? 90 : 10
+        
+        const snackStart = lastEnd + minGapAfterLast
         if (snackStart + snack.duration <= DAY_END) {
           schedule.push({
             attraction: snack,
