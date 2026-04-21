@@ -768,9 +768,15 @@ app.get('*', (_req, res) => {
 
 /* ═══════════════════════ Init ═══════════════════════ */
 
-initDB()
-app.listen(PORT, () => {
-  console.log(`\n  🚀 API Server running at http://localhost:${PORT}`)
-  console.log(`  📦 Database: server/data/pois.db`)
-  console.log(`  🔑 API Key: ${getApiKey() ? 'configured' : '⚠ NOT configured'}\n`)
-})
+// When running on Vercel, the serverless function entry point handles init.
+// When running locally, start the server directly.
+if (!process.env.VERCEL) {
+  initDB()
+  app.listen(PORT, () => {
+    console.log(`\n  🚀 API Server running at http://localhost:${PORT}`)
+    console.log(`  📦 Database: server/data/pois.db`)
+    console.log(`  🔑 API Key: ${getApiKey() ? 'configured' : '⚠ NOT configured'}\n`)
+  })
+}
+
+export default app

@@ -981,11 +981,11 @@ export function generateItinerary(
         const gapEnd = schedule[i + 1].startMin
         
         // Check if previous item is a main meal — enforce 90-minute gap
-        const prevIsMeal = schedule[i].mealSlot && ['breakfast', 'lunch', 'dinner'].includes(schedule[i].mealSlot)
+        const prevIsMeal = schedule[i].mealSlot && ['breakfast', 'lunch', 'dinner'].includes(schedule[i].mealSlot as string)
         const minGapAfterMeal = prevIsMeal ? 90 : 10
         
         // Check if next item is a main meal — enforce 2-hour gap before it
-        const nextIsMeal = schedule[i + 1].mealSlot && ['breakfast', 'lunch', 'dinner'].includes(schedule[i + 1].mealSlot)
+        const nextIsMeal = schedule[i + 1].mealSlot && ['breakfast', 'lunch', 'dinner'].includes(schedule[i + 1].mealSlot as string)
         const minGapBeforeMeal = nextIsMeal ? 120 : 10
         
         const requiredGap = minGapAfterMeal + minGapBeforeMeal + snack.duration
