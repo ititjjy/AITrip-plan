@@ -32,10 +32,10 @@ dotenv.config({ path: path.join(__dirname, '..', '.env.local') })
 
 const BATCH_SIZE = 3                      // 每天刷新城市数
 const API_DELAY_MS = 5_000                // 城市之间等待间隔（避免限流）
-const CATEGORY_DELAY_MS = 2_000           // 同城市分类之间等待间隔
-const API_TIMEOUT_MS = 90_000             // 单个分类 API 超时
+const CATEGORY_DELAY_MS = 3_000           // 同城市分类之间等待间隔
+const API_TIMEOUT_MS = 180_000            // 单个分类 API 超时（3分钟，AI生成50个POI可能较慢）
 const RETRY_COUNT = 2                     // 失败重试次数
-const RETRY_DELAY_MS = 10_000             // 重试间隔
+const RETRY_DELAY_MS = 15_000             // 重试间隔
 
 /* ═══════════════════════ 路径与数据库 ═══════════════════════ */
 
@@ -323,6 +323,29 @@ async function main() {
   if (!API_KEY) {
     log('ERROR: No API key found. Exiting.')
     process.exit(1)
+  }
+
+  // ── 快速检测API连通性 ──
+  log('Testing API connectivity...')
+  try {
+    const testController = new AbortController()
+    const testTimeout = setTimeout(() => testController.abort(), 30_000)
+    const testRes = await fetch(DASHSCOPE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+      body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 5 }),
+      signal: testController.signal,
+    })
+    clearTimeout(testTimeout)
+    if (!testRes.ok) {
+      const errData = await testRes.json().catch(() => ({}))
+      log(`WARNING: API test returned HTTP ${testRes.status}: ${errData.error?.message || 'unknown'}`)
+    } else {
+      log('API connectivity test passed ✓')
+    }
+  } catch (err) {
+    log(`WARNING: API connectivity test failed: ${err.message}`)
+    log('This may indicate network issues or API service downtime.')
   }
 
   // 加载城市列表
