@@ -86,7 +86,8 @@ npm run build 2>&1 || {
 # ── 5. 重启服务 ──
 echo ""
 echo -e "${CYAN}[5/6] 重启 PM2 服务...${NC}"
-pm2 restart aitrip 2>&1 || {
+pm2 delete aitrip 2>/dev/null
+pm2 start ecosystem.config.cjs --env production 2>&1 || {
     echo -e "${RED}✗ 服务重启失败${NC}"
     exit 1
 }

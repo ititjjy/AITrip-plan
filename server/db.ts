@@ -25,6 +25,8 @@ const DB_DIR = isVercel
     : path.join(__dirname, 'data')
 const DB_PATH = path.join(DB_DIR, 'pois.db')
 
+export { DB_PATH }
+
 let db: Database.Database
 
 export function initDB() {
