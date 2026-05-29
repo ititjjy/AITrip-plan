@@ -476,5 +476,5 @@ export async function fetchPOIsFromQwen(
     console.log(`  [Dedup] ${cityName}: 无重复POI`)
   }
 
-  return dedupedPois
+  return dedupedPois as POI[]
 }

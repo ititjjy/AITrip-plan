@@ -10,3 +10,4 @@ server/data/
 .vercel
 .vercel-tmp/
 deploy-package.zip
+dist-server/

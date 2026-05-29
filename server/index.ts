@@ -41,6 +41,7 @@ import {
   saveVerifyCode, verifyCode,
   createBooking, getUserBookings, getBookingById, updateBookingStatus, cancelBooking,
   saveMicroNote, getTripMicroNotes, getMicroNoteById, deleteMicroNote,
+  DB_PATH,
 } from './db.js'
 import { fetchPOIsFromQwen } from './qwen.js'
 import { fetchHotelsFromQwen } from './qwen-hotels.js'
@@ -111,7 +112,7 @@ app.get('/api/pois/:cityId', async (req, res) => {
       const refreshing = ageMs >= FRESH_TTL_MS
       if (refreshing) backgroundRefresh(cityId, cityName, cityNameEn, season)
       // 对缓存数据也执行去重（兼容旧缓存中存在的重复）
-      const { pois: dedupedCached, stats } = deduplicatePOIs(cached)
+      const { pois: dedupedCached, stats } = deduplicatePOIs(cached as any[])
       if (stats.removedCount > 0) {
         console.log(`[Dedup/Cache] ${cityName}: 缓存去重移除 ${stats.removedCount} 个重复POI`)
       }
@@ -120,7 +121,7 @@ app.get('/api/pois/:cityId', async (req, res) => {
     const apiKey = getApiKey()
     if (!apiKey) {
       if (cached) {
-        const { pois: dedupedCached } = deduplicatePOIs(cached)
+        const { pois: dedupedCached } = deduplicatePOIs(cached as any[])
         return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: false, warning: 'API Key not configured' })
       }
       return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key' })
@@ -132,7 +133,7 @@ app.get('/api/pois/:cityId', async (req, res) => {
   } catch (err) {
     const cached = getCachedPOIs(cityId, season)
     if (cached) {
-      const { pois: dedupedCached } = deduplicatePOIs(cached)
+      const { pois: dedupedCached } = deduplicatePOIs(cached as any[])
       return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: false, warning: 'API failed, cached data' })
     }
     return res.status(500).json({ success: false, error: 'API_ERROR', message: (err as Error).message })
@@ -779,5 +780,4 @@ if (!process.env.VERCEL) {
   })
 }
 
-export default app
 export default app
