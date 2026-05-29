@@ -15,9 +15,9 @@ import {
 } from 'lucide-react'
 import type {
   ReviewSummary, CityReviewSummary, CityReviewDetail,
-  ReviewPOI, PublishResult, POIReviewStatus, Season,
+  ReviewPOI, PublishResult, POIReviewStatus,
 } from '../types'
-import { L1_LABELS, SEASON_LABELS } from '../types'
+import { L1_LABELS } from '../types'
 
 /* ── Status helpers ── */
 
@@ -25,10 +25,6 @@ const STATUS_BADGE: Record<POIReviewStatus, { variant: 'success' | 'warning' | '
   new: { variant: 'success', label: '新入库' },
   updated: { variant: 'warning', label: '有更新' },
   published: { variant: 'secondary', label: '已发布' },
-}
-
-const SEASON_LABEL_MAP: Record<string, string> = {
-  spring: '春季', summer: '夏季', autumn: '秋季', winter: '冬季',
 }
 
 /* ══════════════════════ Main Component ══════════════════════ */
@@ -100,7 +96,7 @@ export default function ReviewQueue() {
       }
     } catch (err: any) {
       setPublishResult({
-        cityId: body.cityId as string, season: '', publishedCount: 0,
+        cityId: body.cityId as string, publishedCount: 0,
         totalServerPOIs: 0, validationPassed: false,
         validationMessage: err.message || '发布失败',
       })
@@ -158,10 +154,6 @@ export default function ReviewQueue() {
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>当前季节:</span>
-          <Badge variant="info">
-            {SEASON_LABEL_MAP[summary?.season || 'spring'] || summary?.season}
-          </Badge>
           <Button variant="outline" size="sm" onClick={fetchSummary} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             刷新
@@ -290,7 +282,6 @@ export default function ReviewQueue() {
       {confirmDialog && (
         <ConfirmDialog
           {...confirmDialog}
-          season={summary?.season || 'spring'}
           publishing={publishing}
           onConfirm={() => {
             if (confirmDialog.type === 'city') {
@@ -306,7 +297,7 @@ export default function ReviewQueue() {
                 fetchSummary()
                 setSelectedCities(new Set())
                 setPublishResult({
-                  cityId: cityIds.join(', '), season: summary?.season || '',
+                  cityId: cityIds.join(', '),
                   publishedCount: cityIds.length, totalServerPOIs: 0,
                   validationPassed: true, validationMessage: `成功发布 ${cityIds.length} 个城市`,
                 })
@@ -314,7 +305,7 @@ export default function ReviewQueue() {
                 setPublishing(false)
               }).catch(() => {
                 setPublishResult({
-                  cityId: '', season: '', publishedCount: 0, totalServerPOIs: 0,
+                  cityId: '', publishedCount: 0, totalServerPOIs: 0,
                   validationPassed: false, validationMessage: '部分城市发布失败',
                 })
                 setConfirmDialog(null)
@@ -470,11 +461,10 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
 
 /* ══════════════════════ Confirm Dialog ══════════════════════ */
 
-function ConfirmDialog({ type, count, season, publishing, onConfirm, onCancel }: {
-  type: string; count: number; season: string; publishing: boolean
+function ConfirmDialog({ type, count, publishing, onConfirm, onCancel }: {
+  type: string; count: number; publishing: boolean
   onConfirm: () => void; onCancel: () => void
 }) {
-  const seasonLabel = SEASON_LABEL_MAP[season] || season
   const title = type === 'city' ? '发布整个城市'
     : type === 'pois' ? '发布选中 POI'
     : '发布选中城市'
@@ -491,7 +481,6 @@ function ConfirmDialog({ type, count, season, publishing, onConfirm, onCancel }:
         <CardContent className="space-y-4">
           <div className="text-sm text-muted-foreground">
             <p>即将发布 <strong>{count}</strong> {type === 'selected-cities' ? '个城市' : '个 POI'} 到 Server DB。</p>
-            <p className="mt-2">目标季节: <Badge variant="info">{seasonLabel}</Badge></p>
             <p className="mt-2 text-amber-600">
               此操作将覆盖服务端已有的当前季节数据，请确认数据已经过审核。
             </p>

@@ -203,7 +203,10 @@ async function queryOverpass(query: string): Promise<any[]> {
   try {
     const response = await fetch(OVERPASS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'POI-Agent/1.0 (travel-planner)',
+      },
       body: `data=${encodeURIComponent(query)}`,
       signal: controller.signal,
     })

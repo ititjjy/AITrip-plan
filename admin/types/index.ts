@@ -187,7 +187,6 @@ export interface ReviewPOI extends POI {
 }
 
 export interface ReviewSummary {
-  season: string
   cities: CityReviewSummary[]
   totals: { newPOIs: number; updatedPOIs: number; totalPending: number }
 }
@@ -195,14 +194,12 @@ export interface ReviewSummary {
 export interface CityReviewDetail {
   cityId: string
   cityName: string
-  season: string
   pois: ReviewPOI[]
   summary: { new: number; updated: number; published: number; total: number }
 }
 
 export interface PublishResult {
   cityId: string
-  season: string
   publishedCount: number
   totalServerPOIs: number
   validationPassed: boolean

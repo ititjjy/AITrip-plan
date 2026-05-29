@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/badge'
 import { Skeleton } from '../components/ui/skeleton'
 import { ArrowLeft, MapPin, Star, Clock, Tag, Image, Info, RefreshCw, Upload, CheckCircle } from 'lucide-react'
 import type { POIDetail, FieldSource, POIReviewStatus } from '../types'
-import { L1_LABELS, SEASON_LABELS, type Season } from '../types'
+import { L1_LABELS } from '../types'
 
 const REVIEW_STATUS_CONFIG: Record<POIReviewStatus, { label: string; className: string; desc: string }> = {
   new:       { label: '新入库 · 待审核', className: 'bg-emerald-100 text-emerald-800 border-emerald-300', desc: '该 POI 为新采集数据，尚未发布到网站' },
@@ -140,17 +140,12 @@ export default function POIDetailPage() {
       {/* Review Status Card (only for pending POIs) */}
       {poi.reviewStatus && poi.reviewStatus !== 'published' && (
         <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <Info className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="font-semibold text-amber-900">{REVIEW_STATUS_CONFIG[poi.reviewStatus].label}</p>
-                <p className="text-sm text-amber-700">{REVIEW_STATUS_CONFIG[poi.reviewStatus].desc}</p>
-              </div>
+          <CardContent className="flex items-center gap-3 py-4">
+            <Info className="h-5 w-5 text-amber-600" />
+            <div>
+              <p className="font-semibold text-amber-900">{REVIEW_STATUS_CONFIG[poi.reviewStatus].label}</p>
+              <p className="text-sm text-amber-700">{REVIEW_STATUS_CONFIG[poi.reviewStatus].desc}</p>
             </div>
-            <Badge variant="outline" className="text-amber-700 border-amber-300">
-              {SEASON_LABELS[(poi as any)._season as Season]?.zh || '当前季节'}
-            </Badge>
           </CardContent>
         </Card>
       )}
