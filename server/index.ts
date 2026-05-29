@@ -50,6 +50,7 @@ import {
   hashPassword, verifyPassword, createToken,
   optionalAuth, requireAuth, generateVerificationCode,
 } from './auth.js'
+import adminRoutes from './admin-routes.js'
 
 dotenv.config({ path: '.env.local' })
 
@@ -78,25 +79,29 @@ function getApiKey(): string | null {
 
 const refreshingCities = new Set<string>()
 
-async function backgroundRefresh(cityId: string, cityName: string, cityNameEn: string, season: string) {
-  const key = `${cityId}_${season}`
-  if (refreshingCities.has(key)) return
-  refreshingCities.add(key)
+async function backgroundRefresh(cityId: string, cityName: string, cityNameEn: string) {
+  if (refreshingCities.has(cityId)) return
+  refreshingCities.add(cityId)
   try {
     const apiKey = getApiKey()
     if (!apiKey) return
+    const season = getCurrentSeason()
     console.log(`[BG Refresh] ${cityName} (${season}) — fetching from Qwen...`)
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
     if (pois.length > 0) {
-      upsertPOIs(cityId, season, pois)
+      upsertPOIs(cityId, pois)
       console.log(`[BG Refresh] ${cityName} (${season}) — saved ${pois.length} POIs`)
     }
   } catch (err) {
-    console.error(`[BG Refresh] ${cityName} (${season}) — failed:`, err)
+    console.error(`[BG Refresh] ${cityName} — failed:`, err)
   } finally {
-    refreshingCities.delete(key)
+    refreshingCities.delete(cityId)
   }
 }
+
+/* ═══════════════════════ Admin Routes ═══════════════════════ */
+
+app.use('/api/admin', adminRoutes)
 
 /* ═══════════════════════ POI Routes (existing) ═══════════════════════ */
 
@@ -106,19 +111,19 @@ app.get('/api/pois/:cityId', async (req, res) => {
   const cityNameEn = (req.query.cityNameEn as string) || cityId
   const season = getCurrentSeason()
   try {
-    const cached = getCachedPOIs(cityId, season)
-    const ageMs = getCacheAge(cityId, season)
+    const cached = getCachedPOIs(cityId)
+    const ageMs = getCacheAge(cityId)
     if (cached && ageMs !== null) {
       const isStale = ageMs >= STALE_TTL_MS
       const needsRefresh = ageMs >= FRESH_TTL_MS
       // 即使缓存过期也先返回旧数据，后台异步刷新
-      if (needsRefresh) backgroundRefresh(cityId, cityName, cityNameEn, season)
+      if (needsRefresh) backgroundRefresh(cityId, cityName, cityNameEn)
       // 对缓存数据也执行去重（兼容旧缓存中存在的重复）
       const { pois: dedupedCached, stats } = deduplicatePOIs(cached as any[])
       if (stats.removedCount > 0) {
         console.log(`[Dedup/Cache] ${cityName}: 缓存去重移除 ${stats.removedCount} 个重复POI`)
       }
-      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: needsRefresh, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), dedupStats: stats.removedCount > 0 ? stats : undefined, stale: isStale })
+      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: needsRefresh, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), dedupStats: stats.removedCount > 0 ? stats : undefined, stale: isStale, currentSeason: season })
     }
     const apiKey = getApiKey()
     if (!apiKey) {
@@ -126,13 +131,13 @@ app.get('/api/pois/:cityId', async (req, res) => {
     }
     console.log(`[API] Fetching POIs for ${cityName} (${season})...`)
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
-    if (pois.length > 0) upsertPOIs(cityId, season, pois)
-    return res.json({ success: true, data: pois, fromCache: false, refreshing: false })
+    if (pois.length > 0) upsertPOIs(cityId, pois)
+    return res.json({ success: true, data: pois, fromCache: false, refreshing: false, currentSeason: season })
   } catch (err) {
-    const cached = getCachedPOIs(cityId, season)
+    const cached = getCachedPOIs(cityId)
     if (cached) {
       const { pois: dedupedCached } = deduplicatePOIs(cached as any[])
-      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: false, warning: 'API failed, cached data' })
+      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: false, warning: 'API failed, cached data', currentSeason: season })
     }
     return res.status(500).json({ success: false, error: 'API_ERROR', message: (err as Error).message })
   }
@@ -147,8 +152,8 @@ app.post('/api/pois/:cityId/refresh', async (req, res) => {
   if (!apiKey) return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 API Key' })
   try {
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
-    if (pois.length > 0) upsertPOIs(cityId, season, pois)
-    return res.json({ success: true, data: pois, fromCache: false, refreshing: false })
+    if (pois.length > 0) upsertPOIs(cityId, pois)
+    return res.json({ success: true, data: pois, fromCache: false, refreshing: false, currentSeason: season })
   } catch (err) {
     return res.status(500).json({ success: false, error: 'API_ERROR', message: (err as Error).message })
   }
@@ -760,8 +765,11 @@ const distPath = path.join(__dirname, '..', 'dist')
 // Serve Vite build output
 app.use(express.static(distPath))
 
-// SPA fallback: any non-API route → index.html
-app.get('{*path}', (_req, res) => {
+// SPA fallback: any non-API route → index.html or admin.html
+app.get('{*path}', (req, res) => {
+  if (req.path.startsWith('/admin')) {
+    return res.sendFile(path.join(distPath, 'admin.html'))
+  }
   res.sendFile(path.join(distPath, 'index.html'))
 })
 

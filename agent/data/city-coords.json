@@ -1,0 +1,1202 @@
+{
+  "sanya": {
+    "lat": 18.2528,
+    "lng": 109.512,
+    "isDomestic": true,
+    "country": "海南"
+  },
+  "chengdu": {
+    "lat": 30.5728,
+    "lng": 104.0668,
+    "isDomestic": true,
+    "country": "四川"
+  },
+  "hangzhou": {
+    "lat": 30.2741,
+    "lng": 120.1551,
+    "isDomestic": true,
+    "country": "浙江"
+  },
+  "chongqing": {
+    "lat": 29.563,
+    "lng": 106.5516,
+    "isDomestic": true,
+    "country": "重庆"
+  },
+  "beijing": {
+    "lat": 39.9042,
+    "lng": 116.4074,
+    "isDomestic": true,
+    "country": "北京"
+  },
+  "shanghai": {
+    "lat": 31.2304,
+    "lng": 121.4737,
+    "isDomestic": true,
+    "country": "上海"
+  },
+  "xian": {
+    "lat": 34.3416,
+    "lng": 108.9398,
+    "isDomestic": true,
+    "country": "陕西"
+  },
+  "xiamen": {
+    "lat": 24.4798,
+    "lng": 118.0894,
+    "isDomestic": true,
+    "country": "福建"
+  },
+  "dali": {
+    "lat": 25.6065,
+    "lng": 100.2676,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "lijiang": {
+    "lat": 26.8721,
+    "lng": 100.2299,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "guilin": {
+    "lat": 25.2742,
+    "lng": 110.29,
+    "isDomestic": true,
+    "country": "广西"
+  },
+  "suzhou": {
+    "lat": 31.2989,
+    "lng": 120.5853,
+    "isDomestic": true,
+    "country": "江苏"
+  },
+  "nanjing": {
+    "lat": 32.0603,
+    "lng": 118.7969,
+    "isDomestic": true,
+    "country": "江苏"
+  },
+  "qingdao": {
+    "lat": 36.0671,
+    "lng": 120.3826,
+    "isDomestic": true,
+    "country": "山东"
+  },
+  "changsha": {
+    "lat": 28.2282,
+    "lng": 112.9388,
+    "isDomestic": true,
+    "country": "湖南"
+  },
+  "wuhan": {
+    "lat": 30.5928,
+    "lng": 114.3055,
+    "isDomestic": true,
+    "country": "湖北"
+  },
+  "lasa": {
+    "lat": 29.65,
+    "lng": 91.1,
+    "isDomestic": true,
+    "country": "西藏"
+  },
+  "zhangjiajie": {
+    "lat": 29.117,
+    "lng": 110.4793,
+    "isDomestic": true,
+    "country": "湖南"
+  },
+  "huangshan": {
+    "lat": 30.1313,
+    "lng": 118.168,
+    "isDomestic": true,
+    "country": "安徽"
+  },
+  "kunming": {
+    "lat": 25.0389,
+    "lng": 102.7183,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "guangzhou": {
+    "lat": 23.1291,
+    "lng": 113.2644,
+    "isDomestic": true,
+    "country": "广东"
+  },
+  "shenzhen": {
+    "lat": 22.5431,
+    "lng": 114.0579,
+    "isDomestic": true,
+    "country": "广东"
+  },
+  "tianjin": {
+    "lat": 39.0842,
+    "lng": 117.1993,
+    "isDomestic": true,
+    "country": "天津"
+  },
+  "ningbo": {
+    "lat": 29.8683,
+    "lng": 121.544,
+    "isDomestic": true,
+    "country": "浙江"
+  },
+  "quanzhou": {
+    "lat": 24.8915,
+    "lng": 118.6735,
+    "isDomestic": true,
+    "country": "福建"
+  },
+  "luoyang": {
+    "lat": 34.6634,
+    "lng": 112.4342,
+    "isDomestic": true,
+    "country": "河南"
+  },
+  "kaifeng": {
+    "lat": 34.7923,
+    "lng": 114.3019,
+    "isDomestic": true,
+    "country": "河南"
+  },
+  "wuzhen": {
+    "lat": 30.8475,
+    "lng": 120.5429,
+    "isDomestic": true,
+    "country": "浙江"
+  },
+  "yangshuo": {
+    "lat": 25.2502,
+    "lng": 110.2825,
+    "isDomestic": true,
+    "country": "广西"
+  },
+  "beihai": {
+    "lat": 21.4837,
+    "lng": 109.1149,
+    "isDomestic": true,
+    "country": "广西"
+  },
+  "jiuzhaigou": {
+    "lat": 33.2192,
+    "lng": 103.8267,
+    "isDomestic": true,
+    "country": "四川"
+  },
+  "hulunbuir": {
+    "lat": 49.1926,
+    "lng": 119.7444,
+    "isDomestic": true,
+    "country": "内蒙古"
+  },
+  "xianggelila": {
+    "lat": 27.8123,
+    "lng": 99.7048,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "xishuangbanna": {
+    "lat": 22.0005,
+    "lng": 100.7942,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "weizhoudao": {
+    "lat": 21.0998,
+    "lng": 109.1241,
+    "isDomestic": true,
+    "country": "广西"
+  },
+  "yantai": {
+    "lat": 37.4722,
+    "lng": 121.4402,
+    "isDomestic": true,
+    "country": "山东"
+  },
+  "qinhuangdao": {
+    "lat": 39.9342,
+    "lng": 119.5843,
+    "isDomestic": true,
+    "country": "河北"
+  },
+  "hongcun": {
+    "lat": 29.8775,
+    "lng": 117.9737,
+    "isDomestic": true,
+    "country": "安徽"
+  },
+  "pingyao": {
+    "lat": 37.1907,
+    "lng": 112.172,
+    "isDomestic": true,
+    "country": "山西"
+  },
+  "dandong": {
+    "lat": 40.1292,
+    "lng": 124.3741,
+    "isDomestic": true,
+    "country": "辽宁"
+  },
+  "yichang": {
+    "lat": 30.6988,
+    "lng": 111.282,
+    "isDomestic": true,
+    "country": "湖北"
+  },
+  "zhuhai": {
+    "lat": 22.2708,
+    "lng": 113.5569,
+    "isDomestic": true,
+    "country": "广东"
+  },
+  "lanzhou": {
+    "lat": 36.0611,
+    "lng": 103.8343,
+    "isDomestic": true,
+    "country": "甘肃"
+  },
+  "zhangye": {
+    "lat": 38.9222,
+    "lng": 100.4503,
+    "isDomestic": true,
+    "country": "甘肃"
+  },
+  "dunhuang": {
+    "lat": 40.1421,
+    "lng": 94.6618,
+    "isDomestic": true,
+    "country": "甘肃"
+  },
+  "harbin": {
+    "lat": 45.7575,
+    "lng": 126.6521,
+    "isDomestic": true,
+    "country": "黑龙江"
+  },
+  "jilin": {
+    "lat": 43.8362,
+    "lng": 126.5561,
+    "isDomestic": true,
+    "country": "吉林"
+  },
+  "shenyang": {
+    "lat": 41.7921,
+    "lng": 123.4326,
+    "isDomestic": true,
+    "country": "辽宁"
+  },
+  "changchun": {
+    "lat": 43.8171,
+    "lng": 125.3235,
+    "isDomestic": true,
+    "country": "吉林"
+  },
+  "xuzhou": {
+    "lat": 34.2616,
+    "lng": 117.1846,
+    "isDomestic": true,
+    "country": "江苏"
+  },
+  "nanchang": {
+    "lat": 28.6765,
+    "lng": 115.8922,
+    "isDomestic": true,
+    "country": "江西"
+  },
+  "shaoxing": {
+    "lat": 30.0442,
+    "lng": 120.5849,
+    "isDomestic": true,
+    "country": "浙江"
+  },
+  "jingdezhen": {
+    "lat": 29.2924,
+    "lng": 117.2165,
+    "isDomestic": true,
+    "country": "江西"
+  },
+  "tongli": {
+    "lat": 31.1598,
+    "lng": 120.7257,
+    "isDomestic": true,
+    "country": "江苏"
+  },
+  "zhengzhou": {
+    "lat": 34.7466,
+    "lng": 113.6254,
+    "isDomestic": true,
+    "country": "河南"
+  },
+  "hohhot": {
+    "lat": 40.8185,
+    "lng": 111.6707,
+    "isDomestic": true,
+    "country": "内蒙古"
+  },
+  "xining": {
+    "lat": 36.6232,
+    "lng": 101.7777,
+    "isDomestic": true,
+    "country": "青海"
+  },
+  "yinchuan": {
+    "lat": 38.4831,
+    "lng": 106.2713,
+    "isDomestic": true,
+    "country": "宁夏"
+  },
+  "wulumuqi": {
+    "lat": 43.8257,
+    "lng": 87.6173,
+    "isDomestic": true,
+    "country": "新疆"
+  },
+  "jiujiang": {
+    "lat": 29.7139,
+    "lng": 115.9825,
+    "isDomestic": true,
+    "country": "江西"
+  },
+  "yibin": {
+    "lat": 28.758,
+    "lng": 104.6332,
+    "isDomestic": true,
+    "country": "四川"
+  },
+  "baotou": {
+    "lat": 40.6564,
+    "lng": 109.8417,
+    "isDomestic": true,
+    "country": "内蒙古"
+  },
+  "qufu": {
+    "lat": 35.5923,
+    "lng": 116.9925,
+    "isDomestic": true,
+    "country": "山东"
+  },
+  "hefei": {
+    "lat": 31.8206,
+    "lng": 117.2272,
+    "isDomestic": true,
+    "country": "安徽"
+  },
+  "lishan": {
+    "lat": 23.8728,
+    "lng": 120.8927,
+    "isDomestic": true,
+    "country": "台湾"
+  },
+  "zunyi": {
+    "lat": 27.6948,
+    "lng": 106.9333,
+    "isDomestic": true,
+    "country": "贵州"
+  },
+  "datong": {
+    "lat": 40.078,
+    "lng": 113.3017,
+    "isDomestic": true,
+    "country": "山西"
+  },
+  "kashgar": {
+    "lat": 39.4711,
+    "lng": 75.9889,
+    "isDomestic": true,
+    "country": "新疆"
+  },
+  "shantou": {
+    "lat": 23.3541,
+    "lng": 116.682,
+    "isDomestic": true,
+    "country": "广东"
+  },
+  "wuyishan": {
+    "lat": 27.7575,
+    "lng": 118.0172,
+    "isDomestic": true,
+    "country": "福建"
+  },
+  "tengchong": {
+    "lat": 25.0227,
+    "lng": 98.49,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "jinhua": {
+    "lat": 29.0788,
+    "lng": 119.6473,
+    "isDomestic": true,
+    "country": "浙江"
+  },
+  "binzhou": {
+    "lat": 37.3833,
+    "lng": 118.0222,
+    "isDomestic": true,
+    "country": "山东"
+  },
+  "fuzhou": {
+    "lat": 26.0753,
+    "lng": 119.3062,
+    "isDomestic": true,
+    "country": "福建"
+  },
+  "hengyang": {
+    "lat": 27.2142,
+    "lng": 112.624,
+    "isDomestic": true,
+    "country": "湖南"
+  },
+  "liaocheng": {
+    "lat": 36.4453,
+    "lng": 115.978,
+    "isDomestic": true,
+    "country": "山东"
+  },
+  "baiyin": {
+    "lat": 36.5542,
+    "lng": 104.1815,
+    "isDomestic": true,
+    "country": "甘肃"
+  },
+  "jixi": {
+    "lat": 45.2972,
+    "lng": 130.9799,
+    "isDomestic": true,
+    "country": "黑龙江"
+  },
+  "guiyang": {
+    "lat": 26.647,
+    "lng": 106.63,
+    "isDomestic": true,
+    "country": "贵州"
+  },
+  "libo": {
+    "lat": 25.409,
+    "lng": 107.883,
+    "isDomestic": true,
+    "country": "贵州"
+  },
+  "wuyuan": {
+    "lat": 29.234,
+    "lng": 117.876,
+    "isDomestic": true,
+    "country": "江西"
+  },
+  "daocheng": {
+    "lat": 29.042,
+    "lng": 100.25,
+    "isDomestic": true,
+    "country": "四川"
+  },
+  "sedan": {
+    "lat": 32.029,
+    "lng": 100.307,
+    "isDomestic": true,
+    "country": "四川"
+  },
+  "waning": {
+    "lat": 18.797,
+    "lng": 110.388,
+    "isDomestic": true,
+    "country": "海南"
+  },
+  "fenghuang": {
+    "lat": 27.943,
+    "lng": 109.607,
+    "isDomestic": true,
+    "country": "湖南"
+  },
+  "luguhu": {
+    "lat": 27.794,
+    "lng": 101.23,
+    "isDomestic": true,
+    "country": "云南"
+  },
+  "lishui": {
+    "lat": 28.452,
+    "lng": 119.923,
+    "isDomestic": true,
+    "country": "浙江"
+  },
+  "xiapu": {
+    "lat": 26.887,
+    "lng": 120.032,
+    "isDomestic": true,
+    "country": "福建"
+  },
+  "yanji": {
+    "lat": 42.913,
+    "lng": 129.517,
+    "isDomestic": true,
+    "country": "吉林"
+  },
+  "mohe": {
+    "lat": 53.524,
+    "lng": 122.537,
+    "isDomestic": true,
+    "country": "黑龙江"
+  },
+  "yili": {
+    "lat": 43.922,
+    "lng": 81.326,
+    "isDomestic": true,
+    "country": "新疆"
+  },
+  "foshan": {
+    "lat": 23.023,
+    "lng": 113.123,
+    "isDomestic": true,
+    "country": "广东"
+  },
+  "dalian": {
+    "lat": 38.914,
+    "lng": 121.619,
+    "isDomestic": true,
+    "country": "辽宁"
+  },
+  "taiyuan": {
+    "lat": 37.87,
+    "lng": 112.549,
+    "isDomestic": true,
+    "country": "山西"
+  },
+  "wuxi": {
+    "lat": 31.575,
+    "lng": 120.297,
+    "isDomestic": true,
+    "country": "江苏"
+  },
+  "yangzhou": {
+    "lat": 32.393,
+    "lng": 119.415,
+    "isDomestic": true,
+    "country": "江苏"
+  },
+  "chaozhou": {
+    "lat": 23.667,
+    "lng": 116.622,
+    "isDomestic": true,
+    "country": "广东"
+  },
+  "weihai": {
+    "lat": 37.507,
+    "lng": 122.113,
+    "isDomestic": true,
+    "country": "山东"
+  },
+  "haikou": {
+    "lat": 20.044,
+    "lng": 110.199,
+    "isDomestic": true,
+    "country": "海南"
+  },
+  "yabuli": {
+    "lat": 44.62,
+    "lng": 128.5,
+    "isDomestic": true,
+    "country": "黑龙江"
+  },
+  "tokyo": {
+    "lat": 35.6762,
+    "lng": 139.6503,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "kyoto": {
+    "lat": 35.0116,
+    "lng": 135.7681,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "osaka": {
+    "lat": 34.6937,
+    "lng": 135.5023,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "hokkaido": {
+    "lat": 43.0621,
+    "lng": 141.3544,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "bangkok": {
+    "lat": 13.7563,
+    "lng": 100.5018,
+    "isDomestic": false,
+    "country": "泰国"
+  },
+  "chiangmai": {
+    "lat": 18.7883,
+    "lng": 98.9853,
+    "isDomestic": false,
+    "country": "泰国"
+  },
+  "phuket": {
+    "lat": 7.8804,
+    "lng": 98.3923,
+    "isDomestic": false,
+    "country": "泰国"
+  },
+  "seoul": {
+    "lat": 37.5665,
+    "lng": 126.978,
+    "isDomestic": false,
+    "country": "韩国"
+  },
+  "jeju": {
+    "lat": 33.4996,
+    "lng": 126.5312,
+    "isDomestic": false,
+    "country": "韩国"
+  },
+  "bali": {
+    "lat": -8.3405,
+    "lng": 115.092,
+    "isDomestic": false,
+    "country": "印度尼西亚"
+  },
+  "paris": {
+    "lat": 48.8566,
+    "lng": 2.3522,
+    "isDomestic": false,
+    "country": "法国"
+  },
+  "singapore": {
+    "lat": 1.3521,
+    "lng": 103.8198,
+    "isDomestic": false,
+    "country": "新加坡"
+  },
+  "maldives": {
+    "lat": 3.2028,
+    "lng": 73.2207,
+    "isDomestic": false,
+    "country": "马尔代夫"
+  },
+  "london": {
+    "lat": 51.5074,
+    "lng": -0.1278,
+    "isDomestic": false,
+    "country": "英国"
+  },
+  "rome": {
+    "lat": 41.9028,
+    "lng": 12.4964,
+    "isDomestic": false,
+    "country": "意大利"
+  },
+  "santorini": {
+    "lat": 36.3932,
+    "lng": 25.4615,
+    "isDomestic": false,
+    "country": "希腊"
+  },
+  "sydney": {
+    "lat": -33.8688,
+    "lng": 151.2093,
+    "isDomestic": false,
+    "country": "澳大利亚"
+  },
+  "barcelona": {
+    "lat": 41.3874,
+    "lng": 2.1686,
+    "isDomestic": false,
+    "country": "西班牙"
+  },
+  "danang": {
+    "lat": 16.0544,
+    "lng": 108.2022,
+    "isDomestic": false,
+    "country": "越南"
+  },
+  "kualalumpur": {
+    "lat": 3.139,
+    "lng": 101.6869,
+    "isDomestic": false,
+    "country": "马来西亚"
+  },
+  "hongkong": {
+    "lat": 22.3193,
+    "lng": 114.1694,
+    "isDomestic": false,
+    "country": "中国"
+  },
+  "taipei": {
+    "lat": 25.032,
+    "lng": 121.5654,
+    "isDomestic": false,
+    "country": "中国"
+  },
+  "luangprabang": {
+    "lat": 19.8975,
+    "lng": 102.1278,
+    "isDomestic": false,
+    "country": "老挝"
+  },
+  "siemreap": {
+    "lat": 13.3622,
+    "lng": 103.8599,
+    "isDomestic": false,
+    "country": "柬埔寨"
+  },
+  "colombo": {
+    "lat": 6.9271,
+    "lng": 79.8612,
+    "isDomestic": false,
+    "country": "斯里兰卡"
+  },
+  "kathmandu": {
+    "lat": 27.7172,
+    "lng": 85.324,
+    "isDomestic": false,
+    "country": "尼泊尔"
+  },
+  "vientiane": {
+    "lat": 17.9678,
+    "lng": 102.6033,
+    "isDomestic": false,
+    "country": "老挝"
+  },
+  "yangon": {
+    "lat": 16.8409,
+    "lng": 96.1735,
+    "isDomestic": false,
+    "country": "缅甸"
+  },
+  "hochiminhcity": {
+    "lat": 10.7703,
+    "lng": 106.7017,
+    "isDomestic": false,
+    "country": "越南"
+  },
+  "hanoi": {
+    "lat": 21.0278,
+    "lng": 105.8342,
+    "isDomestic": false,
+    "country": "越南"
+  },
+  "cagayan": {
+    "lat": 8.4775,
+    "lng": 124.8422,
+    "isDomestic": false,
+    "country": "菲律宾"
+  },
+  "boracay": {
+    "lat": 11.9885,
+    "lng": 121.9203,
+    "isDomestic": false,
+    "country": "菲律宾"
+  },
+  "chittagong": {
+    "lat": 22.3381,
+    "lng": 91.8218,
+    "isDomestic": false,
+    "country": "孟加拉国"
+  },
+  "jaipur": {
+    "lat": 26.9124,
+    "lng": 75.7873,
+    "isDomestic": false,
+    "country": "印度"
+  },
+  "varanasi": {
+    "lat": 25.3167,
+    "lng": 83.0122,
+    "isDomestic": false,
+    "country": "印度"
+  },
+  "kandy": {
+    "lat": 7.2906,
+    "lng": 80.6337,
+    "isDomestic": false,
+    "country": "斯里兰卡"
+  },
+  "baguio": {
+    "lat": 16.4221,
+    "lng": 120.5939,
+    "isDomestic": false,
+    "country": "菲律宾"
+  },
+  "sapporo": {
+    "lat": 43.0618,
+    "lng": 141.3545,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "nagoya": {
+    "lat": 35.1815,
+    "lng": 136.9066,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "fukuoka": {
+    "lat": 33.5904,
+    "lng": 130.4017,
+    "isDomestic": false,
+    "country": "日本"
+  },
+  "busan": {
+    "lat": 35.1796,
+    "lng": 129.0756,
+    "isDomestic": false,
+    "country": "韩国"
+  },
+  "macau": {
+    "lat": 22.1987,
+    "lng": 113.5439,
+    "isDomestic": false,
+    "country": "中国"
+  },
+  "penang": {
+    "lat": 5.4149,
+    "lng": 100.3292,
+    "isDomestic": false,
+    "country": "马来西亚"
+  },
+  "hualien": {
+    "lat": 23.9739,
+    "lng": 121.6081,
+    "isDomestic": false,
+    "country": "中国"
+  },
+  "newyork": {
+    "lat": 40.7128,
+    "lng": -74.006,
+    "isDomestic": false,
+    "country": "美国"
+  },
+  "amsterdam": {
+    "lat": 52.3676,
+    "lng": 4.9041,
+    "isDomestic": false,
+    "country": "荷兰"
+  },
+  "prague": {
+    "lat": 50.0755,
+    "lng": 14.4378,
+    "isDomestic": false,
+    "country": "捷克"
+  },
+  "lisbon": {
+    "lat": 38.7223,
+    "lng": -9.1393,
+    "isDomestic": false,
+    "country": "葡萄牙"
+  },
+  "vienna": {
+    "lat": 48.2082,
+    "lng": 16.3738,
+    "isDomestic": false,
+    "country": "奥地利"
+  },
+  "berlin": {
+    "lat": 52.52,
+    "lng": 13.405,
+    "isDomestic": false,
+    "country": "德国"
+  },
+  "reykjavik": {
+    "lat": 64.1466,
+    "lng": -21.9426,
+    "isDomestic": false,
+    "country": "冰岛"
+  },
+  "copenhaguen": {
+    "lat": 55.6761,
+    "lng": 12.5683,
+    "isDomestic": false,
+    "country": "丹麦"
+  },
+  "zurich": {
+    "lat": 47.3769,
+    "lng": 8.5417,
+    "isDomestic": false,
+    "country": "瑞士"
+  },
+  "dubrovnik": {
+    "lat": 42.6507,
+    "lng": 18.0944,
+    "isDomestic": false,
+    "country": "克罗地亚"
+  },
+  "budapest": {
+    "lat": 47.4979,
+    "lng": 19.0402,
+    "isDomestic": false,
+    "country": "匈牙利"
+  },
+  "quebec": {
+    "lat": 46.8139,
+    "lng": -71.208,
+    "isDomestic": false,
+    "country": "加拿大"
+  },
+  "vancouver": {
+    "lat": 49.2827,
+    "lng": -123.1207,
+    "isDomestic": false,
+    "country": "加拿大"
+  },
+  "mexicocity": {
+    "lat": 19.4326,
+    "lng": -99.1332,
+    "isDomestic": false,
+    "country": "墨西哥"
+  },
+  "cancun": {
+    "lat": 21.1619,
+    "lng": -86.8515,
+    "isDomestic": false,
+    "country": "墨西哥"
+  },
+  "lima": {
+    "lat": -12.0464,
+    "lng": -77.0428,
+    "isDomestic": false,
+    "country": "秘鲁"
+  },
+  "cusco": {
+    "lat": -13.5164,
+    "lng": -71.9774,
+    "isDomestic": false,
+    "country": "秘鲁"
+  },
+  "santiago": {
+    "lat": -33.4484,
+    "lng": -70.6693,
+    "isDomestic": false,
+    "country": "智利"
+  },
+  "valparaiso": {
+    "lat": -33.0458,
+    "lng": -71.6197,
+    "isDomestic": false,
+    "country": "智利"
+  },
+  "buenosaires": {
+    "lat": -34.6037,
+    "lng": -58.3816,
+    "isDomestic": false,
+    "country": "阿根廷"
+  },
+  "rio": {
+    "lat": -22.9068,
+    "lng": -43.1729,
+    "isDomestic": false,
+    "country": "巴西"
+  },
+  "salvador": {
+    "lat": -12.9714,
+    "lng": -38.5111,
+    "isDomestic": false,
+    "country": "巴西"
+  },
+  "tromso": {
+    "lat": 69.6492,
+    "lng": 18.9553,
+    "isDomestic": false,
+    "country": "挪威"
+  },
+  "stockholm": {
+    "lat": 59.3293,
+    "lng": 18.0686,
+    "isDomestic": false,
+    "country": "瑞典"
+  },
+  "helsinki": {
+    "lat": 60.1699,
+    "lng": 24.9384,
+    "isDomestic": false,
+    "country": "芬兰"
+  },
+  "krakow": {
+    "lat": 50.0647,
+    "lng": 19.945,
+    "isDomestic": false,
+    "country": "波兰"
+  },
+  "edmonton": {
+    "lat": 53.5461,
+    "lng": -113.4938,
+    "isDomestic": false,
+    "country": "加拿大"
+  },
+  "halifax": {
+    "lat": 44.6488,
+    "lng": -63.5752,
+    "isDomestic": false,
+    "country": "加拿大"
+  },
+  "santafe": {
+    "lat": 35.687,
+    "lng": -105.9378,
+    "isDomestic": false,
+    "country": "美国"
+  },
+  "dubai": {
+    "lat": 25.2769,
+    "lng": 55.2962,
+    "isDomestic": false,
+    "country": "阿联酋"
+  },
+  "cairo": {
+    "lat": 30.0444,
+    "lng": 31.2357,
+    "isDomestic": false,
+    "country": "埃及"
+  },
+  "telaviv": {
+    "lat": 32.0853,
+    "lng": 34.7818,
+    "isDomestic": false,
+    "country": "以色列"
+  },
+  "istanbul": {
+    "lat": 41.0082,
+    "lng": 28.9784,
+    "isDomestic": false,
+    "country": "土耳其"
+  },
+  "antalya": {
+    "lat": 36.8969,
+    "lng": 30.7133,
+    "isDomestic": false,
+    "country": "土耳其"
+  },
+  "cape town": {
+    "lat": -33.9249,
+    "lng": 18.4241,
+    "isDomestic": false,
+    "country": "南非"
+  },
+  "marrakech": {
+    "lat": 31.6295,
+    "lng": -7.9811,
+    "isDomestic": false,
+    "country": "摩洛哥"
+  },
+  "nairobi": {
+    "lat": -1.2864,
+    "lng": 36.8172,
+    "isDomestic": false,
+    "country": "肯尼亚"
+  },
+  "fiji": {
+    "lat": -18.1439,
+    "lng": 178.431,
+    "isDomestic": false,
+    "country": "斐济"
+  },
+  "auckland": {
+    "lat": -36.8485,
+    "lng": 174.7633,
+    "isDomestic": false,
+    "country": "新西兰"
+  },
+  "queenstown": {
+    "lat": -45.0312,
+    "lng": 168.6626,
+    "isDomestic": false,
+    "country": "新西兰"
+  },
+  "tahiti": {
+    "lat": -17.651,
+    "lng": -149.4239,
+    "isDomestic": false,
+    "country": "法属波利尼西亚"
+  },
+  "almaty": {
+    "lat": 43.2389,
+    "lng": 76.8897,
+    "isDomestic": false,
+    "country": "哈萨克斯坦"
+  },
+  "bishkek": {
+    "lat": 42.8746,
+    "lng": 74.5698,
+    "isDomestic": false,
+    "country": "吉尔吉斯斯坦"
+  },
+  "tashkent": {
+    "lat": 41.2995,
+    "lng": 69.2401,
+    "isDomestic": false,
+    "country": "乌兹别克斯坦"
+  },
+  "samarkand": {
+    "lat": 39.6541,
+    "lng": 66.9743,
+    "isDomestic": false,
+    "country": "乌兹别克斯坦"
+  },
+  "port louis": {
+    "lat": -20.1619,
+    "lng": 57.4999,
+    "isDomestic": false,
+    "country": "毛里求斯"
+  },
+  "grand baie": {
+    "lat": -20.0292,
+    "lng": 57.6372,
+    "isDomestic": false,
+    "country": "毛里求斯"
+  },
+  "petra": {
+    "lat": 30.3128,
+    "lng": 35.4729,
+    "isDomestic": false,
+    "country": "约旦"
+  },
+  "amman": {
+    "lat": 31.9539,
+    "lng": 35.9106,
+    "isDomestic": false,
+    "country": "约旦"
+  },
+  "windhoek": {
+    "lat": -22.5705,
+    "lng": 17.0834,
+    "isDomestic": false,
+    "country": "纳米比亚"
+  },
+  "zanzibar": {
+    "lat": -6.165,
+    "lng": 39.1967,
+    "isDomestic": false,
+    "country": "坦桑尼亚"
+  },
+  "luanda": {
+    "lat": -8.8382,
+    "lng": 13.2392,
+    "isDomestic": false,
+    "country": "安哥拉"
+  },
+  "astana": {
+    "lat": 51.1694,
+    "lng": 71.4491,
+    "isDomestic": false,
+    "country": "哈萨克斯坦"
+  },
+  "george town": {
+    "lat": 5.4149,
+    "lng": 100.3292,
+    "isDomestic": false,
+    "country": "马来西亚"
+  },
+  "valletta": {
+    "lat": 35.8992,
+    "lng": 14.5141,
+    "isDomestic": false,
+    "country": "马耳他"
+  },
+  "la paz": {
+    "lat": -16.5,
+    "lng": -68.15,
+    "isDomestic": false,
+    "country": "玻利维亚"
+  }
+}

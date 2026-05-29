@@ -30,6 +30,10 @@ export { DB_PATH }
 
 let db: Database.Database
 
+export function getDB(): Database.Database {
+  return db
+}
+
 export function initDB() {
   if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR, { recursive: true })
@@ -39,14 +43,12 @@ export function initDB() {
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
-  // POI cache table (existing)
+  // POI cache table (simplified: city_id single PK, seasonal data embedded in POI objects)
   db.exec(`
     CREATE TABLE IF NOT EXISTS city_pois (
-      city_id    TEXT    NOT NULL,
-      season     TEXT    NOT NULL,
+      city_id    TEXT    PRIMARY KEY,
       data       TEXT    NOT NULL,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY (city_id, season)
+      updated_at INTEGER NOT NULL
     )
   `)
 
@@ -232,30 +234,30 @@ export function deleteMicroNote(noteId: string) {
 
 /* ═══════════════════════ POI Cache (existing) ═══════════════════════ */
 
-export function getCachedPOIs(cityId: string, season: string): unknown[] | null {
+export function getCachedPOIs(cityId: string): unknown[] | null {
   const row = db.prepare(
-    'SELECT data FROM city_pois WHERE city_id = ? AND season = ?'
-  ).get(cityId, season) as { data: string } | undefined
+    'SELECT data FROM city_pois WHERE city_id = ?'
+  ).get(cityId) as { data: string } | undefined
   if (!row) return null
   try { return JSON.parse(row.data) } catch { return null }
 }
 
-export function getCacheAge(cityId: string, season: string): number | null {
+export function getCacheAge(cityId: string): number | null {
   const row = db.prepare(
-    'SELECT updated_at FROM city_pois WHERE city_id = ? AND season = ?'
-  ).get(cityId, season) as { updated_at: number } | undefined
+    'SELECT updated_at FROM city_pois WHERE city_id = ?'
+  ).get(cityId) as { updated_at: number } | undefined
   if (!row) return null
   return Date.now() - row.updated_at
 }
 
-export function upsertPOIs(cityId: string, season: string, data: unknown[]) {
+export function upsertPOIs(cityId: string, data: unknown[]) {
   db.prepare(`
-    INSERT INTO city_pois (city_id, season, data, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(city_id, season)
+    INSERT INTO city_pois (city_id, data, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(city_id)
     DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
-  `).run(cityId, season, JSON.stringify(data), Date.now())
-  console.log(`[DB] Upserted ${data.length} POIs for ${cityId}/${season}`)
+  `).run(cityId, JSON.stringify(data), Date.now())
+  console.log(`[DB] Upserted ${data.length} POIs for ${cityId}`)
 }
 
 /* ═══════════════════════ Users ═══════════════════════ */

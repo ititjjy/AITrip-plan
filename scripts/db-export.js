@@ -30,7 +30,7 @@ const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 
 // 读取 POI 缓存
-const poiRows = db.prepare('SELECT city_id, season, data, updated_at FROM city_pois').all()
+const poiRows = db.prepare('SELECT city_id, data, updated_at FROM city_pois').all()
 console.log(`  POI 缓存: ${poiRows.length} 条`)
 
 // 读取酒店缓存
@@ -41,9 +41,9 @@ console.log(`  酒店缓存: ${hotelRows.length} 条`)
 const cityStats = poiRows.map(r => {
   try {
     const items = JSON.parse(r.data)
-    return { city: r.city_id, season: r.season, count: Array.isArray(items) ? items.length : 0, updated: new Date(r.updated_at).toLocaleString('zh-CN') }
+    return { city: r.city_id, count: Array.isArray(items) ? items.length : 0, updated: new Date(r.updated_at).toLocaleString('zh-CN') }
   } catch {
-    return { city: r.city_id, season: r.season, count: 0, updated: new Date(r.updated_at).toLocaleString('zh-CN') }
+    return { city: r.city_id, count: 0, updated: new Date(r.updated_at).toLocaleString('zh-CN') }
   }
 })
 
@@ -70,5 +70,5 @@ const sizeKB = (fs.statSync(SYNC_FILE).size / 1024).toFixed(1)
 console.log(`\n✅ 导出完成: ${SYNC_FILE} (${sizeKB} KB)`)
 console.log(`\n📊 城市数据概览:`)
 for (const s of cityStats) {
-  console.log(`  • ${s.city}/${s.season}: ${s.count} 个POI (更新于 ${s.updated})`)
+  console.log(`  • ${s.city}: ${s.count} 个POI (更新于 ${s.updated})`)
 }

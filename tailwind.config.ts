@@ -5,6 +5,8 @@ const config: Config = {
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',
+    './admin.html',
+    './admin/**/*.{ts,tsx}',
   ],
   prefix: "",
   theme: {

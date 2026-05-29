@@ -1,0 +1,226 @@
+/**
+ * agent/sources/amap.ts — 高德地图 POI 采集器
+ *
+ * 高德 POI 搜索 API，国内城市数据最准确。
+ * 仅用于国内城市 (isDomestic = true)。
+ * 个人开发者每日 5000 次请求。
+ */
+
+import { AGENT_CONFIG, API_KEYS } from '../config.js'
+import { RateLimiter, clamp, gcj02ToWgs84 } from '../utils.js'
+import { externalCategoryToL3 } from '../categories.js'
+import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
+import { roundCoord } from './base.js'
+
+const BASE_URL = 'https://restapi.amap.com/v3/place/around'
+
+const rateLimiter = new RateLimiter(AGENT_CONFIG.amapInterval)
+
+/* ── 高德 POI 类型代码 → 6 大类目 ── */
+
+const CATEGORY_TYPES: Record<L1Category, string> = {
+  scenic: '110000',       // 风景名胜
+  food: '050000',         // 餐饮服务
+  shopping: '060000',     // 购物服务
+  entertainment: '080000|070000',  // 体育休闲 + 生活服务(部分娱乐)
+  experience: '140000|090000',     // 科教文化 + 医疗保健(部分体验)
+  hotel: '100000',        // 住宿服务
+}
+
+/* ── 高德 POI → RawPOI ── */
+
+function transformPOI(poi: any, l1: L1Category): RawPOI | null {
+  const name = poi.name
+  if (!name) return null
+
+  // 高德坐标格式: "lng,lat" (GCJ-02)
+  const location = poi.location?.split(',').map(Number)
+  if (!location || location.length < 2) return null
+
+  // GCJ-02 → WGS-84
+  const gcjLat = location[1]
+  const gcjLng = location[0]
+  const { lat, lng } = gcj02ToWgs84(gcjLat, gcjLng)
+
+  // 提取标签 & 映射 L3
+  const tags: string[] = []
+  let l3 = `${l1}.${getDefaultL2(l1)}.${getDefaultL3(l1)}`
+
+  if (poi.type) tags.push(poi.type)
+  if (poi.typecode) {
+    const subType = poi.typecode.slice(2, 4)
+    if (subType !== '00') tags.push(subType)
+  }
+
+  // 尝试用高德 type 映射 L3
+  const mapped = externalCategoryToL3('amap', poi.type || '')
+  if (mapped && mapped.l1 === l1) {
+    l3 = mapped.l3
+  }
+
+  // 营业时间
+  let operatingHours = ''
+  if (poi.biz_ext?.opentime) {
+    const match = String(poi.biz_ext.opentime).match(/(\d{2}:\d{2}).*?(\d{2}:\d{2})/)
+    if (match) {
+      operatingHours = `${match[1]}-${match[2]}`
+    } else {
+      operatingHours = String(poi.biz_ext.opentime).slice(0, 80)
+    }
+  }
+
+  // 费用
+  let cost = 0
+  if (poi.biz_ext?.cost) {
+    cost = Math.max(0, Number(poi.biz_ext.cost) || 0)
+  }
+
+  // 地址
+  const address = poi.address || ''
+
+  return {
+    namePrimary: name,
+    nameZh: name,  // 高德返回的名称本身就是中文
+    nameEn: '',    // 高德不提供英文名
+    categoryL1: l1,
+    categoryL3: l3,
+    lat: roundCoord(lat),
+    lng: roundCoord(lng),
+    address,
+    addressEn: '',  // 高德无英文地址
+    rating: poi.biz_ext?.rating ? clamp(Number(poi.biz_ext.rating), 1, 5) : undefined,
+    cost,
+    visitDuration: estimateDuration(l1),
+    description: poi.biz_ext?.tag || '',
+    tags: tags.filter(Boolean).slice(0, 4),
+    operatingHours,
+    source: 'amap',
+    sourceId: poi.id,
+  }
+}
+
+function estimateDuration(l1: L1Category): number {
+  const defaults: Record<L1Category, number> = {
+    scenic: 90, food: 60, shopping: 90,
+    entertainment: 120, experience: 120, hotel: 0,
+  }
+  return defaults[l1] || 60
+}
+
+function getDefaultL2(l1: L1Category): string {
+  const map: Record<L1Category, string> = {
+    scenic: 'modern', food: 'local', shopping: 'mall',
+    entertainment: 'theme', experience: 'outdoor', hotel: 'comfort',
+  }
+  return map[l1]
+}
+
+function getDefaultL3(l1: L1Category): string {
+  const map: Record<L1Category, string> = {
+    scenic: 'scenic.modern.square', food: 'food.local.signature',
+    shopping: 'shopping.mall.comprehensive', entertainment: 'entertainment.theme.amusement',
+    experience: 'experience.outdoor.hiking', hotel: 'hotel.comfort.fourstar',
+  }
+  return map[l1]
+}
+
+/* ── 高德 API 调用 ── */
+
+async function searchPOIs(
+  lat: number,
+  lng: number,
+  typeCode: string,
+  page: number = 1,
+): Promise<{ pois: any[]; count: number }> {
+  await rateLimiter.wait()
+
+  const params = new URLSearchParams({
+    key: API_KEYS.amap,
+    location: `${lng},${lat}`,
+    types: typeCode,
+    radius: String(AGENT_CONFIG.searchRadiusKm * 1000),
+    offset: '25',
+    page: String(page),
+    extensions: 'all',
+    output: 'json',
+  })
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), AGENT_CONFIG.amapTimeout)
+
+  try {
+    const response = await fetch(`${BASE_URL}?${params}`, {
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Amap HTTP ${response.status}`)
+    }
+
+    const data = await response.json() as {
+      status: string
+      count: string
+      pois: any[]
+      info?: string
+    }
+
+    if (data.status !== '1') {
+      throw new Error(`Amap API error: ${data.info || 'unknown'}`)
+    }
+
+    return {
+      pois: data.pois || [],
+      count: parseInt(data.count) || 0,
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/* ── SourceCollector 实现 ── */
+
+export class AmapCollector implements SourceCollector {
+  readonly name = 'amap'
+
+  async isAvailable(): Promise<boolean> {
+    return !!API_KEYS.amap
+  }
+
+  async collect(city: CityInfo, categories: L1Category[]): Promise<RawPOI[]> {
+    // 仅用于国内城市
+    if (!city.isDomestic) {
+      console.log(`  [Amap] Skipping ${city.name} (international city)`)
+      return []
+    }
+
+    const allPOIs: RawPOI[] = []
+
+    for (const category of categories) {
+      try {
+        const typeCode = CATEGORY_TYPES[category]
+        console.log(`  [Amap] Searching ${category} for ${city.name}...`)
+
+        let categoryCount = 0
+        for (let page = 1; page <= 3; page++) {
+          const { pois, count } = await searchPOIs(city.lat, city.lng, typeCode, page)
+
+          for (const poi of pois) {
+            const raw = transformPOI(poi, category)
+            if (raw) {
+              allPOIs.push(raw)
+              categoryCount++
+            }
+          }
+
+          if (page * 25 >= count) break
+        }
+
+        console.log(`  [Amap] ${category}: ${categoryCount} POIs`)
+      } catch (err) {
+        console.error(`  [Amap] ${category} failed:`, (err as Error).message)
+      }
+    }
+
+    return allPOIs
+  }
+}

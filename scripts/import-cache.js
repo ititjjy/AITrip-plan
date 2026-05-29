@@ -37,11 +37,9 @@ db.pragma('foreign_keys = ON')
 // 创建表（如果不存在）
 db.exec(`
   CREATE TABLE IF NOT EXISTS city_pois (
-    city_id    TEXT    NOT NULL,
-    season     TEXT    NOT NULL,
+    city_id    TEXT    PRIMARY KEY,
     data       TEXT    NOT NULL,
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY (city_id, season)
+    updated_at INTEGER NOT NULL
   )
 `)
 
@@ -60,17 +58,17 @@ const cacheData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'))
 let poiCount = 0
 if (cacheData.pois && Array.isArray(cacheData.pois)) {
   const upsertPoi = db.prepare(`
-    INSERT INTO city_pois (city_id, season, data, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(city_id, season)
+    INSERT INTO city_pois (city_id, data, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(city_id)
     DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
   `)
 
   for (const row of cacheData.pois) {
     const dataStr = typeof row.data === 'string' ? row.data : JSON.stringify(row.data)
-    upsertPoi.run(row.city_id, row.season, dataStr, row.updated_at)
+    upsertPoi.run(row.city_id, dataStr, row.updated_at)
     poiCount++
-    console.log(`  ✓ POI: ${row.city_id}/${row.season} (${(dataStr.length / 1024).toFixed(1)} KB)`)
+    console.log(`  ✓ POI: ${row.city_id} (${(dataStr.length / 1024).toFixed(1)} KB)`)
   }
 }
 

@@ -82,13 +82,13 @@ function getDB() {
   return db
 }
 
-function upsertPOIs(db, cityId, season, data) {
+function upsertPOIs(db, cityId, data) {
   db.prepare(`
-    INSERT INTO city_pois (city_id, season, data, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(city_id, season)
+    INSERT INTO city_pois (city_id, data, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(city_id)
     DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
-  `).run(cityId, season, JSON.stringify(data), Date.now())
+  `).run(cityId, JSON.stringify(data), Date.now())
 }
 
 function upsertHotels(db, cityId, data) {
@@ -417,7 +417,7 @@ async function main() {
       // 1. 刷新 POI
       const pois = await fetchPOIsForCity(city)
       if (pois.length > 0) {
-        upsertPOIs(db, city.id, getSeason(), pois)
+        upsertPOIs(db, city.id, pois)
         log(`[${city.id}] Saved ${pois.length} POIs`)
       } else {
         log(`[${city.id}] WARNING: No POIs fetched`)
@@ -454,7 +454,7 @@ async function main() {
   // ── 导出到 data-sync/ 供服务器同步 ──
   try {
     const exportDB = new Database(DB_PATH)
-    const poiRows = exportDB.prepare('SELECT city_id, season, data, updated_at FROM city_pois').all()
+    const poiRows = exportDB.prepare('SELECT city_id, data, updated_at FROM city_pois').all()
     const hotelRows = exportDB.prepare('SELECT city_id, data, updated_at FROM hotels').all()
     exportDB.close()
 

@@ -10,7 +10,16 @@
     "build:server": "tsc -p server/tsconfig.build.json",
     "build": "vite build && npm run build:server",
     "start": "node dist-server/index.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "agent:collect": "tsx agent/index.ts collect",
+    "agent:export": "tsx agent/index.ts export",
+    "agent:quality": "tsx agent/index.ts quality",
+    "agent:status": "tsx agent/index.ts status",
+    "agent:sources": "tsx agent/index.ts sources",
+    "agent:refresh": "tsx agent/index.ts refresh",
+    "agent:validate": "tsx agent/index.ts validate",
+    "agent:init-db": "tsx agent/init-db.ts",
+    "admin:dev": "vite --open /admin/"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

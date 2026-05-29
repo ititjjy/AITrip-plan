@@ -1,0 +1,190 @@
+/**
+ * agent/sources/foursquare.ts — Foursquare Places API 采集器
+ *
+ * Foursquare Places API v3，数据质量高，全球覆盖。
+ * 免费版 950 请求/月。
+ */
+
+import { AGENT_CONFIG, API_KEYS } from '../config.js'
+import { RateLimiter, clamp } from '../utils.js'
+import { externalCategoryToL3 } from '../categories.js'
+import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
+import { roundCoord } from './base.js'
+
+const BASE_URL = 'https://api.foursquare.com/v3/places/search'
+
+const rateLimiter = new RateLimiter(AGENT_CONFIG.foursquareInterval)
+
+/* ── Foursquare Category IDs (6 大类目) ── */
+
+const CATEGORY_IDS: Record<L1Category, string[]> = {
+  scenic: ['10000', '16000'],       // Arts & Entertainment, Landmarks
+  food: ['13000'],                   // Food
+  shopping: ['17000'],               // Shops & Services
+  entertainment: ['10000', '16034'], // Arts & Entertainment, Nightlife
+  experience: ['18000', '16000'],   // Outdoors & Recreation, some Landmarks
+  hotel: ['19000'],                  // Travel & Transportation
+}
+
+/* ── Foursquare 响应 → RawPOI ── */
+
+function transformPlace(place: any, l1: L1Category): RawPOI | null {
+  const name = place.name
+  if (!name) return null
+
+  const rawLat = place.geocodes?.main?.latitude
+  const rawLng = place.geocodes?.main?.longitude
+  if (!rawLat || !rawLng) return null
+
+  const addr = place.location?.formatted_address || place.location?.address || ''
+
+  // 提取标签 & 尝试映射 L3
+  const tags: string[] = []
+  let l3 = `${l1}.${getDefaultL2(l1)}.${getDefaultL3(l1)}`
+  if (place.categories) {
+    for (const cat of place.categories.slice(0, 3)) {
+      const catName = cat.short_name || cat.name || ''
+      if (catName) tags.push(catName)
+      // 尝试用 Foursquare category name 映射 L3
+      const mapped = externalCategoryToL3('foursquare', catName)
+      if (mapped && mapped.l1 === l1) {
+        l3 = mapped.l3
+      }
+    }
+  }
+
+  // 费用估算 (Foursquare: 1=cheap, 2=moderate, 3=expensive, 4=very expensive)
+  let cost = 0
+  if (place.price) {
+    const priceMap: Record<number, number> = { 1: 50, 2: 150, 3: 400, 4: 800 }
+    cost = priceMap[place.price] || 0
+  }
+
+  // 营业时间
+  let operatingHours = ''
+  if (place.hours?.display) {
+    operatingHours = place.hours.display
+  }
+
+  return {
+    namePrimary: name,
+    nameZh: '',  // Foursquare 不提供中文名
+    nameEn: name,
+    categoryL1: l1,
+    categoryL3: l3,
+    lat: roundCoord(rawLat),
+    lng: roundCoord(rawLng),
+    address: addr,
+    addressEn: addr,
+    rating: place.rating ? clamp(place.rating / 2, 1, 5) : undefined,  // FS rating 0-10 → 1-5
+    cost,
+    visitDuration: estimateDuration(l1),
+    description: place.description || place.tip || '',
+    tags: tags.filter(Boolean),
+    operatingHours,
+    source: 'foursquare',
+    sourceId: place.fsq_id,
+  }
+}
+
+function estimateDuration(l1: L1Category): number {
+  const defaults: Record<L1Category, number> = {
+    scenic: 90, food: 60, shopping: 90,
+    entertainment: 120, experience: 120, hotel: 0,
+  }
+  return defaults[l1] || 60
+}
+
+function getDefaultL2(l1: L1Category): string {
+  const map: Record<L1Category, string> = {
+    scenic: 'modern', food: 'local', shopping: 'mall',
+    entertainment: 'theme', experience: 'outdoor', hotel: 'comfort',
+  }
+  return map[l1]
+}
+
+function getDefaultL3(l1: L1Category): string {
+  const map: Record<L1Category, string> = {
+    scenic: 'scenic.modern.square', food: 'food.local.signature',
+    shopping: 'shopping.mall.comprehensive', entertainment: 'entertainment.theme.amusement',
+    experience: 'experience.outdoor.hiking', hotel: 'hotel.comfort.fourstar',
+  }
+  return map[l1]
+}
+
+/* ── API 调用 ── */
+
+async function searchPlaces(
+  lat: number,
+  lng: number,
+  categoryIds: string[],
+  limit: number = 50,
+): Promise<any[]> {
+  await rateLimiter.wait()
+
+  const params = new URLSearchParams({
+    ll: `${lat},${lng}`,
+    radius: String(AGENT_CONFIG.searchRadiusKm * 1000),
+    categories: categoryIds.join(','),
+    limit: String(Math.min(limit, 50)),
+  })
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), AGENT_CONFIG.foursquareTimeout)
+
+  try {
+    const response = await fetch(`${BASE_URL}?${params}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': API_KEYS.foursquare,
+      },
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({})) as any
+      throw new Error(`Foursquare HTTP ${response.status}: ${err.error || 'unknown'}`)
+    }
+
+    const data = await response.json() as { results?: any[] }
+    return data.results || []
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/* ── SourceCollector 实现 ── */
+
+export class FoursquareCollector implements SourceCollector {
+  readonly name = 'foursquare'
+
+  async isAvailable(): Promise<boolean> {
+    return !!API_KEYS.foursquare
+  }
+
+  async collect(city: CityInfo, categories: L1Category[]): Promise<RawPOI[]> {
+    const allPOIs: RawPOI[] = []
+
+    for (const category of categories) {
+      try {
+        const categoryIds = CATEGORY_IDS[category] || []
+        console.log(`  [Foursquare] Searching ${category} for ${city.name}...`)
+
+        const places = await searchPlaces(city.lat, city.lng, categoryIds)
+        let count = 0
+        for (const place of places) {
+          const poi = transformPlace(place, category)
+          if (poi) {
+            allPOIs.push(poi)
+            count++
+          }
+        }
+        console.log(`  [Foursquare] ${category}: ${count} POIs`)
+      } catch (err) {
+        console.error(`  [Foursquare] ${category} failed:`, (err as Error).message)
+      }
+    }
+
+    return allPOIs
+  }
+}
