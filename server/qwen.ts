@@ -376,6 +376,10 @@ export async function fetchPOIsFromQwen(
       const userPrompt = buildCategoryPrompt(cityName, cityNameEn, seasonCtx, category)
       console.log(`  [Qwen] Requesting ${category}...`)
 
+      // 添加 60 秒超时保护，防止 fetch 无限挂起
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 60_000)
+
       const response = await fetch(DASHSCOPE_BASE_URL, {
         method: 'POST',
         headers: {
@@ -390,7 +394,8 @@ export async function fetchPOIsFromQwen(
           ],
           temperature: 0.7,
         }),
-      })
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout))
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({})) as { error?: { message?: string } }

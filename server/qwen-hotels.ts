@@ -216,6 +216,10 @@ export async function fetchHotelsFromQwen(
 
   console.log(`  [Qwen-Hotels] Requesting hotels for ${cityName}...`)
 
+  // 添加 90 秒超时保护，防止 fetch 无限挂起
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 90_000)
+
   const response = await fetch(DASHSCOPE_BASE_URL, {
     method: 'POST',
     headers: {
@@ -231,7 +235,8 @@ export async function fetchHotelsFromQwen(
       temperature: 0.7,
       max_tokens: 16000,
     }),
-  })
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout))
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({})) as { error?: { message?: string } }
