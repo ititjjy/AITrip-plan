@@ -16,13 +16,14 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isVercel = process.env.VERCEL === '1'
-// 生产环境使用外部持久化目录，部署更新不会清除数据库
-// 本地开发仍使用项目内目录
+// 优先使用环境变量 DB_DIR 指定的目录
+// 其次检测 /data/aitrip 目录是否存在（生产服务器持久化路径）
+// 最后回退到项目内 server/data/ 目录（本地开发）
+const PERSISTENT_DIR = '/data/aitrip'
 const DB_DIR = isVercel
   ? '/tmp'
-  : process.env.NODE_ENV === 'production'
-    ? '/data/aitrip'
-    : path.join(__dirname, 'data')
+  : process.env.DB_DIR
+    || (fs.existsSync(PERSISTENT_DIR) ? PERSISTENT_DIR : path.join(__dirname, 'data'))
 const DB_PATH = path.join(DB_DIR, 'pois.db')
 
 export { DB_PATH }
