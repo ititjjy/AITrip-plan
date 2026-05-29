@@ -774,7 +774,7 @@ if (!process.env.VERCEL) {
   initDB()
   app.listen(PORT, () => {
     console.log(`\n  🚀 API Server running at http://localhost:${PORT}`)
-    console.log(`  📦 Database: server/data/pois.db`)
+    console.log(`  📦 Database: ${process.env.NODE_ENV === 'production' ? '/data/aitrip/pois.db' : 'server/data/pois.db'}`)
     console.log(`  🔑 API Key: ${getApiKey() ? 'configured' : '⚠ NOT configured'}\n`)
   })
 }

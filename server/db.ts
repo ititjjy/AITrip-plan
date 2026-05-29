@@ -16,7 +16,13 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isVercel = process.env.VERCEL === '1'
-const DB_DIR = isVercel ? '/tmp' : path.join(__dirname, 'data')
+// 生产环境使用外部持久化目录，部署更新不会清除数据库
+// 本地开发仍使用项目内目录
+const DB_DIR = isVercel
+  ? '/tmp'
+  : process.env.NODE_ENV === 'production'
+    ? '/data/aitrip'
+    : path.join(__dirname, 'data')
 const DB_PATH = path.join(DB_DIR, 'pois.db')
 
 let db: Database.Database
