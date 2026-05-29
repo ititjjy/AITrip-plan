@@ -24,7 +24,12 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 PROJECT_DIR="/opt/aitrip"
+DATA_DIR="/data/aitrip"
 cd "$PROJECT_DIR"
+
+# ── 确保数据目录存在 ──
+mkdir -p "$DATA_DIR"
+echo -e "${CYAN}  数据持久化目录: ${DATA_DIR}${NC}"
 
 # ── 备份当前版本（用于回滚） ──
 CURRENT_TAG=$(git describe --tags --always 2>/dev/null || echo "unknown")
