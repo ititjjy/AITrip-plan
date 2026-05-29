@@ -8,7 +8,7 @@
     "server": "tsx server/index.ts",
     "dev:all": "node -e \"const{spawn}=require('child_process');const s=spawn('npm',['run','server'],{stdio:'inherit'});const v=spawn('npm',['run','dev'],{stdio:'inherit'});process.on('SIGINT',()=>{s.kill();v.kill();process.exit()})\"",
     "build:server": "tsc -p server/tsconfig.build.json",
-    "build": "tsc -b && vite build && npm run build:server",
+    "build": "vite build && npm run build:server",
     "start": "node dist-server/index.js",
     "preview": "vite preview"
   },
