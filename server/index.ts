@@ -108,23 +108,21 @@ app.get('/api/pois/:cityId', async (req, res) => {
   try {
     const cached = getCachedPOIs(cityId, season)
     const ageMs = getCacheAge(cityId, season)
-    if (cached && ageMs !== null && ageMs < STALE_TTL_MS) {
-      const refreshing = ageMs >= FRESH_TTL_MS
-      if (refreshing) backgroundRefresh(cityId, cityName, cityNameEn, season)
+    if (cached && ageMs !== null) {
+      const isStale = ageMs >= STALE_TTL_MS
+      const needsRefresh = ageMs >= FRESH_TTL_MS
+      // 即使缓存过期也先返回旧数据，后台异步刷新
+      if (needsRefresh) backgroundRefresh(cityId, cityName, cityNameEn, season)
       // 对缓存数据也执行去重（兼容旧缓存中存在的重复）
       const { pois: dedupedCached, stats } = deduplicatePOIs(cached as any[])
       if (stats.removedCount > 0) {
         console.log(`[Dedup/Cache] ${cityName}: 缓存去重移除 ${stats.removedCount} 个重复POI`)
       }
-      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), dedupStats: stats.removedCount > 0 ? stats : undefined })
+      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: needsRefresh, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), dedupStats: stats.removedCount > 0 ? stats : undefined, stale: isStale })
     }
     const apiKey = getApiKey()
     if (!apiKey) {
-      if (cached) {
-        const { pois: dedupedCached } = deduplicatePOIs(cached as any[])
-        return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: false, warning: 'API Key not configured' })
-      }
-      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key' })
+      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key，且无缓存数据' })
     }
     console.log(`[API] Fetching POIs for ${cityName} (${season})...`)
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
@@ -187,15 +185,15 @@ app.get('/api/hotels/:cityId', async (req, res) => {
   try {
     const cached = getCachedHotels(cityId)
     const ageMs = getHotelCacheAge(cityId)
-    if (cached && ageMs !== null && ageMs < STALE_TTL_MS) {
-      const refreshing = ageMs >= FRESH_TTL_MS
-      if (refreshing) backgroundRefreshHotels(cityId, cityName, cityNameEn)
-      return res.json({ success: true, data: cached, fromCache: true, refreshing, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)) })
+    if (cached && ageMs !== null) {
+      const needsRefresh = ageMs >= FRESH_TTL_MS
+      const isStale = ageMs >= STALE_TTL_MS
+      if (needsRefresh) backgroundRefreshHotels(cityId, cityName, cityNameEn)
+      return res.json({ success: true, data: cached, fromCache: true, refreshing: needsRefresh, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), stale: isStale })
     }
     const apiKey = getApiKey()
     if (!apiKey) {
-      if (cached) return res.json({ success: true, data: cached, fromCache: true, refreshing: false, warning: 'API Key not configured' })
-      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key' })
+      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key，且无缓存数据' })
     }
     console.log(`[API] Fetching hotels for ${cityName}...`)
     const hotels = await fetchHotelsFromQwen(cityName, cityNameEn, cityId, apiKey)
