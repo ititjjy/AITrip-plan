@@ -8,3 +8,5 @@ server/data/
 .env.local
 *.log
 .vercel
+.vercel-tmp/
+deploy-package.zip
