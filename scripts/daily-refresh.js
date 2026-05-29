@@ -52,12 +52,12 @@ const SYNC_FILE = path.join(SYNC_DIR, 'cache-export.json')
 
 function loadState() {
   if (!fs.existsSync(STATE_FILE)) {
-    return { currentIndex: 0, cycle: 1, lastRun: null, completed: [], failures: {} }
+    return { cycle: 1, lastRun: null, pendingIds: [], completed: [], failures: {} }
   }
   try {
     return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'))
   } catch {
-    return { currentIndex: 0, cycle: 1, lastRun: null, completed: [], failures: {} }
+    return { cycle: 1, lastRun: null, pendingIds: [], completed: [], failures: {} }
   }
 }
 
@@ -339,9 +339,8 @@ async function main() {
 
   // 加载状态
   const state = loadState()
-  log(`Current cycle: ${state.cycle}, index: ${state.currentIndex}`)
 
-  // 确定今日批次
+  // ── 待刷新队列机制：确保每轮200个城市各被刷新一次，不重复不遗漏 ──
   let selectedCities = []
   const forceCity = process.env.FORCE_CITY
 
@@ -355,13 +354,31 @@ async function main() {
       process.exit(1)
     }
   } else {
-    for (let i = 0; i < BATCH_SIZE; i++) {
-      const idx = (state.currentIndex + i) % allCities.length
-      selectedCities.push(allCities[idx])
-    }
-  }
+    // pendingIds: 本轮还未刷新的城市ID列表
+    let pendingIds = state.pendingIds || allCities.map(c => c.id)
 
-  log(`Today's batch (${selectedCities.length} cities): ${selectedCities.map(c => c.id).join(', ')}`)
+    // 如果本轮已全部完成，开始下一轮
+    if (pendingIds.length === 0) {
+      state.cycle = (state.cycle || 1) + 1
+      pendingIds = allCities.map(c => c.id)
+      log(`🔄 Cycle ${state.cycle} started! All ${allCities.length} cities queued.`)
+    }
+
+    // 按热度排序待刷新城市（热度高的优先）
+    const hotnessMap = new Map(allCities.map(c => [c.id, c.hotness]))
+    pendingIds.sort((a, b) => (hotnessMap.get(b) || 0) - (hotnessMap.get(a) || 0))
+
+    // 取出前 BATCH_SIZE 个
+    const selectedIds = pendingIds.slice(0, BATCH_SIZE)
+    selectedCities = selectedIds.map(id => allCities.find(c => c.id === id)).filter(Boolean)
+
+    // 从待刷新队列中移除已选取的城市
+    state.pendingIds = pendingIds.slice(BATCH_SIZE)
+
+    const remaining = state.pendingIds.length
+    log(`Cycle ${state.cycle}: ${selectedCities.length} today, ${remaining} remaining in this cycle`)
+    log(`Today's batch: ${selectedCities.map(c => `${c.id}(热度${c.hotness})`).join(', ')}`)
+  }
 
   // 连接数据库
   const db = getDB()
@@ -433,21 +450,13 @@ async function main() {
     log(`⚠️ Export to data-sync failed: ${err.message}`)
   }
 
-  // 更新状态
-  if (!forceCity) {
-    state.currentIndex = (state.currentIndex + BATCH_SIZE) % allCities.length
-    if (state.currentIndex === 0 && state.completed.length >= allCities.length) {
-      state.cycle++
-      state.completed = []
-      log(`🔄 Cycle ${state.cycle} started!`)
-    }
-  }
+  // 更新状态（pendingIds 已在城市选择阶段更新）
   state.lastRun = new Date().toISOString()
   saveState(state)
 
   log(`═══════════════════════════════════════`)
   log(`Done. Success: ${successCount}, Failed: ${failCount}`)
-  log(`Next index: ${state.currentIndex}, Cycle: ${state.cycle}`)
+  log(`Pending: ${state.pendingIds?.length || 0} cities, Cycle: ${state.cycle}`)
   log(`═══════════════════════════════════════`)
 }
 
