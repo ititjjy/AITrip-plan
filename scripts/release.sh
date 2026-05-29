@@ -123,6 +123,13 @@ main() {
     # 4. 更新 package.json 版本号
     node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version='${new_version}';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
     git add package.json
+
+    # 4.5 如果有 POI 缓存数据同步文件，一并提交
+    if [ -f "data-sync/cache-export.json" ]; then
+        git add -f data-sync/cache-export.json
+        echo -e "${GREEN}✓ POI 缓存数据已加入发布${NC}"
+    fi
+
     git commit -m "chore: 发布 v${new_version}"
 
     # 5. 创建 Git Tag

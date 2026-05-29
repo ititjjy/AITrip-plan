@@ -15,7 +15,7 @@ const DB_DIR = process.env.DB_DIR
   || (fs.existsSync(PERSISTENT_DIR) ? PERSISTENT_DIR : path.join(__dirname, '..', 'server', 'data'))
 const DB_PATH = path.join(DB_DIR, 'pois.db')
 
-const CACHE_FILE = path.join(__dirname, '..', 'server', 'data', 'export-cache.json')
+const CACHE_FILE = path.join(__dirname, '..', 'data-sync', 'cache-export.json')
 
 if (!fs.existsSync(CACHE_FILE)) {
   console.error(`❌ 缓存数据文件不存在: ${CACHE_FILE}`)

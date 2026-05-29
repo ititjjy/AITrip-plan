@@ -11,3 +11,6 @@ server/data/
 .vercel-tmp/
 deploy-package.zip
 dist-server/
+# 注意：data-sync/ 目录用于本地→服务器的数据同步，不忽略
+data-sync/*.tmp
+data-sync/*.log

@@ -45,6 +45,8 @@ const DB_DIR = process.env.DB_DIR
 const DB_PATH = path.join(DB_DIR, 'pois.db')
 const STATE_FILE = path.join(DB_DIR, 'refresh-state.json')
 const LOG_FILE = path.join(DB_DIR, 'refresh.log')
+const SYNC_DIR = path.join(__dirname, '..', 'data-sync')
+const SYNC_FILE = path.join(SYNC_DIR, 'cache-export.json')
 
 /* ═══════════════════════ 状态管理 ═══════════════════════ */
 
@@ -408,6 +410,28 @@ async function main() {
   }
 
   db.close()
+
+  // ── 导出到 data-sync/ 供服务器同步 ──
+  try {
+    const exportDB = new Database(DB_PATH)
+    const poiRows = exportDB.prepare('SELECT city_id, season, data, updated_at FROM city_pois').all()
+    const hotelRows = exportDB.prepare('SELECT city_id, data, updated_at FROM hotels').all()
+    exportDB.close()
+
+    if (!fs.existsSync(SYNC_DIR)) fs.mkdirSync(SYNC_DIR, { recursive: true })
+    const exportData = {
+      version: `cycle-${state.cycle}-${Date.now()}`,
+      exportedAt: Date.now(),
+      exportedFrom: 'local-dev',
+      cityCount: poiRows.length,
+      pois: poiRows,
+      hotels: hotelRows,
+    }
+    fs.writeFileSync(SYNC_FILE, JSON.stringify(exportData))
+    log(`📦 Exported ${poiRows.length} cities to ${SYNC_FILE} (${(fs.statSync(SYNC_FILE).size / 1024).toFixed(1)} KB)`)
+  } catch (err) {
+    log(`⚠️ Export to data-sync failed: ${err.message}`)
+  }
 
   // 更新状态
   if (!forceCity) {

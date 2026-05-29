@@ -83,9 +83,25 @@ npm run build 2>&1 || {
     exit 1
 }
 
-# ── 5. 重启服务 ──
+# ── 5. 同步 POI 缓存数据（如果 data-sync/ 有更新） ──
 echo ""
-echo -e "${CYAN}[5/6] 重启 PM2 服务...${NC}"
+echo -e "${CYAN}[5/7] 检查 POI 缓存数据同步...${NC}"
+if [ -f "data-sync/cache-export.json" ]; then
+    SYNC_MTIME=$(stat -c %Y data-sync/cache-export.json 2>/dev/null || stat -f %m data-sync/cache-export.json 2>/dev/null)
+    DB_MTIME=$(stat -c %Y /data/aitrip/pois.db 2>/dev/null || stat -f %m /data/aitrip/pois.db 2>/dev/null || echo 0)
+    if [ "$SYNC_MTIME" -gt "$DB_MTIME" ]; then
+        echo -e "${YELLOW}  检测到新的 POI 缓存数据，开始导入...${NC}"
+        node scripts/import-cache.js 2>&1 && echo -e "${GREEN}  ✓ POI 缓存导入成功${NC}" || echo -e "${YELLOW}  ⚠ POI 缓存导入失败${NC}"
+    else
+        echo -e "${GREEN}  ✓ POI 缓存数据已是最新${NC}"
+    fi
+else
+    echo -e "${YELLOW}  ⚠ 未找到 POI 缓存同步文件${NC}"
+fi
+
+# ── 6. 重启服务 ──
+echo ""
+echo -e "${CYAN}[6/7] 重启 PM2 服务...${NC}"
 pm2 delete aitrip 2>/dev/null
 pm2 start ecosystem.config.cjs --env production 2>&1 || {
     echo -e "${RED}✗ 服务重启失败${NC}"
@@ -93,9 +109,9 @@ pm2 start ecosystem.config.cjs --env production 2>&1 || {
 }
 sleep 3
 
-# ── 6. 健康检查 ──
+# ── 7. 健康检查 ──
 echo ""
-echo -e "${CYAN}[6/6] 健康检查...${NC}"
+echo -e "${CYAN}[7/7] 健康检查...${NC}"
 HEALTH=$(curl -s http://localhost:3001/api/health 2>/dev/null || echo "failed")
 
 if echo "$HEALTH" | grep -q '"ok"'; then
@@ -105,6 +121,7 @@ if echo "$HEALTH" | grep -q '"ok"'; then
     echo -e "${GREEN}✓ 部署成功！${NC}"
     echo -e "${GREEN}  版本: ${CURRENT_TAG} → ${NEW_TAG}${NC}"
     echo -e "${GREEN}  状态: ${HEALTH}${NC}"
+    echo -e "${GREEN}  数据: data-sync/cache-export.json 已同步${NC}"
     echo -e "${GREEN}═══════════════════════════════════════════${NC}"
 else
     echo -e "${RED}✗ 健康检查失败，开始回滚...${NC}"
