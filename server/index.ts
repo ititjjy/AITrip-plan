@@ -53,7 +53,6 @@ import {
 import adminRoutes from './admin-routes.js'
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env.local') })
-console.log('[DEBUG] ARK_API_KEY:', process.env.ARK_API_KEY?.slice(0, 20), '...')
 
 const app = express()
 const PORT = Number(process.env.PORT) || Number(process.env.API_PORT) || 3001
@@ -128,7 +127,7 @@ app.get('/api/pois/:cityId', async (req, res) => {
     }
     const apiKey = getApiKey()
     if (!apiKey) {
-      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key，且无缓存数据' })
+      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
     }
     console.log(`[API] Fetching POIs for ${cityName} (${season})...`)
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
@@ -199,7 +198,7 @@ app.get('/api/hotels/:cityId', async (req, res) => {
     }
     const apiKey = getApiKey()
     if (!apiKey) {
-      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 DashScope API Key，且无缓存数据' })
+      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
     }
     console.log(`[API] Fetching hotels for ${cityName}...`)
     const hotels = await fetchHotelsFromQwen(cityName, cityNameEn, cityId, apiKey)
