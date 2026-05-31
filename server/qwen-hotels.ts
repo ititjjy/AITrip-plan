@@ -5,8 +5,8 @@
  * including room types, pricing, amenities, and contact info.
  */
 
-const DASHSCOPE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const MODEL_NAME = 'qwen-plus'
+const ARK_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+const MODEL_NAME = 'ep-m-20260531112146-l9cfz'
 
 /* -- Hotel image sets from Unsplash -- */
 const hotelImages = [
@@ -214,13 +214,13 @@ export async function fetchHotelsFromQwen(
   const systemPrompt = '你是一位资深酒店行业顾问，精通全球各地酒店资源。你只输出合法的JSON，不输出任何其他文字。'
   const userPrompt = buildHotelPrompt(cityName, cityNameEn)
 
-  console.log(`  [Qwen-Hotels] Requesting hotels for ${cityName}...`)
+  console.log(`  [Doubao-Hotels] Requesting hotels for ${cityName}...`)
 
   // 添加 90 秒超时保护，防止 fetch 无限挂起
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 90_000)
 
-  const response = await fetch(DASHSCOPE_BASE_URL, {
+  const response = await fetch(ARK_BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -241,7 +241,7 @@ export async function fetchHotelsFromQwen(
   if (!response.ok) {
     const errData = await response.json().catch(() => ({})) as { error?: { message?: string } }
     const msg = errData?.error?.message || `HTTP ${response.status}`
-    console.error(`  [Qwen-Hotels] HTTP error: ${msg}`)
+    console.error(`  [Doubao-Hotels] HTTP error: ${msg}`)
     if (response.status === 401) throw new Error(`API_KEY_INVALID: ${msg}`)
     throw new Error(`HOTEL_API_ERROR: ${msg}`)
   }
@@ -249,10 +249,10 @@ export async function fetchHotelsFromQwen(
   const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> }
   const text = data?.choices?.[0]?.message?.content
   if (!text) {
-    throw new Error('EMPTY_RESPONSE: Qwen returned no content')
+    throw new Error('EMPTY_RESPONSE: API returned no content')
   }
 
-  console.log(`  [Qwen-Hotels] Response (${text.length} chars): ${text.slice(0, 300)}...`)
+  console.log(`  [Doubao-Hotels] Response (${text.length} chars): ${text.slice(0, 300)}...`)
 
   let parsed: RawHotel[]
   try {
@@ -264,7 +264,7 @@ export async function fetchHotelsFromQwen(
       try {
         const raw = JSON.parse(repaired)
         parsed = Array.isArray(raw) ? raw : []
-        console.log(`  [Qwen-Hotels] Repaired truncated JSON`)
+        console.log(`  [Doubao-Hotels] Repaired truncated JSON`)
       } catch {
         throw new Error('JSON_PARSE_ERROR: Could not parse hotel response')
       }
@@ -274,10 +274,10 @@ export async function fetchHotelsFromQwen(
   }
 
   if (parsed.length === 0) {
-    throw new Error('NO_HOTELS: Qwen returned empty hotel list')
+    throw new Error('NO_HOTELS: API returned empty hotel list')
   }
 
   const hotels = transformHotels(parsed, cityId)
-  console.log(`  [Qwen-Hotels] ${cityName}: ${hotels.length} hotels generated`)
+  console.log(`  [Doubao-Hotels] ${cityName}: ${hotels.length} hotels generated`)
   return hotels
 }
