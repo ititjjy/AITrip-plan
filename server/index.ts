@@ -52,7 +52,8 @@ import {
 } from './auth.js'
 import adminRoutes from './admin-routes.js'
 
-dotenv.config({ path: '.env.local' })
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env.local') })
+console.log('[DEBUG] ARK_API_KEY:', process.env.ARK_API_KEY?.slice(0, 20), '...')
 
 const app = express()
 const PORT = Number(process.env.PORT) || Number(process.env.API_PORT) || 3001
@@ -74,7 +75,7 @@ function getCurrentSeason(): string {
 }
 
 function getApiKey(): string | null {
-  return process.env.VITE_DASHSCOPE_API_KEY || process.env.DASHSCOPE_API_KEY || null
+  return process.env.ARK_API_KEY || null
 }
 
 const refreshingCities = new Set<string>()
@@ -86,7 +87,7 @@ async function backgroundRefresh(cityId: string, cityName: string, cityNameEn: s
     const apiKey = getApiKey()
     if (!apiKey) return
     const season = getCurrentSeason()
-    console.log(`[BG Refresh] ${cityName} (${season}) — fetching from Qwen...`)
+    console.log(`[BG Refresh] ${cityName} (${season}) — fetching from Doubao...`)
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
     if (pois.length > 0) {
       upsertPOIs(cityId, pois)
@@ -149,6 +150,7 @@ app.post('/api/pois/:cityId/refresh', async (req, res) => {
   const cityNameEn = (req.query.cityNameEn as string) || (req.body?.cityNameEn as string) || cityId
   const season = getCurrentSeason()
   const apiKey = getApiKey()
+  console.log(`[REFRESH] cityId=${cityId}, apiKey=${apiKey?.slice(0,20)}...`)
   if (!apiKey) return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 API Key' })
   try {
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)

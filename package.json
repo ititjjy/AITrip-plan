@@ -12,6 +12,7 @@
     "start": "node dist-server/index.js",
     "preview": "vite preview",
     "agent:collect": "tsx agent/index.ts collect",
+    "agent:reprocess": "tsx agent/index.ts reprocess",
     "agent:export": "tsx agent/index.ts export",
     "agent:quality": "tsx agent/index.ts quality",
     "agent:status": "tsx agent/index.ts status",
@@ -19,6 +20,7 @@
     "agent:refresh": "tsx agent/index.ts refresh",
     "agent:validate": "tsx agent/index.ts validate",
     "agent:init-db": "tsx agent/init-db.ts",
+    "agent:rescore": "tsx agent/rescore.ts",
     "admin:dev": "vite --open /admin/"
   },
   "dependencies": {

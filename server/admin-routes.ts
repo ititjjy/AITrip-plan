@@ -332,6 +332,30 @@ function mapAgentPOI(poi: any) {
   }
 }
 
+/** Score grade mapping */
+function getScoreGrade(score: number | undefined): string {
+  if (score == null) return 'N/A'
+  if (score >= 80) return 'A'
+  if (score >= 60) return 'B'
+  if (score >= 40) return 'C'
+  return 'D'
+}
+
+/** Score grade ranges for filtering */
+const SCORE_GRADE_RANGES: Record<string, { min: number; max: number }> = {
+  A: { min: 80, max: 100 },
+  B: { min: 60, max: 79 },
+  C: { min: 40, max: 59 },
+  D: { min: 0, max: 39 },
+}
+
+/** Compute average score from POI array */
+function computeAvgScore(pois: any[]): number | null {
+  const scores = pois.map((p) => p.score?.total).filter((s): s is number => s != null)
+  if (scores.length === 0) return null
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+}
+
 /** Load POIs for a city from Agent DB */
 function loadPOIsForCity(cityId: string): { pois: any[]; updatedAt: number } {
   const db = getAgentDB()
@@ -607,7 +631,7 @@ function attachReviewStatus(pois: any[]): any[] {
 /* ═══════════════════════ POI List ═══════════════════════ */
 
 router.get('/pois', (req: Request, res: Response) => {
-  const { city, l1, l2, l3, page = '1', pageSize = '20' } = req.query
+  const { city, l1, l2, l3, page = '1', pageSize = '20', scoreMin, scoreMax, scoreGrade } = req.query
   const pageNum = Math.max(1, Number(page))
   const size = Math.min(50, Math.max(1, Number(pageSize)))
 
@@ -623,6 +647,26 @@ router.get('/pois', (req: Request, res: Response) => {
   if (l1) allPOIs = allPOIs.filter((p) => p.categoryL1 === l1)
   if (l2) allPOIs = allPOIs.filter((p) => p.categoryL2 === l2)
   if (l3) allPOIs = allPOIs.filter((p) => p.categoryL3 === l3)
+
+  // Score filtering
+  if (scoreGrade) {
+    const range = SCORE_GRADE_RANGES[scoreGrade as string]
+    if (range) {
+      allPOIs = allPOIs.filter((p) => {
+        const s = p.score?.total
+        return s != null && s >= range.min && s <= range.max
+      })
+    }
+  } else {
+    if (scoreMin != null) {
+      const min = Number(scoreMin)
+      allPOIs = allPOIs.filter((p) => (p.score?.total ?? -1) >= min)
+    }
+    if (scoreMax != null) {
+      const max = Number(scoreMax)
+      allPOIs = allPOIs.filter((p) => (p.score?.total ?? 101) <= max)
+    }
+  }
 
   const total = allPOIs.length
   const start = (pageNum - 1) * size
@@ -863,6 +907,7 @@ router.get('/review/summary', (_req: Request, res: Response) => {
       publishedCount: publishedPOIs.length,
       agentUpdatedAt: ac.updated_at,
       serverUpdatedAt: null,
+      avgScore: computeAvgScore(agentPOIs),
     })
     totalNew += newPOIs.length
     totalUpdated += updatedPOIs.length
@@ -993,6 +1038,69 @@ router.post('/publish/pois', (req: Request, res: Response) => {
       validationPassed: allPresent,
       validationMessage: allPresent
         ? `成功发布 ${publishedCount} 个 POI`
+        : '部分 POI 未成功写入',
+    },
+  })
+})
+
+/** POST /publish/pois-by-score — Publish POIs filtered by score */
+router.post('/publish/pois-by-score', (req: Request, res: Response) => {
+  const { cityId, scoreMin, scoreMax, scoreGrades } = req.body
+  if (!cityId) {
+    return res.status(400).json({ success: false, error: 'MISSING_CITY', message: '需要指定城市 ID' })
+  }
+
+  // Determine score range from grades or explicit min/max
+  let effectiveMin: number | undefined = scoreMin != null ? Number(scoreMin) : undefined
+  let effectiveMax: number | undefined = scoreMax != null ? Number(scoreMax) : undefined
+
+  if (Array.isArray(scoreGrades) && scoreGrades.length > 0) {
+    // Expand grades to min/max range
+    let gMin = 100, gMax = 0
+    for (const grade of scoreGrades) {
+      const range = SCORE_GRADE_RANGES[grade]
+      if (range) {
+        gMin = Math.min(gMin, range.min)
+        gMax = Math.max(gMax, range.max)
+      }
+    }
+    if (effectiveMin == null) effectiveMin = gMin
+    if (effectiveMax == null) effectiveMax = gMax
+  }
+
+  const db = getAgentDB()
+  const row = db.prepare('SELECT data FROM city_pois WHERE city_id = ?').get(cityId) as { data: string } | undefined
+  if (!row) {
+    return res.status(404).json({ success: false, error: 'NOT_FOUND', message: `Agent DB 中未找到城市 ${cityId}` })
+  }
+
+  const agentPOIs = JSON.parse(row.data) as any[]
+  const poisToMerge = agentPOIs.filter((p: any) => {
+    const s = p.score?.total
+    if (s == null) return false
+    if (effectiveMin != null && s < effectiveMin) return false
+    if (effectiveMax != null && s > effectiveMax) return false
+    return true
+  })
+
+  if (poisToMerge.length === 0) {
+    return res.status(400).json({ success: false, error: 'NO_MATCH', message: '没有符合评分条件的 POI' })
+  }
+
+  const publishedCount = mergePOIsIntoServer(cityId, poisToMerge)
+  const { pois: serverPOIs } = loadServerPOIs(cityId)
+  const serverIds = new Set(serverPOIs.map((p: any) => p.id))
+  const allPresent = poisToMerge.every((p: any) => serverIds.has(p.id))
+
+  res.json({
+    success: true,
+    data: {
+      cityId,
+      publishedCount,
+      totalServerPOIs: serverPOIs.length,
+      validationPassed: allPresent,
+      validationMessage: allPresent
+        ? `成功发布 ${publishedCount} 个 POI (评分 ${effectiveMin ?? 0}-${effectiveMax ?? 100})`
         : '部分 POI 未成功写入',
     },
   })

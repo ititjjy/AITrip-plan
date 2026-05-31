@@ -15,9 +15,9 @@ import {
 } from 'lucide-react'
 import type {
   ReviewSummary, CityReviewSummary, CityReviewDetail,
-  ReviewPOI, PublishResult, POIReviewStatus,
+  ReviewPOI, PublishResult, POIReviewStatus, ScoreGrade,
 } from '../types'
-import { L1_LABELS } from '../types'
+import { L1_LABELS, SCORE_GRADE_CONFIG, getScoreGrade } from '../types'
 
 /* ── Status helpers ── */
 
@@ -42,10 +42,11 @@ export default function ReviewQueue() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<PublishResult | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
-    type: 'city' | 'pois' | 'selected-cities'
+    type: 'city' | 'pois' | 'selected-cities' | 'by-score'
     cityId?: string
     poiIds?: string[]
     count: number
+    scoreGrades?: ScoreGrade[]
   } | null>(null)
   const [diffPOI, setDiffPOI] = useState<ReviewPOI | null>(null)
 
@@ -84,7 +85,9 @@ export default function ReviewQueue() {
     setPublishing(true)
     setPublishResult(null)
     try {
-      const endpoint = type === 'city' ? '/publish/city' : '/publish/pois'
+      const endpoint = type === 'city' ? '/publish/city'
+        : type === 'by-score' ? '/publish/pois-by-score'
+        : '/publish/pois'
       const res = await api.post<{ data: PublishResult }>(endpoint, body)
       setPublishResult(res.data || null)
       // Refresh summary after publish
@@ -272,6 +275,14 @@ export default function ReviewQueue() {
                 type: 'pois', cityId: city.cityId,
                 poiIds: Array.from(selectedPOIIds), count: selectedPOIIds.size,
               })}
+              onPublishByScore={(grades) => {
+                const pois = expandedCity === city.cityId ? cityDetail?.pois : undefined
+                const count = pois?.filter((p: ReviewPOI) => {
+                  const g = getScoreGrade(p.score?.total)
+                  return g && grades.includes(g) && p.reviewStatus !== 'published'
+                }).length || 0
+                setConfirmDialog({ type: 'by-score', cityId: city.cityId, count, scoreGrades: grades })
+              }}
               onShowDiff={(poi) => setDiffPOI(poi)}
             />
           ))}
@@ -288,6 +299,8 @@ export default function ReviewQueue() {
               executePublish('city', { cityId: confirmDialog.cityId })
             } else if (confirmDialog.type === 'pois') {
               executePublish('pois', { cityId: confirmDialog.cityId, poiIds: confirmDialog.poiIds })
+            } else if (confirmDialog.type === 'by-score') {
+              executePublish('by-score', { cityId: confirmDialog.cityId, scoreGrades: confirmDialog.scoreGrades })
             } else if (confirmDialog.type === 'selected-cities') {
               // Publish multiple cities sequentially
               const cityIds = Array.from(selectedCities)
@@ -328,14 +341,16 @@ export default function ReviewQueue() {
 /* ══════════════════════ City Row ══════════════════════ */
 
 function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailLoading,
-  selectedPOIIds, onTogglePOI, onToggleAllPOIs, onPublishCity, onPublishPOIs, onShowDiff,
+  selectedPOIIds, onTogglePOI, onToggleAllPOIs, onPublishCity, onPublishPOIs, onPublishByScore, onShowDiff,
 }: {
   city: CityReviewSummary; expanded: boolean; selected: boolean
   onToggle: () => void; onSelect: () => void
   detail: CityReviewDetail | null; detailLoading: boolean
   selectedPOIIds: Set<string>
   onTogglePOI: (id: string) => void; onToggleAllPOIs: () => void
-  onPublishCity: () => void; onPublishPOIs: () => void; onShowDiff: (poi: ReviewPOI) => void
+  onPublishCity: () => void; onPublishPOIs: () => void
+  onPublishByScore: (grades: ScoreGrade[]) => void
+  onShowDiff: (poi: ReviewPOI) => void
 }) {
   const hasPending = city.newCount + city.updatedCount > 0
 
@@ -359,6 +374,15 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
           <span className="ml-2 text-xs text-muted-foreground">({city.cityId})</span>
         </div>
         <div className="flex items-center gap-2">
+          {city.avgScore != null && (() => {
+            const grade = getScoreGrade(city.avgScore)
+            const cfg = grade ? SCORE_GRADE_CONFIG[grade] : null
+            return cfg ? (
+              <Badge variant="outline" className={`${cfg.bgColor} ${cfg.color} border`}>
+                均分 {grade} {Math.round(city.avgScore)}
+              </Badge>
+            ) : null
+          })()}
           {city.newCount > 0 && <Badge variant="success">+{city.newCount} 新增</Badge>}
           {city.updatedCount > 0 && <Badge variant="warning">~{city.updatedCount} 更新</Badge>}
           <Badge variant="secondary">{city.publishedCount} 已发布</Badge>
@@ -373,10 +397,20 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
             <Skeleton className="h-32 w-full" />
           ) : detail ? (
             <>
-              <div className="mb-3 flex items-center gap-2">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
                 <Button size="sm" onClick={onPublishCity}>
                   <Upload className="h-4 w-4 mr-1" />
                   发布整个城市 ({city.totalAgentPOIs} POI)
+                </Button>
+                <Button size="sm" variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => onPublishByScore(['A'])}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  发布 A 级
+                </Button>
+                <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  onClick={() => onPublishByScore(['A', 'B'])}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  发布 A+B 级
                 </Button>
                 {selectedPOIIds.size > 0 && (
                   <Button size="sm" variant="outline" onClick={onPublishPOIs}>
@@ -397,6 +431,7 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
                     <TableHead className="w-20">状态</TableHead>
                     <TableHead>名称</TableHead>
                     <TableHead className="w-28">分类</TableHead>
+                    <TableHead className="w-20">数据评分</TableHead>
                     <TableHead className="w-16">评分</TableHead>
                     <TableHead className="w-28">操作</TableHead>
                   </TableRow>
@@ -433,6 +468,17 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
                             </Badge>
                           )}
                         </TableCell>
+                        <TableCell>
+                          {poi.score ? (() => {
+                            const grade = getScoreGrade(poi.score.total)
+                            const cfg = grade ? SCORE_GRADE_CONFIG[grade] : null
+                            return cfg ? (
+                              <Badge variant="outline" className={`${cfg.bgColor} ${cfg.color} border text-xs`}>
+                                {grade} {poi.score.total}
+                              </Badge>
+                            ) : <span className="text-xs text-muted-foreground">{poi.score.total}</span>
+                          })() : <span className="text-xs text-muted-foreground">-</span>}
+                        </TableCell>
                         <TableCell>{poi.rating?.toFixed(1) || '—'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
@@ -461,12 +507,13 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
 
 /* ══════════════════════ Confirm Dialog ══════════════════════ */
 
-function ConfirmDialog({ type, count, publishing, onConfirm, onCancel }: {
-  type: string; count: number; publishing: boolean
+function ConfirmDialog({ type, count, publishing, scoreGrades, onConfirm, onCancel }: {
+  type: string; count: number; publishing: boolean; scoreGrades?: ScoreGrade[]
   onConfirm: () => void; onCancel: () => void
 }) {
   const title = type === 'city' ? '发布整个城市'
     : type === 'pois' ? '发布选中 POI'
+    : type === 'by-score' ? `发布 ${scoreGrades?.join('+')} 级数据`
     : '发布选中城市'
 
   return (

@@ -1,5 +1,14 @@
 /* ═══ POI Data Types (mirroring agent model) ═══ */
 
+export interface POIScore {
+  total: number
+  completeness: number
+  confidence: number
+  sourceCount: number
+  sources: string[]
+  conflictCount: number
+}
+
 export interface POI {
   id: string
   name: string
@@ -22,6 +31,7 @@ export interface POI {
   source?: string
   updatedAt?: number
   reviewStatus?: POIReviewStatus
+  score?: POIScore
 }
 
 export type L1Category = 'scenic' | 'food' | 'shopping' | 'entertainment' | 'experience' | 'hotel'
@@ -152,6 +162,36 @@ export interface POIFilters {
   q?: string
   page?: number
   pageSize?: number
+  scoreMin?: number
+  scoreMax?: number
+  scoreGrade?: string
+}
+
+/* ═══ Score Grade Config ═══ */
+
+export type ScoreGrade = 'A' | 'B' | 'C' | 'D'
+
+export interface ScoreGradeConfig {
+  label: string
+  range: [number, number]
+  color: string
+  bgColor: string
+  description: string
+}
+
+export const SCORE_GRADE_CONFIG: Record<ScoreGrade, ScoreGradeConfig> = {
+  A: { label: 'A', range: [80, 100], color: 'text-emerald-700', bgColor: 'bg-emerald-100', description: '优质数据' },
+  B: { label: 'B', range: [60, 79], color: 'text-blue-700', bgColor: 'bg-blue-100', description: '良好数据' },
+  C: { label: 'C', range: [40, 59], color: 'text-amber-700', bgColor: 'bg-amber-100', description: '需审核' },
+  D: { label: 'D', range: [0, 39], color: 'text-red-700', bgColor: 'bg-red-100', description: '低质量' },
+}
+
+export function getScoreGrade(score: number | undefined): ScoreGrade | null {
+  if (score == null) return null
+  if (score >= 80) return 'A'
+  if (score >= 60) return 'B'
+  if (score >= 40) return 'C'
+  return 'D'
 }
 
 /* ═══ Review & Publish ═══ */
@@ -177,6 +217,7 @@ export interface CityReviewSummary {
   publishedCount: number
   agentUpdatedAt: number
   serverUpdatedAt: number | null
+  avgScore: number | null
 }
 
 export interface ReviewPOI extends POI {

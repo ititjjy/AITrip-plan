@@ -1,14 +1,14 @@
 /**
- * qwen.ts – Qwen (通义千问) API integration for POI recommendations
+ * qwen.ts – 豆包（Doubao/Volcengine ARK）API integration for POI recommendations
  *
- * Calls DashScope API (OpenAI-compatible format) to generate
+ * Calls Volcengine ARK API (OpenAI-compatible format) to generate
  * TOP 50 POIs per category (200 total) for a given city + season.
  */
 
 import { deduplicatePOIs } from './dedup.js'
 
-const DASHSCOPE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const MODEL_NAME = 'qwen-plus'
+const ARK_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+const MODEL_NAME = 'ep-m-20260531112146-l9cfz'
 
 /* ── Season helpers ── */
 
@@ -355,7 +355,7 @@ function extractPOIArray(parsed: Record<string, unknown>, category: string): Raw
 /* ═══════════════════════ Public API ═══════════════════════ */
 
 /**
- * Fetch POIs from Qwen API — sequential calls, one per category.
+ * Fetch POIs from Doubao (Volcengine ARK) API — sequential calls, one per category.
  * Each call requests 50 POIs. Total: up to 200.
  */
 export async function fetchPOIsFromQwen(
@@ -365,6 +365,7 @@ export async function fetchPOIsFromQwen(
   season: string,
   apiKey: string,
 ): Promise<POI[]> {
+  console.log(`  [Doubao] fetchPOIsFromQwen called, apiKey=${apiKey.slice(0,15)}..., model=${MODEL_NAME}`)
   const seasonCtx = getSeasonContext(season)
   const systemPrompt = '你是一位资深旅行规划师，精通全球各地旅游资源。你只输出合法的JSON，不输出任何其他文字。'
   const categories = ['scenic', 'food', 'shopping', 'activity']
@@ -374,13 +375,13 @@ export async function fetchPOIsFromQwen(
   for (const category of categories) {
     try {
       const userPrompt = buildCategoryPrompt(cityName, cityNameEn, seasonCtx, category)
-      console.log(`  [Qwen] Requesting ${category}...`)
+      console.log(`  [Doubao] Requesting ${category}...`)
 
       // 添加 60 秒超时保护，防止 fetch 无限挂起
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 60_000)
+      const timeout = setTimeout(() => controller.abort(), 120_000)
 
-      const response = await fetch(DASHSCOPE_BASE_URL, {
+      const response = await fetch(ARK_BASE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -400,10 +401,10 @@ export async function fetchPOIsFromQwen(
       if (!response.ok) {
         const errData = await response.json().catch(() => ({})) as { error?: { message?: string } }
         const msg = errData?.error?.message || `HTTP ${response.status}`
-        console.error(`  [Qwen] ${category} HTTP error: ${msg}`)
+        console.error(`  [Doubao] ${category} HTTP error: ${msg}`)
         if (response.status === 401) throw new Error(`API_KEY_INVALID: ${msg}`)
         if (response.status === 429) {
-          console.warn(`  [Qwen] Rate limited, waiting 5s...`)
+          console.warn(`  [Doubao] Rate limited, waiting 5s...`)
           await new Promise(r => setTimeout(r, 5000))
           continue
         }
@@ -413,12 +414,12 @@ export async function fetchPOIsFromQwen(
       const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> }
       const text = data?.choices?.[0]?.message?.content
       if (!text) {
-        console.warn(`  [Qwen] ${category}: empty response`)
+        console.warn(`  [Doubao] ${category}: empty response`)
         continue
       }
 
       // Log a snippet for debugging
-      console.log(`  [Qwen] ${category} response (${text.length} chars): ${text.slice(0, 300)}...`)
+      console.log(`  [Doubao] ${category} response (${text.length} chars): ${text.slice(0, 300)}...`)
 
       let parsed: Record<string, unknown>
       try {
@@ -435,22 +436,22 @@ export async function fetchPOIsFromQwen(
           try {
             const raw = JSON.parse(repaired)
             parsed = Array.isArray(raw) ? { [category]: raw } : raw as Record<string, unknown>
-            console.log(`  [Qwen] ${category}: repaired truncated JSON`)
+            console.log(`  [Doubao] ${category}: repaired truncated JSON`)
           } catch {
-            console.error(`  [Qwen] ${category}: JSON repair also failed`)
+            console.error(`  [Doubao] ${category}: JSON repair also failed`)
             continue
           }
         } else {
-          console.error(`  [Qwen] ${category}: no JSON found in response`)
+          console.error(`  [Doubao] ${category}: no JSON found in response`)
           continue
         }
       }
       const items = extractPOIArray(parsed, category)
       if (items.length > 0) {
         merged[category] = items
-        console.log(`  [Qwen] ${category}: ${items.length} POIs ✓`)
+        console.log(`  [Doubao] ${category}: ${items.length} POIs ✓`)
       } else {
-        console.warn(`  [Qwen] ${category}: 0 POIs extracted`)
+        console.warn(`  [Doubao] ${category}: 0 POIs extracted`)
       }
     } catch (err) {
       if (err instanceof Error && (err.message.startsWith('API_KEY_INVALID') || err.message.startsWith('RATE_LIMIT'))) {

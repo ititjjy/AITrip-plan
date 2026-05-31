@@ -6,9 +6,9 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Skeleton } from '../components/ui/skeleton'
-import { ArrowLeft, MapPin, Star, Clock, Tag, Image, Info, RefreshCw, Upload, CheckCircle } from 'lucide-react'
-import type { POIDetail, FieldSource, POIReviewStatus } from '../types'
-import { L1_LABELS } from '../types'
+import { ArrowLeft, MapPin, Star, Clock, Tag, Image, Info, RefreshCw, Upload, CheckCircle, BarChart3 } from 'lucide-react'
+import type { POIDetail, FieldSource, POIReviewStatus, ScoreGrade } from '../types'
+import { L1_LABELS, SCORE_GRADE_CONFIG, getScoreGrade } from '../types'
 
 const REVIEW_STATUS_CONFIG: Record<POIReviewStatus, { label: string; className: string; desc: string }> = {
   new:       { label: '新入库 · 待审核', className: 'bg-emerald-100 text-emerald-800 border-emerald-300', desc: '该 POI 为新采集数据，尚未发布到网站' },
@@ -152,6 +152,68 @@ export default function POIDetailPage() {
 
       {/* Info Cards */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Data Score Card */}
+        {poi.score && (() => {
+          const grade = getScoreGrade(poi.score.total)
+          const cfg = grade ? SCORE_GRADE_CONFIG[grade] : null
+          return (
+            <Card className={cfg ? `border-2 ${cfg.bgColor}` : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="h-4 w-4" /> 数据评分
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl font-bold">{poi.score.total}</span>
+                  {cfg && (
+                    <Badge variant="outline" className={`text-lg px-3 py-1 ${cfg.bgColor} ${cfg.color} border`}>
+                      {grade} · {cfg.description}
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">完整度</span>
+                    <span className="font-medium">{Math.round(poi.score.completeness)}</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-gray-200">
+                    <div className="h-2 rounded-full bg-blue-500" style={{ width: `${Math.min(100, poi.score.completeness)}%` }} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">置信度</span>
+                    <span className="font-medium">{Math.round(poi.score.confidence)}</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-gray-200">
+                    <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.min(100, poi.score.confidence)}%` }} />
+                  </div>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">来源数</span>
+                    <span className="ml-1 font-medium">{poi.score.sourceCount}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">冲突字段</span>
+                    <span className={`ml-1 font-medium ${poi.score.conflictCount > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {poi.score.conflictCount}
+                    </span>
+                  </div>
+                </div>
+                {poi.score.sources.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {poi.score.sources.map((s) => (
+                      <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })()}
+
         {/* Basic Info */}
         <Card>
           <CardHeader>

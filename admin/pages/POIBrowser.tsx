@@ -13,8 +13,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../components/ui/table'
 import { Search, Eye, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
-import type { POI, L1Category, CategoryNode, POIReviewStatus } from '../types'
-import { L1_CATEGORIES, L1_LABELS } from '../types'
+import type { POI, L1Category, CategoryNode, POIReviewStatus, ScoreGrade } from '../types'
+import { L1_CATEGORIES, L1_LABELS, SCORE_GRADE_CONFIG, getScoreGrade } from '../types'
 
 const REVIEW_STATUS_LABELS: Record<POIReviewStatus, { label: string; className: string }> = {
   new:       { label: '新入库', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
@@ -40,6 +40,9 @@ export default function POIBrowser() {
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
   const [pageSize, setPageSize] = useState(Number(searchParams.get('pageSize')) || 20)
+  const [scoreGrade, setScoreGrade] = useState<ScoreGrade | ''>(
+    (searchParams.get('scoreGrade') as ScoreGrade) || ''
+  )
 
   const debouncedQuery = useDebounce(query, 300)
 
@@ -62,6 +65,7 @@ export default function POIBrowser() {
     if (l2) params.set('l2', l2)
     if (l3) params.set('l3', l3)
     if (debouncedQuery) params.set('q', debouncedQuery)
+    if (scoreGrade) params.set('scoreGrade', scoreGrade)
     params.set('page', String(page))
     params.set('pageSize', String(pageSize))
 
@@ -73,7 +77,7 @@ export default function POIBrowser() {
       })
       .catch(() => { setPois([]); setTotal(0) })
       .finally(() => setLoading(false))
-  }, [city, l1, l2, l3, debouncedQuery, page, pageSize])
+  }, [city, l1, l2, l3, debouncedQuery, scoreGrade, page, pageSize])
 
   useEffect(() => { fetchPOIs() }, [fetchPOIs])
 
@@ -85,10 +89,11 @@ export default function POIBrowser() {
     if (l2) params.set('l2', l2)
     if (l3) params.set('l3', l3)
     if (query) params.set('q', query)
+    if (scoreGrade) params.set('scoreGrade', scoreGrade)
     if (page > 1) params.set('page', String(page))
     if (pageSize !== 20) params.set('pageSize', String(pageSize))
     setSearchParams(params, { replace: true })
-  }, [city, l1, l2, l3, query, page, pageSize, setSearchParams])
+  }, [city, l1, l2, l3, query, scoreGrade, page, pageSize, setSearchParams])
 
   // Get L2 options based on selected L1
   const l2Options = l1
@@ -177,6 +182,34 @@ export default function POIBrowser() {
             />
           )}
         </div>
+
+        {/* Score Grade Filters */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">数据质量</span>
+          <div className="flex gap-1">
+            <Button
+              variant={!scoreGrade ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => { setScoreGrade(''); setPage(1) }}
+            >
+              全部
+            </Button>
+            {(Object.keys(SCORE_GRADE_CONFIG) as ScoreGrade[]).map((g) => {
+              const cfg = SCORE_GRADE_CONFIG[g]
+              return (
+                <Button
+                  key={g}
+                  variant={scoreGrade === g ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => { setScoreGrade(scoreGrade === g ? '' : g); setPage(1) }}
+                  className={scoreGrade === g ? cfg.bgColor + ' ' + cfg.color : ''}
+                >
+                  {g} ({cfg.range[0]}–{cfg.range[1]})
+                </Button>
+              )
+            })}
+          </div>
+        </div>
       </Card>
 
       {/* POI Table */}
@@ -191,6 +224,7 @@ export default function POIBrowser() {
               <TableRow>
                 <TableHead>名称</TableHead>
                 <TableHead>审核状态</TableHead>
+                <TableHead>数据评分</TableHead>
                 <TableHead>一级分类</TableHead>
                 <TableHead>分类路径</TableHead>
                 <TableHead>评分</TableHead>
@@ -218,6 +252,17 @@ export default function POIBrowser() {
                     ) : '-'}
                   </TableCell>
                   <TableCell>
+                    {poi.score ? (() => {
+                      const grade = getScoreGrade(poi.score.total)
+                      const cfg = grade ? SCORE_GRADE_CONFIG[grade] : null
+                      return cfg ? (
+                        <Badge variant="outline" className={`${cfg.bgColor} ${cfg.color} border`}>
+                          {grade} {poi.score.total}
+                        </Badge>
+                      ) : <span className="text-muted-foreground">{poi.score.total}</span>
+                    })() : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell>
                     <Badge className={L1_LABELS[poi.categoryL1]?.color || ''}>
                       {L1_LABELS[poi.categoryL1]?.zh || poi.categoryL1}
                     </Badge>
@@ -239,7 +284,7 @@ export default function POIBrowser() {
               ))}
               {pois.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     {query ? '没有找到匹配的 POI' : '暂无数据'}
                   </TableCell>
                 </TableRow>
