@@ -365,7 +365,6 @@ export async function fetchPOIsFromQwen(
   season: string,
   apiKey: string,
 ): Promise<POI[]> {
-  console.log(`  [Doubao] fetchPOIsFromQwen called, apiKey=${apiKey.slice(0,15)}..., model=${MODEL_NAME}`)
   const seasonCtx = getSeasonContext(season)
   const systemPrompt = '你是一位资深旅行规划师，精通全球各地旅游资源。你只输出合法的JSON，不输出任何其他文字。'
   const categories = ['scenic', 'food', 'shopping', 'activity']

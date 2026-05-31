@@ -150,7 +150,6 @@ app.post('/api/pois/:cityId/refresh', async (req, res) => {
   const cityNameEn = (req.query.cityNameEn as string) || (req.body?.cityNameEn as string) || cityId
   const season = getCurrentSeason()
   const apiKey = getApiKey()
-  console.log(`[REFRESH] cityId=${cityId}, apiKey=${apiKey?.slice(0,20)}...`)
   if (!apiKey) return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 API Key' })
   try {
     const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
