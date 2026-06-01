@@ -344,8 +344,15 @@ export function compositeSimilarity(a: RawPOI, b: RawPOI): CompositeResult {
       if (cSim >= 0.70) {
         return { score: nSim, path: 'same-type-perfect', details }
       }
+      // 名字归一化后完全相同 (nSim=1.0) 且地理距离 ≤2km (geoSim≥0.06) 时视为同一地点
+      // 避免仅因 contentSim 数据缺失而漏合并（AI 数据通常缺少 tags/cost）
+      // 大型公园/景区不同入口坐标偏差可能达到 1-2km
+      if (nSim >= 1.0 && gSim >= 0.06) {
+        return { score: nSim, path: 'same-type-perfect', details }
+      }
+      // 名称高度相似但内容数据缺失时，仍给予较高保底分以避免漏合并
       return {
-        score: nSim * 0.50 + cSim * 0.50,
+        score: Math.max(0.88, nSim * 0.50 + cSim * 0.50),
         path: 'same-type-perfect-low-content',
         details,
       }

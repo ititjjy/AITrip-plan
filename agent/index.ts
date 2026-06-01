@@ -27,6 +27,7 @@ import {
   getAllCityStats, getCityCount, closeDB, getCachedPOIs,
   insertRefreshCycle, updateRefreshCycle,
   getRefreshHistory, incrementCityVersion,
+  saveRawPOIs, loadRawPOIs, getRawPOIsSummary,
 } from './db.js'
 import { runWithConcurrency } from './utils.js'
 import { type L1Category, type CityInfo as SourceCityInfo, type RawPOI, type SourceCollector } from './sources/base.js'
@@ -59,6 +60,7 @@ interface CLIArgs {
   baseline?: boolean
   full?: boolean
   maxCities?: number
+  skipCollect?: boolean
 }
 
 function parseArgs(): CLIArgs {
@@ -91,6 +93,9 @@ function parseArgs(): CLIArgs {
         break
       case '--max-cities':
         result.maxCities = Number(args[++i])
+        break
+      case '--skip-collect':
+        result.skipCollect = true
         break
     }
   }
@@ -141,6 +146,11 @@ async function collectCity(
       const rawPOIs = await collector.collect(city, categories)
       const duration = Date.now() - sourceStart
 
+      // 持久化原始数据 (每来源覆盖式保存，供 reprocess 复用)
+      if (rawPOIs.length > 0) {
+        saveRawPOIs(city.id, collector.name, rawPOIs)
+      }
+
       logCollection({
         city_id: city.id,
         source: collector.name,
@@ -184,6 +194,25 @@ async function collectCity(
     return { pois: 0, success: false }
   }
 
+  return processRawData(city, allRawPOIs, collectors.map(c => c.name))
+}
+
+/* ── 后处理: 合并 / 清洗 / 存储 ── */
+
+/**
+ * 对已聚合的 RawPOI[] 执行合并去重、质量清洗、写库。
+ * 同时被 collectCity() 和 cmdReprocess() 调用，是两个 phase 的共享核心。
+ */
+function processRawData(
+  city: SourceCityInfo,
+  allRawPOIs: RawPOI[],
+  sourceNames: string[],
+): { pois: number; success: boolean } {
+  if (allRawPOIs.length === 0) {
+    console.log(`  No raw POIs to process`)
+    return { pois: 0, success: false }
+  }
+
   // 合并去重 (每类目 top 100)
   const { pois, stats } = mergeAndDeduplicate(allRawPOIs, city, AGENT_CONFIG.targetPOIsPerCategory)
 
@@ -193,6 +222,7 @@ async function collectCity(
 
   console.log(`  Quality: ${report.overallScore}/100 (Grade ${qualityGrade(report.overallScore)})`)
   console.log(`  Issues: ${report.issues.length} found, ${report.fixedCount} auto-fixed, ${report.discardedCount} discarded`)
+  console.log(`  Score Distribution: A=${stats.scoreDistribution.A}, B=${stats.scoreDistribution.B}, C=${stats.scoreDistribution.C}, D=${stats.scoreDistribution.D}`)
 
   // 存储到数据库
   upsertPOIs(city.id, cleaned)
@@ -201,13 +231,10 @@ async function collectCity(
   updateCityStats(city.id, {
     totalPois: cleaned.length,
     qualityScore: report.overallScore,
-    source: collectors.map(c => c.name).join(','),
+    source: sourceNames.join(','),
     success: true,
     byCategory: stats.byCategory,
   })
-
-  const totalTime = Date.now() - startTime
-  console.log(`  ${cleaned.length} POIs saved (${totalTime}ms total)`)
 
   return { pois: cleaned.length, success: true }
 }
@@ -215,6 +242,12 @@ async function collectCity(
 /* ── 命令: collect ── */
 
 async function cmdCollect(args: CLIArgs): Promise<void> {
+  // --skip-collect: 跳过 API 采集阶段，直接用已存储的 raw data 重处理
+  if (args.skipCollect) {
+    console.log(`[collect --skip-collect] Skipping API collection, loading raw data from DB...`)
+    return cmdReprocess(args)
+  }
+
   const cities = loadCities()
   if (cities.length === 0) {
     console.error('No cities loaded. Check city-registry.json.')
@@ -280,6 +313,82 @@ async function cmdCollect(args: CLIArgs): Promise<void> {
   console.log(`Collection complete:`)
   console.log(`  Success: ${succeeded}/${results.length}`)
   console.log(`  Failed: ${failed}`)
+  console.log(`  Total POIs: ${totalPOIs}`)
+  console.log(`${'='.repeat(50)}`)
+}
+
+/* ── 命令: reprocess ── */
+
+/**
+ * 从 raw_pois 表加载原始数据，重新执行合并/清洗/存储，不调用任何外部 API。
+ * 适用于调整了 merger/classifier/similarity 策略后需要重新生成处理结果的场景。
+ */
+async function cmdReprocess(args: CLIArgs): Promise<void> {
+  const allCities = loadCities()
+  if (allCities.length === 0) {
+    console.error('No cities loaded. Check city-registry.json.')
+    process.exit(1)
+  }
+
+  // 确定目标城市 (与 cmdCollect 相同逻辑)
+  let targetCities: SourceCityInfo[]
+  if (args.city) {
+    const city = allCities.find(c => c.id === args.city)
+    if (!city) {
+      console.error(`City not found: ${args.city}`)
+      process.exit(1)
+    }
+    targetCities = [city]
+  } else if (args.all) {
+    targetCities = allCities
+    console.log(`Reprocess mode: all ${allCities.length} cities`)
+  } else {
+    const batchSize = args.batch || AGENT_CONFIG.concurrentCities
+    targetCities = allCities.slice(0, batchSize)
+    console.log(`Reprocess mode: batch of ${targetCities.length} cities`)
+  }
+
+  console.log(`\nReprocessing ${targetCities.length} cities from raw data...`)
+  console.log(`(No API calls will be made)\n`)
+
+  let successCount = 0
+  let failCount = 0
+  let skipCount = 0
+  let totalPOIs = 0
+
+  for (const city of targetCities) {
+    const entries = loadRawPOIs(city.id)
+
+    if (entries.length === 0) {
+      console.log(`\n━━━ ${city.name} ━━━`)
+      console.log(`  [Skip] No raw data found. Run 'collect' first.`)
+      skipCount++
+      continue
+    }
+
+    const allRawPOIs = entries.flatMap(e => e.data)
+    const sourceNames = entries.map(e => e.source)
+    const ages = entries.map(e => {
+      const ageDays = Math.round((Date.now() - e.collected_at) / 86_400_000)
+      return `${e.source}(${e.data.length}, ${ageDays}d ago)`
+    })
+
+    console.log(`\n━━━ ${city.name} (${city.nameEn}) ━━━`)
+    console.log(`  Raw sources: ${ages.join(', ')} → ${allRawPOIs.length} total`)
+
+    const result = processRawData(city, allRawPOIs, sourceNames)
+    if (result.success) {
+      successCount++
+      totalPOIs += result.pois
+      console.log(`  ${result.pois} POIs saved`)
+    } else {
+      failCount++
+    }
+  }
+
+  console.log(`\n${'='.repeat(50)}`)
+  console.log(`Reprocess complete:`)
+  console.log(`  Success: ${successCount}, Failed: ${failCount}, Skipped: ${skipCount}`)
   console.log(`  Total POIs: ${totalPOIs}`)
   console.log(`${'='.repeat(50)}`)
 }
@@ -429,6 +538,32 @@ function cmdStatus(): void {
     }
   }
 
+  // Raw Data 覆盖情况
+  const rawSummary = getRawPOIsSummary()
+  if (rawSummary.length > 0) {
+    // 按城市分组
+    const byCityMap = new Map<string, typeof rawSummary>()
+    for (const row of rawSummary) {
+      const list = byCityMap.get(row.city_id) || []
+      list.push(row)
+      byCityMap.set(row.city_id, list)
+    }
+    const totalItems = rawSummary.reduce((s, r) => s + r.items_count, 0)
+    console.log(`\n  Raw Data Coverage (${rawSummary.length} city×source pairs, ${totalItems} total items):`)
+    for (const [cityId, rows] of byCityMap) {
+      const cityName = loadCities().find(c => c.id === cityId)?.name || cityId
+      const detail = rows.map(r => {
+        const ageDays = Math.round((Date.now() - r.collected_at) / 86_400_000)
+        return `${r.source}(${r.items_count}, ${ageDays}d)`
+      }).join(' ')
+      const total = rows.reduce((s, r) => s + r.items_count, 0)
+      console.log(`    ${cityName}: ${detail} = ${total} raw`)
+    }
+    console.log(`  Run 'reprocess' to re-merge/clean without re-collecting.`)
+  } else {
+    console.log(`\n  Raw Data Coverage: none (run 'collect' to populate)`)
+  }
+
   // 导出状态
   const exportPath = AGENT_CONFIG.exportPath
   if (fs.existsSync(exportPath)) {
@@ -558,6 +693,7 @@ async function cmdRefresh(args: CLIArgs): Promise<void> {
           if (!avail) continue
           const raw = await collector.collect(city, categories)
           if (raw.length > 0) {
+            saveRawPOIs(city.id, collector.name, raw)
             allRaw.push(...raw)
             console.log(`  [${collector.name}] ${raw.length} raw POIs`)
           }
@@ -677,12 +813,18 @@ POI Agent v0.3.0 — 本地旅游 POI 数据采集工具
 Categories: ${L1_CATEGORIES.map(c => L1_LABELS[c].zh).join(' / ')}
 
 Commands:
-  collect     采集 POI 数据
+  collect     采集 POI 数据并保存原始数据
     --city <id>         指定城市 (如: sanya, tokyo)
     --batch <N>         采集 N 个城市 (默认: 3)
     --all               全量采集所有城市
     --sources <names>   指定数据源 (逗号分隔: osm,ai)
     --concurrency <N>   并发城市数 (默认: 3)
+    --skip-collect      跳过 API 采集，直接用已存储的 raw data 重处理
+
+  reprocess   从已保存的原始数据重新执行合并/清洗 (不调用 API)
+    --city <id>         指定城市
+    --batch <N>         处理 N 个城市
+    --all               处理所有有 raw data 的城市
 
   export      导出到 data-sync/cache-export.json
 
@@ -706,6 +848,9 @@ Examples:
   npx tsx agent/index.ts collect --city sanya
   npx tsx agent/index.ts collect --batch 5 --sources osm,ai
   npx tsx agent/index.ts collect --all --concurrency 5
+  npx tsx agent/index.ts reprocess --city sanya
+  npx tsx agent/index.ts reprocess --all
+  npx tsx agent/index.ts collect --city sanya --skip-collect
   npx tsx agent/index.ts export
   npx tsx agent/index.ts quality --city sanya
   npx tsx agent/index.ts status
@@ -729,6 +874,9 @@ async function main(): Promise<void> {
     switch (args.command) {
       case 'collect':
         await cmdCollect(args)
+        break
+      case 'reprocess':
+        await cmdReprocess(args)
         break
       case 'export':
         cmdExport(args)

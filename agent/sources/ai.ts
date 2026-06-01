@@ -27,24 +27,9 @@ const CATEGORY_LABELS: Record<L1Category, string> = {
   hotel: '酒店（高端酒店、舒适酒店、经济住宿、特色住宿）',
 }
 
-/* ── 月份标签 ── */
-
-const MONTH_NAMES = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月']
-
 /* ── Prompt 构建 ── */
 
-function buildPrompt(
-  cityName: string,
-  cityNameEn: string,
-  category: L1Category,
-  count: number,
-): string {
-  const catLabel = CATEGORY_LABELS[category]
-
-  return `推荐${cityName}（${cityNameEn}）的${catLabel}类旅游地点，共${count}个。
-
-直接输出JSON数组，格式如下（不要输出任何说明文字，不要用markdown代码块）：
-[
+const JSON_FORMAT = `[
   {
     "namePrimary":"当地语言正式名称",
     "nameZh":"中文名称（无则空串）",
@@ -58,21 +43,44 @@ function buildPrompt(
     "cost":0,
     "visitDuration":90,
     "description":"50字以内的简介",
-    "tags":["标签1","标签2"],
+    "tags":["中文标签1|English Tag1","中文标签2|English Tag2"],
     "operatingHours":"09:00-18:00",
     "bestSeasons":["spring","autumn"],
     "monthlyIndex":[3,3,4,5,5,4,4,4,5,5,4,3]
   }
-]
+]`
 
-要求：
+const JSON_RULES = `要求：
 1. 地点必须真实存在，坐标准确。
 2. namePrimary 使用当地语言的正式名称。
 3. monthlyIndex 为 1-12 月的推荐指数（0-5整数），反映该月的游览推荐度。
 4. bestSeasons 可选值: spring, summer, autumn, winter。
 5. cost 为人均费用（当地货币），免费填 0。
 6. subCategory 填写具体的子类别关键词（英文），用于精确分类。
-7. 按热门程度排序，最热门的排前面。`
+7. tags 必须使用 "中文|English" 的双语格式，如 "古迹|Historic Site"。
+8. 按热门程度排序，最热门的排前面。`
+
+function buildPrompt(
+  cityName: string,
+  cityNameEn: string,
+  category: L1Category,
+  count: number,
+  excludeNames?: string[],
+): string {
+  const catLabel = CATEGORY_LABELS[category]
+
+  let excludeClause = ''
+  if (excludeNames && excludeNames.length > 0) {
+    // 只传最近一批已有名称，避免 prompt 过长
+    const sample = excludeNames.slice(-60).join('、')
+    excludeClause = `\n注意：以下地点已经收录，请推荐其他不同的地点（避免重复）：${sample}\n`
+  }
+
+  return `推荐${cityName}（${cityNameEn}）的${catLabel}类旅游地点，共${count}个。${excludeClause}
+直接输出JSON数组，格式如下（不要输出任何说明文字，不要用markdown代码块）：
+${JSON_FORMAT}
+
+${JSON_RULES}`
 }
 
 /* ── DashScope API 调用 ── */
@@ -81,7 +89,8 @@ async function callDashScope(prompt: string): Promise<any[]> {
   await rateLimiter.wait()
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), AGENT_CONFIG.aiTimeout)
+  // 单批 15 个 POI 请求超时 90s，远小于全量 300s 避免长时间阻塞
+  const timeout = setTimeout(() => controller.abort(), 90_000)
 
   try {
     const response = await fetch(DASHSCOPE_URL, {
@@ -182,6 +191,17 @@ function normalizeMonthlyIndex(raw: any): number[] {
 
 /* ── SourceCollector 实现 ── */
 
+/** 每轮请求 POI 数量（小批量以避免超时） */
+const BATCH_SIZE = 15
+
+/** 单类目最大轮次（15×10=150，够采满 100 个去重后剩余） */
+const MAX_ROUNDS = 10
+
+/** 名称归一化，用于去重判断 */
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase().replace(/[\s\-·•·]+/g, '')
+}
+
 export class AICollector implements SourceCollector {
   readonly name = 'ai'
 
@@ -191,39 +211,88 @@ export class AICollector implements SourceCollector {
 
   async collect(city: CityInfo, categories: L1Category[]): Promise<RawPOI[]> {
     const allPOIs: RawPOI[] = []
-    const countPerCategory = AGENT_CONFIG.maxPOIsPerCategory
+    const target = AGENT_CONFIG.targetPOIsPerCategory
 
     for (const category of categories) {
-      let lastError: Error | null = null
+      console.log(`  [AI] ${city.name}/${category}: 开始多轮采集，目标 ${target} 条...`)
+      const categoryPOIs: RawPOI[] = []
+      // 用于去重和 exclude 提示的名称集合（归一化后）
+      const seenNames = new Set<string>()
+      // 传给 prompt 的原始名称列表
+      const seenNamesRaw: string[] = []
 
-      for (let attempt = 0; attempt <= AGENT_CONFIG.retryCount; attempt++) {
-        try {
-          if (attempt > 0) {
-            console.log(`  [AI] ${category} retry ${attempt}...`)
-            await delay(AGENT_CONFIG.retryDelayMs)
-          }
+      for (let round = 0; round < MAX_ROUNDS; round++) {
+        if (categoryPOIs.length >= target) break
 
-          console.log(`  [AI] Generating ${category} for ${city.name}...`)
-          const prompt = buildPrompt(city.name, city.nameEn, category, countPerCategory)
-          const items = await callDashScope(prompt)
+        const remaining = target - categoryPOIs.length
+        const batchCount = Math.min(BATCH_SIZE, remaining + 5) // 多请求几个以弥补去重损耗
 
-          if (items.length > 0) {
-            for (const item of items) {
-              allPOIs.push(transformItem(item, category))
+        let roundOk = false
+        let lastError: Error | null = null
+
+        for (let attempt = 0; attempt <= AGENT_CONFIG.retryCount; attempt++) {
+          try {
+            if (attempt > 0) {
+              console.log(`    [AI] ${category} round${round + 1} retry ${attempt}...`)
+              await delay(AGENT_CONFIG.retryDelayMs)
             }
-            console.log(`  [AI] ${category}: ${items.length} POIs generated`)
+
+            const prompt = buildPrompt(
+              city.name,
+              city.nameEn,
+              category,
+              batchCount,
+              round > 0 ? seenNamesRaw : undefined,
+            )
+            const items = await callDashScope(prompt)
+
+            if (items.length === 0) {
+              console.log(`    [AI] ${category} round${round + 1}: 空响应，跳过`)
+              roundOk = true // 空响应不重试
+              break
+            }
+
+            let newCount = 0
+            for (const item of items) {
+              const poi = transformItem(item, category)
+              const key = normalizeName(poi.namePrimary || poi.nameZh || poi.nameEn)
+              if (key && !seenNames.has(key)) {
+                seenNames.add(key)
+                seenNamesRaw.push(poi.namePrimary || poi.nameZh || poi.nameEn)
+                categoryPOIs.push(poi)
+                newCount++
+              }
+            }
+
+            console.log(
+              `    [AI] ${category} round${round + 1}: +${newCount} 新增 (共 ${categoryPOIs.length}/${target})`,
+            )
+            roundOk = true
             lastError = null
             break
+          } catch (err) {
+            lastError = err as Error
+            console.error(
+              `    [AI] ${category} round${round + 1} attempt ${attempt + 1} failed:`,
+              lastError.message,
+            )
           }
-        } catch (err) {
-          lastError = err as Error
-          console.error(`  [AI] ${category} attempt ${attempt + 1} failed:`, lastError.message)
+        }
+
+        if (!roundOk && lastError) {
+          console.error(`    [AI] ${category} round${round + 1} 最终失败，停止该类目采集`)
+          break
+        }
+
+        // 如果连续一轮新增为 0，说明 AI 已经没有更多新地点，退出
+        if (roundOk && categoryPOIs.length < (round + 1) * BATCH_SIZE * 0.3 && round >= 2) {
+          console.log(`    [AI] ${category} 新增率过低，提前结束`)
+          break
         }
       }
 
-      if (lastError) {
-        console.error(`  [AI] ${category} failed after ${AGENT_CONFIG.retryCount + 1} attempts`)
-      }
+      console.log(`  [AI] ${category} 采集完成: ${categoryPOIs.length} 条`)
+      allPOIs.push(...categoryPOIs)
     }
 
     return allPOIs

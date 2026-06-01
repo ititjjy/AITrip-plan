@@ -138,6 +138,7 @@ export default function CreateTripPage() {
         c.name.includes(q) ||
         c.nameEn.toLowerCase().includes(q) ||
         c.country.includes(q) ||
+        c.province.includes(q) ||
         c.tags.some((t) => t.includes(q))
     )
   }, [searchQuery])
@@ -288,7 +289,7 @@ export default function CreateTripPage() {
                       </div>
                       <p className="flex items-center gap-1 text-xs text-primary-foreground/80">
                         <MapPin className="h-3 w-3" />
-                        {city.country}
+                        {city.isDomestic ? city.province : city.country}
                       </p>
                     </div>
                     {selectedCityId === city.id && (
@@ -360,7 +361,7 @@ export default function CreateTripPage() {
                       <h3 className="text-xl font-bold text-primary-foreground">{selectedCity.name}</h3>
                       <p className="flex items-center gap-1 text-sm text-primary-foreground/80">
                         <MapPin className="h-3.5 w-3.5" />
-                        {selectedCity.country} · {selectedCity.nameEn}
+                        {selectedCity.isDomestic ? selectedCity.province : selectedCity.country} · {selectedCity.nameEn}
                       </p>
                     </div>
                     <button

@@ -55,7 +55,9 @@ export interface City {
   id: string
   name: string
   nameEn: string
+  continent: string
   country: string
+  province: string
   lat: number
   lng: number
   poiCount?: number

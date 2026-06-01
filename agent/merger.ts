@@ -11,10 +11,11 @@
 
 import { clamp, haversineDistance } from './utils.js'
 import { resolveCategoryPath, L1_CATEGORIES } from './categories.js'
-import type { RawPOI, L1Category, POI, CityInfo } from './sources/base.js'
+import type { RawPOI, L1Category, POI, CityInfo, POIScore } from './sources/base.js'
 import { getImageUrl, roundCoord } from './sources/base.js'
 import {
   compositeSimilarity,
+  stringSimilarity,
   isInvalidPOI,
   type CompositeResult,
 } from './similarity.js'
@@ -22,6 +23,7 @@ import {
   classifyCategory,
   resolveCategoryConflict,
   resolveCategoryL3,
+  isCommercialComplex,
 } from './classifier.js'
 
 /* ═══════════════════════ Config ═══════════════════════ */
@@ -32,6 +34,234 @@ const MAX_TAGS = 6
 
 const SOURCE_RELIABILITY: Record<string, number> = {
   osm: 3, google: 2, foursquare: 2, amap: 2, ai: 1,
+}
+
+/* ═══════════════════════ Tag 双语化 ═══════════════════════ */
+
+/** 常见标签中英对照表: 统一小写用于匹配 */
+const TAG_TRANSLATIONS: Record<string, { zh: string; en: string }> = {
+  // 景点
+  'historic': { zh: '古迹', en: 'Historic' },
+  'historical': { zh: '古迹', en: 'Historic' },
+  'heritage': { zh: '遗产', en: 'Heritage' },
+  'temple': { zh: '寺庙', en: 'Temple' },
+  'shrine': { zh: '神社', en: 'Shrine' },
+  'church': { zh: '教堂', en: 'Church' },
+  'palace': { zh: '宫殿', en: 'Palace' },
+  'castle': { zh: '城堡', en: 'Castle' },
+  'museum': { zh: '博物馆', en: 'Museum' },
+  'gallery': { zh: '美术馆', en: 'Gallery' },
+  'park': { zh: '公园', en: 'Park' },
+  'garden': { zh: '园林', en: 'Garden' },
+  'zoo': { zh: '动物园', en: 'Zoo' },
+  'aquarium': { zh: '水族馆', en: 'Aquarium' },
+  'mountain': { zh: '山岳', en: 'Mountain' },
+  'lake': { zh: '湖泊', en: 'Lake' },
+  'beach': { zh: '海滩', en: 'Beach' },
+  'forest': { zh: '森林', en: 'Forest' },
+  'waterfall': { zh: '瀑布', en: 'Waterfall' },
+  'cave': { zh: '溶洞', en: 'Cave' },
+  'island': { zh: '岛屿', en: 'Island' },
+  'view': { zh: '观景', en: 'View' },
+  'landmark': { zh: '地标', en: 'Landmark' },
+  'nature': { zh: '自然', en: 'Nature' },
+  'scenic': { zh: '风景', en: 'Scenic' },
+  'architecture': { zh: '建筑', en: 'Architecture' },
+  'cultural': { zh: '文化', en: 'Cultural' },
+  'religious': { zh: '宗教', en: 'Religious' },
+  '免费': { zh: '免费', en: 'Free' },
+  'free': { zh: '免费', en: 'Free' },
+
+  // 餐饮
+  'restaurant': { zh: '餐厅', en: 'Restaurant' },
+  'cafe': { zh: '咖啡馆', en: 'Cafe' },
+  'coffee': { zh: '咖啡', en: 'Coffee' },
+  'tea': { zh: '茶饮', en: 'Tea' },
+  'bar': { zh: '酒吧', en: 'Bar' },
+  'pub': { zh: '酒馆', en: 'Pub' },
+  'dessert': { zh: '甜品', en: 'Dessert' },
+  'bakery': { zh: '烘焙', en: 'Bakery' },
+  'local': { zh: '本地特色', en: 'Local' },
+  'street food': { zh: '街头美食', en: 'Street Food' },
+  'seafood': { zh: '海鲜', en: 'Seafood' },
+  'sushi': { zh: '寿司', en: 'Sushi' },
+  'ramen': { zh: '拉面', en: 'Ramen' },
+  'noodle': { zh: '面食', en: 'Noodles' },
+  'bbq': { zh: '烧烤', en: 'BBQ' },
+  'hot pot': { zh: '火锅', en: 'Hot Pot' },
+  'vegetarian': { zh: '素食', en: 'Vegetarian' },
+  'vegan': { zh: '纯素', en: 'Vegan' },
+  'michelin': { zh: '米其林', en: 'Michelin' },
+  'fine dining': { zh: '高级餐厅', en: 'Fine Dining' },
+  'buffet': { zh: '自助餐', en: 'Buffet' },
+  'fast food': { zh: '快餐', en: 'Fast Food' },
+  '美食': { zh: '美食', en: 'Gourmet' },
+  '小吃': { zh: '小吃', en: 'Snack' },
+  '网红': { zh: '网红', en: 'Trending' },
+
+  // 购物
+  'shopping': { zh: '购物', en: 'Shopping' },
+  'mall': { zh: '商场', en: 'Mall' },
+  'department store': { zh: '百货', en: 'Department Store' },
+  'boutique': { zh: '精品店', en: 'Boutique' },
+  'market': { zh: '市场', en: 'Market' },
+  'supermarket': { zh: '超市', en: 'Supermarket' },
+  'duty-free': { zh: '免税', en: 'Duty-Free' },
+  'luxury': { zh: '奢侈品', en: 'Luxury' },
+  'handicraft': { zh: '手工艺', en: 'Handicraft' },
+  'souvenir': { zh: '纪念品', en: 'Souvenir' },
+  'antique': { zh: '古董', en: 'Antique' },
+  'brand': { zh: '品牌', en: 'Brand' },
+  'discount': { zh: '折扣', en: 'Discount' },
+  '特产': { zh: '特产', en: 'Local Product' },
+
+  // 娱乐
+  'amusement park': { zh: '游乐园', en: 'Amusement Park' },
+  'theme park': { zh: '主题乐园', en: 'Theme Park' },
+  'water park': { zh: '水上乐园', en: 'Water Park' },
+  'casino': { zh: '赌场', en: 'Casino' },
+  'theater': { zh: '剧院', en: 'Theater' },
+  'cinema': { zh: '影院', en: 'Cinema' },
+  'concert': { zh: '音乐会', en: 'Concert' },
+  'show': { zh: '演出', en: 'Show' },
+  'performance': { zh: '表演', en: 'Performance' },
+  'nightlife': { zh: '夜生活', en: 'Nightlife' },
+  'club': { zh: '夜店', en: 'Club' },
+  'karaoke': { zh: 'KTV', en: 'Karaoke' },
+  'live music': { zh: '现场音乐', en: 'Live Music' },
+  'sports': { zh: '体育', en: 'Sports' },
+  'stadium': { zh: '体育馆', en: 'Stadium' },
+  'night view': { zh: '夜景', en: 'Night View' },
+  '亲子': { zh: '亲子', en: 'Family' },
+  'family': { zh: '亲子', en: 'Family' },
+
+  // 体验
+  'hiking': { zh: '徒步', en: 'Hiking' },
+  'cycling': { zh: '骑行', en: 'Cycling' },
+  'camping': { zh: '露营', en: 'Camping' },
+  'diving': { zh: '潜水', en: 'Diving' },
+  'surfing': { zh: '冲浪', en: 'Surfing' },
+  'skiing': { zh: '滑雪', en: 'Skiing' },
+  'rafting': { zh: '漂流', en: 'Rafting' },
+  'paragliding': { zh: '滑翔伞', en: 'Paragliding' },
+  'yoga': { zh: '瑜伽', en: 'Yoga' },
+  'spa': { zh: 'SPA', en: 'Spa' },
+  'hotspring': { zh: '温泉', en: 'Hot Spring' },
+  'wellness': { zh: '养生', en: 'Wellness' },
+  'workshop': { zh: '工坊', en: 'Workshop' },
+  'cooking class': { zh: '烹饪课', en: 'Cooking Class' },
+  'pottery': { zh: '陶艺', en: 'Pottery' },
+  'costume': { zh: '服饰体验', en: 'Costume' },
+  'adventure': { zh: '冒险', en: 'Adventure' },
+  'outdoor': { zh: '户外', en: 'Outdoor' },
+  'photography': { zh: '摄影', en: 'Photography' },
+  '体验': { zh: '体验', en: 'Experience' },
+
+  // 酒店
+  'hotel': { zh: '酒店', en: 'Hotel' },
+  'resort': { zh: '度假村', en: 'Resort' },
+  'hostel': { zh: '青旅', en: 'Hostel' },
+  'inn': { zh: '客栈', en: 'Inn' },
+  'homestay': { zh: '民宿', en: 'Homestay' },
+  'boutique hotel': { zh: '精品酒店', en: 'Boutique Hotel' },
+  'luxury hotel': { zh: '豪华酒店', en: 'Luxury Hotel' },
+  ' ryokan': { zh: '温泉旅馆', en: 'Ryokan' },
+  'onsen': { zh: '温泉', en: 'Onsen' },
+  'glamping': { zh: '豪华露营', en: 'Glamping' },
+  'pool': { zh: '泳池', en: 'Pool' },
+  'beachfront': { zh: '海滨', en: 'Beachfront' },
+  'budget': { zh: '经济型', en: 'Budget' },
+  'business': { zh: '商务', en: 'Business' },
+  'romantic': { zh: '浪漫', en: 'Romantic' },
+  'view room': { zh: '景观房', en: 'View Room' },
+}
+
+/**
+ * 将单语标签转换为 "中文|English" 双语格式。
+ * 若已是双语格式则直接返回；若在映射表中则补全；否则原样保留。
+ */
+function bilingualizeTag(tag: string): string {
+  const trimmed = tag.trim()
+  if (!trimmed) return ''
+  // 已经是双语格式
+  if (/^.+\|.+$/.test(trimmed)) return trimmed
+
+  const lower = trimmed.toLowerCase()
+  const mapped = TAG_TRANSLATIONS[lower]
+  if (mapped) {
+    return `${mapped.zh}|${mapped.en}`
+  }
+
+  // 无法识别: 如果是纯中文，尝试简单处理
+  if (/^[\u4e00-\u9fff]+$/.test(trimmed)) {
+    return `${trimmed}|${trimmed}`
+  }
+  // 如果是纯英文，尝试简单处理
+  if (/^[a-zA-Z\s]+$/.test(trimmed)) {
+    return `${trimmed}|${trimmed}`
+  }
+  return trimmed
+}
+
+function bilingualizeTags(tags: string[]): string[] {
+  return tags.map(bilingualizeTag).filter(Boolean)
+}
+
+/* ═══════════════════════ Scoring Config ═══════════════════════ */
+
+/** 完整度字段权重 */
+const COMPLETENESS_WEIGHTS: Record<string, number> = {
+  // 核心四要素 (权重 3)
+  coords: 3, namePrimary: 3, address: 3, categoryL1: 3,
+  // 重要字段 (权重 1)
+  nameZh: 1, nameEn: 1, description: 1, rating: 1, tags: 1, operatingHours: 1,
+  // 锦上添花 (权重 0.5)
+  addressEn: 0.5, cost: 0.5, visitDuration: 0.5, bestSeasons: 0.5, monthlyIndex: 0.5,
+}
+const MAX_COMPLETENESS_WEIGHT = Object.values(COMPLETENESS_WEIGHTS).reduce((a, b) => a + b, 0) // 20.5
+
+/** 综合得分权重 */
+const COMPLETENESS_FACTOR = 0.55
+const CONFIDENCE_FACTOR = 0.45
+
+/** 单源可靠性奖励 */
+const SINGLE_SOURCE_BONUS: Record<string, number> = {
+  osm: 15, google: 10, foursquare: 10, amap: 10, ai: 5,
+}
+
+/** 冲突检测阈值 */
+const CONFLICT_THRESHOLDS = {
+  namePrimary: 0.70,   // stringSimilarity < 0.70 = conflict
+  coords: 500,         // haversineDistance > 500m = conflict
+  address: 0.60,       // stringSimilarity < 0.60 = conflict
+  rating: 1.5,         // |diff| > 1.5 = conflict
+  cost: 3.0,           // max/min > 3.0 = conflict
+}
+
+/** 数据丰富度加分 (0-15): 让字段完整、描述优质的多源 POI 拉开差距 */
+function computeQualityBonus(poi: RawPOI): number {
+  let bonus = 0
+  // 描述质量
+  if (poi.description) {
+    if (poi.description.length >= 80) bonus += 8
+    else if (poi.description.length >= 50) bonus += 5
+    else if (poi.description.length >= 30) bonus += 2
+  }
+  // 三名齐全
+  if (poi.namePrimary && poi.nameZh && poi.nameEn) bonus += 3
+  // 标签丰富
+  if (poi.tags && poi.tags.length >= 4) bonus += 2
+  // 有月度指数
+  if (poi.monthlyIndex && poi.monthlyIndex.length === 12) bonus += 2
+  return Math.min(bonus, 15)
+}
+
+/** 评分等级 */
+export function scoreGrade(score: number): string {
+  if (score >= 85) return 'A'
+  if (score >= 65) return 'B'
+  if (score >= 45) return 'C'
+  return 'D'
 }
 
 /* ═══════════════════════ Union-Find ═══════════════════════ */
@@ -100,6 +330,162 @@ export interface MergeResult {
     categoryReclassifications: number
     duplicatePairs: number
     mergeDetails: MergeDetail[]
+    scoreDistribution: { A: number; B: number; C: number; D: number }
+  }
+}
+
+/* ═══════════════════════ Conflict Detection & Scoring ═══════════════════════ */
+
+interface ConflictReport {
+  sourceCount: number
+  sources: string[]
+  comparablePairs: number
+  conflictPairs: number
+  conflictCount: number
+  agreementRatio: number
+  conflictFields: string[]
+}
+
+/** 检测合并组中多源字段冲突 */
+function detectConflicts(group: RawPOI[]): ConflictReport {
+  const sourceSet = new Set(group.map(p => p.source))
+  const sources = [...sourceSet]
+  const sourceCount = sourceSet.size
+
+  if (sourceCount < 2 || group.length < 2) {
+    return {
+      sourceCount, sources,
+      comparablePairs: 0, conflictPairs: 0, conflictCount: 0,
+      agreementRatio: 1, conflictFields: [],
+    }
+  }
+
+  let comparablePairs = 0
+  let conflictPairs = 0
+  const conflictFields: string[] = []
+
+  // Helper: pairwise compare within group
+  function compare(field: string, hasValue: (p: RawPOI) => boolean, isConflict: (a: RawPOI, b: RawPOI) => boolean) {
+    const valid = group.filter(hasValue)
+    if (valid.length < 2) return
+    for (let i = 0; i < valid.length; i++) {
+      for (let j = i + 1; j < valid.length; j++) {
+        comparablePairs++
+        if (isConflict(valid[i], valid[j])) {
+          conflictPairs++
+          if (!conflictFields.includes(field)) conflictFields.push(field)
+        }
+      }
+    }
+  }
+
+  // 1. namePrimary
+  compare('namePrimary',
+    p => !!p.namePrimary?.trim(),
+    (a, b) => stringSimilarity(a.namePrimary, b.namePrimary) < CONFLICT_THRESHOLDS.namePrimary,
+  )
+
+  // 2. coords
+  compare('coords',
+    p => p.lat !== 0 || p.lng !== 0,
+    (a, b) => haversineDistance(a.lat, a.lng, b.lat, b.lng) > CONFLICT_THRESHOLDS.coords,
+  )
+
+  // 3. address
+  compare('address',
+    p => !!p.address?.trim(),
+    (a, b) => stringSimilarity(a.address, b.address) < CONFLICT_THRESHOLDS.address,
+  )
+
+  // 4. categoryL1
+  compare('categoryL1',
+    p => !!p.categoryL1,
+    (a, b) => a.categoryL1 !== b.categoryL1,
+  )
+
+  // 5. rating
+  compare('rating',
+    p => !!p.rating && p.rating > 0,
+    (a, b) => Math.abs((a.rating || 0) - (b.rating || 0)) > CONFLICT_THRESHOLDS.rating,
+  )
+
+  // 6. cost
+  compare('cost',
+    p => !!p.cost && p.cost > 0,
+    (a, b) => {
+      const hi = Math.max(a.cost || 0, b.cost || 0)
+      const lo = Math.min(a.cost || 0, b.cost || 0)
+      return lo > 0 && (hi / lo) > CONFLICT_THRESHOLDS.cost
+    },
+  )
+
+  const agreementRatio = comparablePairs > 0 ? 1 - (conflictPairs / comparablePairs) : 1
+
+  return { sourceCount, sources, comparablePairs, conflictPairs, conflictCount: conflictFields.length, agreementRatio, conflictFields }
+}
+
+/** 计算单个 POI 的完整度得分 */
+export function computeCompleteness(poi: RawPOI): number {
+  let filled = 0
+
+  // 核心四要素
+  if (poi.lat !== 0 || poi.lng !== 0) filled += COMPLETENESS_WEIGHTS.coords
+  if (poi.namePrimary && poi.namePrimary.trim().length >= 2) filled += COMPLETENESS_WEIGHTS.namePrimary
+  if (poi.address && poi.address.trim().length > 0) filled += COMPLETENESS_WEIGHTS.address
+  if (poi.categoryL1 && L1_CATEGORIES.includes(poi.categoryL1)) filled += COMPLETENESS_WEIGHTS.categoryL1
+
+  // 重要字段
+  if (poi.nameZh && poi.nameZh.trim()) filled += COMPLETENESS_WEIGHTS.nameZh
+  if (poi.nameEn && poi.nameEn.trim()) filled += COMPLETENESS_WEIGHTS.nameEn
+  if (poi.description && poi.description.length >= 10) filled += COMPLETENESS_WEIGHTS.description
+  if (poi.rating && poi.rating > 0) filled += COMPLETENESS_WEIGHTS.rating
+  if (poi.tags && poi.tags.length > 0) filled += COMPLETENESS_WEIGHTS.tags
+  if (poi.operatingHours && poi.operatingHours.trim()) filled += COMPLETENESS_WEIGHTS.operatingHours
+
+  // 锦上添花
+  if (poi.addressEn && poi.addressEn.trim()) filled += COMPLETENESS_WEIGHTS.addressEn
+  if (poi.cost && poi.cost > 0) filled += COMPLETENESS_WEIGHTS.cost
+  if (poi.visitDuration && poi.visitDuration > 0) filled += COMPLETENESS_WEIGHTS.visitDuration
+  if (poi.bestSeasons && poi.bestSeasons.length > 0) filled += COMPLETENESS_WEIGHTS.bestSeasons
+  if (poi.monthlyIndex && poi.monthlyIndex.length === 12) filled += COMPLETENESS_WEIGHTS.monthlyIndex
+
+  return Math.round((filled / MAX_COMPLETENESS_WEIGHT) * 100)
+}
+
+/** 计算单个 POI 的置信度得分 */
+export function computeConfidence(poi: RawPOI, report: ConflictReport): number {
+  const { sourceCount, sources, agreementRatio, conflictCount } = report
+
+  if (sourceCount <= 1) {
+    // 单源: 居中 55~70
+    const primarySource = sources[0] || poi.source || 'unknown'
+    return 55 + (SINGLE_SOURCE_BONUS[primarySource] || 5)
+  }
+
+  // 多源: base + sourceBonus + agreementBonus - conflictPenalty
+  const base = 55
+  const sourceBonus = Math.min(sourceCount, 5) * 6
+  const agreementBonus = agreementRatio * 30
+  const conflictPenalty = Math.min(conflictCount, 5) * 8
+
+  return Math.round(clamp(base + sourceBonus + agreementBonus - conflictPenalty, 30, 100))
+}
+
+/** 计算 POI 综合评分 */
+export function computePOIScore(merged: RawPOI, report: ConflictReport): POIScore {
+  const completeness = computeCompleteness(merged)
+  const confidence = computeConfidence(merged, report)
+  const bonus = computeQualityBonus(merged)
+  const rawTotal = COMPLETENESS_FACTOR * completeness + CONFIDENCE_FACTOR * confidence + bonus
+  const total = Math.round(clamp(rawTotal, 0, 100))
+
+  return {
+    total,
+    completeness,
+    confidence,
+    sourceCount: report.sourceCount,
+    sources: report.sources,
+    conflictCount: report.conflictCount,
   }
 }
 
@@ -282,8 +668,15 @@ function crossCategoryDedup(
 
 /* ═══════════════════════ 5. 数据合并 ═══════════════════════ */
 
-function mergeGroup(group: RawPOI[]): RawPOI {
-  if (group.length === 1) return { ...group[0] }
+interface MergedEntry {
+  raw: RawPOI
+  conflictReport: ConflictReport
+}
+
+function mergeGroup(group: RawPOI[]): MergedEntry {
+  if (group.length === 1) {
+    return { raw: { ...group[0] }, conflictReport: detectConflicts(group) }
+  }
 
   // 选择最佳基础 POI: 优先非 AI 来源中信息最丰富的
   const sorted = [...group].sort((a, b) => {
@@ -344,12 +737,12 @@ function mergeGroup(group: RawPOI[]): RawPOI {
     base.visitDuration = durations[Math.floor(durations.length / 2)]
   }
 
-  // 标签: 并集, max 6
+  // 标签: 并集 + 双语化, max 6
   const allTags = new Set<string>()
   for (const p of group) {
     for (const t of (p.tags || [])) allTags.add(t)
   }
-  base.tags = [...allTags].slice(0, MAX_TAGS)
+  base.tags = bilingualizeTags([...allTags]).slice(0, MAX_TAGS)
 
   // 地址: 最长本地 + 最长英文
   base.address = group.reduce((best, p) =>
@@ -389,12 +782,15 @@ function mergeGroup(group: RawPOI[]): RawPOI {
     (p.operatingHours?.length || 0) > (best?.length || 0) ? p.operatingHours : best
   , '') || base.operatingHours
 
-  return base
+  // 检测多源冲突
+  const conflictReport = detectConflicts(group)
+
+  return { raw: base, conflictReport }
 }
 
 /* ═══════════════════════ 6. RawPOI → POI ═══════════════════════ */
 
-function rawToPOI(raw: RawPOI, cityId: string, index: number): POI {
+function rawToPOI(raw: RawPOI, cityId: string, index: number, score?: POIScore): POI {
   const l1 = raw.categoryL1
   const path = resolveCategoryPath(raw.categoryL3)
 
@@ -420,6 +816,8 @@ function rawToPOI(raw: RawPOI, cityId: string, index: number): POI {
     recommendReason: '',
     bestSeasons: raw.bestSeasons || [],
     monthlyIndex: raw.monthlyIndex || [3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 3, 3],
+    source: raw.source || 'unknown',
+    score,
   }
 }
 
@@ -458,6 +856,7 @@ export function mergeAndDeduplicate(
         categoryReclassifications: 0,
         duplicatePairs: 0,
         mergeDetails: [],
+        scoreDistribution: { A: 0, B: 0, C: 0, D: 0 },
       },
     }
   }
@@ -511,7 +910,7 @@ export function mergeAndDeduplicate(
   // ── Step 5 & 6: 收集合并组 + 类目冲突解决 + 数据合并 ──
   const groups = globalUF.groups()
   let categoryReclassifications = 0
-  const mergedPois: RawPOI[] = []
+  const mergedEntries: MergedEntry[] = []
 
   for (const [, memberIndices] of groups) {
     const groupMembers = memberIndices.map(i => filteredPois[i])
@@ -530,82 +929,97 @@ export function mergeAndDeduplicate(
         }
       }
 
-      const merged = mergeGroup(groupMembers)
-      merged.categoryL1 = resolved.l1
-      merged.categoryL3 = resolved.l3
-      mergedPois.push(merged)
+      const entry = mergeGroup(groupMembers)
+      entry.raw.categoryL1 = resolved.l1
+      entry.raw.categoryL3 = resolved.l3
+      mergedEntries.push(entry)
     } else {
       // 同类目组 — 直接合并
-      const merged = mergeGroup(groupMembers)
+      const entry = mergeGroup(groupMembers)
 
       // L3 选择: 从候选中选最优
       const l3Candidates = groupMembers.map(p => p.categoryL3)
-      merged.categoryL3 = resolveCategoryL3(merged.categoryL1, l3Candidates)
+      entry.raw.categoryL3 = resolveCategoryL3(entry.raw.categoryL1, l3Candidates)
 
-      mergedPois.push(merged)
+      mergedEntries.push(entry)
     }
   }
 
-  console.log(`  [Merge] After dedup: ${mergedPois.length} (pairs: ${totalPairs}, cross: ${crossPairs})`)
+  console.log(`  [Merge] After dedup: ${mergedEntries.length} (pairs: ${totalPairs}, cross: ${crossPairs})`)
 
   // ── Step 7: 后分类检查 ──
-  for (const poi of mergedPois) {
+  for (const entry of mergedEntries) {
+    const poi = entry.raw
     const classification = classifyCategory(poi)
 
-    // 仅当置信度 >0.9 且全部来自 AI 来源时才覆盖分类
-    if (classification.confidence > 0.9 && classification.l1 !== poi.categoryL1) {
-      // 检查是否所有原始成员都是 AI 来源 (此处简化: 仅检查当前 POI)
-      if (poi.source === 'ai') {
-        poi.categoryL1 = classification.l1
-        poi.categoryL3 = resolveCategoryL3(classification.l1, [poi.categoryL3])
-        categoryReclassifications++
-      }
+    // AI 来源: 降低阈值到 0.65，分类器置信度超过此值时覆盖 AI 的批次分类
+    // 非 AI 来源 (osm/google 等): 保持更高阈值 0.90，尊重可靠数据源的分类
+    const threshold = poi.source === 'ai' ? 0.65 : 0.90
+
+    if (classification.confidence > threshold && classification.l1 !== poi.categoryL1) {
+      poi.categoryL1 = classification.l1
+      poi.categoryL3 = resolveCategoryL3(classification.l1, [poi.categoryL3])
+      categoryReclassifications++
+    }
+
+    // 商业综合体硬性检测: 无论来源和置信度，名字+描述双重确认的综合体归入 shopping
+    if (poi.categoryL1 === 'scenic' && isCommercialComplex(poi)) {
+      poi.categoryL1 = 'shopping'
+      poi.categoryL3 = resolveCategoryL3('shopping', [poi.categoryL3])
+      categoryReclassifications++
     }
   }
 
   // ── 按 L1 类目分组 & 排序 & 截取 top N ──
-  const grouped = new Map<L1Category, RawPOI[]>()
-  for (const poi of mergedPois) {
-    const list = grouped.get(poi.categoryL1) || []
-    list.push(poi)
-    grouped.set(poi.categoryL1, list)
+  const grouped = new Map<L1Category, MergedEntry[]>()
+  for (const entry of mergedEntries) {
+    const l1 = entry.raw.categoryL1
+    const list = grouped.get(l1) || []
+    list.push(entry)
+    grouped.set(l1, list)
   }
 
   const finalPOIs: POI[] = []
   const byCategory: Record<string, number> = {}
+  const scoreDistribution = { A: 0, B: 0, C: 0, D: 0 }
 
   let globalIdx = 0
   for (const l1 of L1_CATEGORIES) {
     const items = grouped.get(l1) || []
 
     // 按评分排序 (高的在前)
-    items.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    items.sort((a, b) => (b.raw.rating || 0) - (a.raw.rating || 0))
 
     // 截取目标数量
     const selected = items.slice(0, targetPerCategory)
     byCategory[l1] = selected.length
 
-    for (const raw of selected) {
+    for (const entry of selected) {
       globalIdx++
-      finalPOIs.push(rawToPOI(raw, city.id, globalIdx))
+      const score = computePOIScore(entry.raw, entry.conflictReport)
+      const grade = scoreGrade(score.total)
+      scoreDistribution[grade as 'A' | 'B' | 'C' | 'D']++
+      finalPOIs.push(rawToPOI(entry.raw, city.id, globalIdx, score))
     }
   }
 
   console.log(`  [Merge] Final: ${finalPOIs.length} POIs ` +
     `(${Object.entries(byCategory).map(([k, v]) => `${k}:${v}`).join(', ')})`)
+  console.log(`  [Merge] Score: A=${scoreDistribution.A}, B=${scoreDistribution.B}, C=${scoreDistribution.C}, D=${scoreDistribution.D}`)
 
   return {
     pois: finalPOIs,
     stats: {
       totalRaw,
       invalidFiltered: invalidCount,
-      afterDedup: mergedPois.length,
+      afterDedup: mergedEntries.length,
       afterMerge: finalPOIs.length,
       byCategory,
       crossCategoryMerges: crossPairs,
       categoryReclassifications,
       duplicatePairs: totalPairs,
       mergeDetails: allMergeDetails,
+      scoreDistribution,
     },
   }
 }

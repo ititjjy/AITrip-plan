@@ -36,7 +36,7 @@ export const AGENT_CONFIG = {
   foursquareTimeout: 30_000,
   googleTimeout: 30_000,
   amapTimeout: 30_000,
-  aiTimeout: 180_000,
+  aiTimeout: 300_000,
 
   // 速率限制 (毫秒间隔)
   osmInterval: 10_000,       // Overpass 公平使用: 10s
@@ -117,7 +117,9 @@ export interface CityInfo {
   lng: number
   hotness: number
   isDomestic: boolean
+  continent: string
   country: string
+  province: string
 }
 
 let cachedCities: CityInfo[] | null = null
@@ -133,15 +135,17 @@ export function loadCities(): CityInfo[] {
   }
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'))
 
-  // 从 city-coords.json 补充 lat/lng/isDomestic/country
+  // 从 city-coords.json 补充 lat/lng/isDomestic/continent/country/province
   const coordsPath = path.join(__dirname, 'data', 'city-coords.json')
-  let coordsMap: Record<string, { lat: number; lng: number; isDomestic: boolean; country: string }> = {}
+  let coordsMap: Record<string, { lat: number; lng: number; isDomestic: boolean; continent: string; country: string; province: string }> = {}
   if (fs.existsSync(coordsPath)) {
     coordsMap = JSON.parse(fs.readFileSync(coordsPath, 'utf-8'))
   }
 
   cachedCities = registry.map((c: any) => {
     const coords = coordsMap[c.id]
+    const country = coords?.country ?? c.country ?? ''
+    const isDomestic = coords?.isDomestic ?? c.isDomestic ?? (country === '中国')
     return {
       id: c.id,
       name: c.name,
@@ -149,8 +153,10 @@ export function loadCities(): CityInfo[] {
       lat: coords?.lat ?? c.lat ?? 0,
       lng: coords?.lng ?? c.lng ?? 0,
       hotness: c.hotness || 50,
-      isDomestic: coords?.isDomestic ?? c.isDomestic ?? true,
-      country: coords?.country ?? c.country ?? '',
+      isDomestic,
+      continent: coords?.continent ?? (isDomestic ? '亚洲' : ''),
+      country,
+      province: coords?.province ?? (isDomestic ? country : ''),
     }
   })
 

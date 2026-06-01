@@ -19,7 +19,9 @@ export interface CityInfo {
   lng: number
   hotness: number
   isDomestic: boolean
+  continent: string
   country: string
+  province: string
 }
 
 /* ── 采集器返回的原始 POI 数据 ── */
@@ -84,6 +86,23 @@ export interface SourceCollector {
   collect(city: CityInfo, categories: L1Category[]): Promise<RawPOI[]>
 }
 
+/* ── POI 数据评分 ── */
+
+export interface POIScore {
+  /** 综合得分 0-100 */
+  total: number
+  /** 完整度 0-100 */
+  completeness: number
+  /** 置信度 0-100 */
+  confidence: number
+  /** 数据来源数量 */
+  sourceCount: number
+  /** 来源名称列表 */
+  sources: string[]
+  /** 冲突字段数 */
+  conflictCount: number
+}
+
 /* ── 网站 POI 最终格式 ── */
 
 export interface POI {
@@ -136,6 +155,9 @@ export interface POI {
   bestSeasons: string[]
   /** 1-12 月推荐指数 (0-5 星) */
   monthlyIndex: number[]
+
+  /** 数据质量评分 (合并时计算) */
+  score?: POIScore
 }
 
 /* ── Unsplash 图片 URL (6 大类目) ── */

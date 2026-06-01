@@ -32,12 +32,14 @@ import { spawn } from 'child_process'
 import Database from 'better-sqlite3'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const PROJECT_ROOT = process.cwd()
 const router = Router()
 
 /* ── Agent DB connection ── */
 
-const AGENT_DB_PATH = path.join(__dirname, '..', 'agent', 'data', 'agent.db')
+const AGENT_DB_PATH = path.join(PROJECT_ROOT, 'agent', 'data', 'agent.db')
 let agentDB: Database.Database | null = null
+let agentDBWritable: Database.Database | null = null
 
 function getAgentDB(): Database.Database {
   if (agentDB) return agentDB
@@ -47,6 +49,16 @@ function getAgentDB(): Database.Database {
   agentDB = new Database(AGENT_DB_PATH, { readonly: true })
   agentDB.pragma('journal_mode = WAL')
   return agentDB
+}
+
+function getAgentDBWritable(): Database.Database {
+  if (agentDBWritable) return agentDBWritable
+  if (!fs.existsSync(AGENT_DB_PATH)) {
+    throw new Error(`Agent DB not found: ${AGENT_DB_PATH}. Run "npm run agent:init-db" first.`)
+  }
+  agentDBWritable = new Database(AGENT_DB_PATH)
+  agentDBWritable.pragma('journal_mode = WAL')
+  return agentDBWritable
 }
 
 /* ── Server DB connection (for publish operations) ── */
@@ -100,14 +112,15 @@ function mergePOIsIntoServer(cityId: string, poisToMerge: any[]): number {
 
 /* ── City registry (JSON file based) ── */
 
-const CITY_REGISTRY_PATH = path.join(__dirname, '..', 'scripts', 'city-registry.json')
-const CITY_COORDS_PATH = path.join(__dirname, '..', 'agent', 'data', 'city-coords.json')
+// 使用 process.cwd() 而非 __dirname，确保无论 dev (tsx) 还是 prod (dist-server) 都能正确解析
+const CITY_REGISTRY_PATH = path.join(PROJECT_ROOT, 'scripts', 'city-registry.json')
+const CITY_COORDS_PATH = path.join(PROJECT_ROOT, 'agent', 'data', 'city-coords.json')
 
 interface CityRecord {
   id: string; name: string; nameEn: string; hotness: number
 }
 interface CoordRecord {
-  lat: number; lng: number; isDomestic: boolean; country: string
+  lat: number; lng: number; isDomestic: boolean; continent: string; country: string; province: string
 }
 
 function loadCityRegistry(): CityRecord[] {
@@ -490,7 +503,9 @@ router.get('/cities', (_req: Request, res: Response) => {
       id: c.id,
       name: c.name,
       nameEn: c.nameEn,
+      continent: coord?.continent || '',
       country: coord?.country || '',
+      province: coord?.province || '',
       lat: coord?.lat || 0,
       lng: coord?.lng || 0,
       poiCount: dbInfo?.count || 0,
@@ -506,7 +521,9 @@ router.get('/cities', (_req: Request, res: Response) => {
         id: cityId,
         name: cityId,
         nameEn: cityId,
+        continent: coord?.continent || '',
         country: coord?.country || '',
+        province: coord?.province || '',
         lat: coord?.lat || 0,
         lng: coord?.lng || 0,
         poiCount: info.count,
@@ -526,7 +543,7 @@ router.get('/cities', (_req: Request, res: Response) => {
 })
 
 router.post('/cities', (req: Request, res: Response) => {
-  const { id, name, nameEn, country, lat, lng } = req.body
+  const { id, name, nameEn, continent, country, province, lat, lng } = req.body
   if (!id || !name || !country) {
     return res.status(400).json({ success: false, error: 'MISSING_FIELDS', message: '城市 ID、名称和国家不能为空' })
   }
@@ -540,15 +557,23 @@ router.post('/cities', (req: Request, res: Response) => {
   saveCityRegistry(registry)
 
   const coords = loadCityCoords()
-  coords[id] = { lat: lat || 0, lng: lng || 0, isDomestic: true, country }
+  const isDomestic = country === '中国'
+  coords[id] = {
+    lat: lat || 0,
+    lng: lng || 0,
+    isDomestic,
+    continent: continent || (isDomestic ? '亚洲' : ''),
+    country,
+    province: province || (isDomestic ? country : ''),
+  }
   fs.writeFileSync(CITY_COORDS_PATH, JSON.stringify(coords, null, 2), 'utf-8')
 
-  res.json({ success: true, data: { id, name, nameEn, country, lat, lng } })
+  res.json({ success: true, data: { id, name, nameEn, continent, country, province, lat, lng } })
 })
 
 router.put('/cities/:id', (req: Request, res: Response) => {
   const id = req.params.id as string
-  const { name, nameEn, country, lat, lng } = req.body
+  const { name, nameEn, continent, country, province, lat, lng } = req.body
 
   const registry = loadCityRegistry()
   const idx = registry.findIndex((c) => c.id === id)
@@ -558,15 +583,19 @@ router.put('/cities/:id', (req: Request, res: Response) => {
   if (nameEn) registry[idx].nameEn = nameEn
   saveCityRegistry(registry)
 
-  if (country || lat !== undefined || lng !== undefined) {
+  if (continent || country || province || lat !== undefined || lng !== undefined) {
     const coords = loadCityCoords()
     const existing = coords[id]
+    const newCountry = country || existing?.country
+    const isDomestic = newCountry === '中国'
     coords[id] = {
       ...existing,
-      country: country || existing?.country,
+      continent: continent || existing?.continent || (isDomestic ? '亚洲' : ''),
+      country: newCountry,
+      province: province || existing?.province || (isDomestic ? newCountry : ''),
       lat: lat ?? existing?.lat ?? 0,
       lng: lng ?? existing?.lng ?? 0,
-      isDomestic: existing?.isDomestic ?? true,
+      isDomestic,
     }
     fs.writeFileSync(CITY_COORDS_PATH, JSON.stringify(coords, null, 2), 'utf-8')
   }
@@ -578,15 +607,45 @@ router.delete('/cities/:id', (req: Request, res: Response) => {
   const id = req.params.id as string
   const registry = loadCityRegistry()
   const filtered = registry.filter((c) => c.id !== id)
-  if (filtered.length === registry.length) {
-    return res.status(404).json({ success: false, error: 'NOT_FOUND' })
+  const inRegistry = filtered.length < registry.length
+
+  if (inRegistry) {
+    saveCityRegistry(filtered)
   }
-  saveCityRegistry(filtered)
 
   const coords = loadCityCoords()
   if (coords[id]) {
     delete coords[id]
     fs.writeFileSync(CITY_COORDS_PATH, JSON.stringify(coords, null, 2), 'utf-8')
+  }
+
+  // ── 清理 Agent DB 中该城市的所有数据 ──
+  let agentDeleted = false
+  try {
+    const dbw = getAgentDBWritable()
+    const r1 = dbw.prepare('DELETE FROM city_pois WHERE city_id = ?').run(id)
+    const r2 = dbw.prepare('DELETE FROM city_stats WHERE city_id = ?').run(id)
+    const r3 = dbw.prepare('DELETE FROM raw_pois WHERE city_id = ?').run(id)
+    const r4 = dbw.prepare('DELETE FROM collection_logs WHERE city_id = ?').run(id)
+    agentDeleted = (r1.changes + r2.changes + r3.changes + r4.changes) > 0
+  } catch (err) {
+    console.error(`[Admin] Failed to clean Agent DB for ${id}:`, err)
+  }
+
+  // ── 清理 Server DB 中该城市的 POI 和酒店数据 ──
+  let serverDeleted = false
+  try {
+    const serverDb = getServerDB()
+    const r1 = serverDb.prepare('DELETE FROM city_pois WHERE city_id = ?').run(id)
+    const r2 = serverDb.prepare('DELETE FROM hotels WHERE city_id = ?').run(id)
+    serverDeleted = (r1.changes + r2.changes) > 0
+  } catch (err) {
+    console.error(`[Admin] Failed to clean Server DB for ${id}:`, err)
+  }
+
+  // 如果 registry、coords、DB 中都没有该城市，才返回 404
+  if (!inRegistry && !coords[id] && !agentDeleted && !serverDeleted) {
+    return res.status(404).json({ success: false, error: 'NOT_FOUND', message: '城市不存在' })
   }
 
   res.json({ success: true })
@@ -793,7 +852,7 @@ function executeAgentCLI(job: JobRecord, args: string[]) {
   job.status = 'running'
   job.started_at = Date.now()
 
-  const cwd = path.join(__dirname, '..')
+  const cwd = PROJECT_ROOT
   const child = spawn('npx', ['tsx', 'agent/index.ts', ...args], {
     cwd,
     env: { ...process.env },

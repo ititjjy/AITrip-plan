@@ -305,9 +305,9 @@ export function cleanPOIs(pois: POI[], city: CityInfo): POI[] {
  * 质量等级。
  */
 export function qualityGrade(score: number): string {
-  if (score >= 80) return 'A'
-  if (score >= 60) return 'B'
-  if (score >= 40) return 'C'
+  if (score >= 85) return 'A'
+  if (score >= 65) return 'B'
+  if (score >= 45) return 'C'
   return 'D'
 }
 

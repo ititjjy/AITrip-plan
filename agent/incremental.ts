@@ -11,12 +11,13 @@
  *   checkValidity()           — 全量刷新时的有效性检查
  */
 
-import type { RawPOI, POI, CityInfo, SourceCollector } from './sources/base.js'
+import type { RawPOI, POI, CityInfo, SourceCollector, POIScore } from './sources/base.js'
 import { AGENT_CONFIG } from './config.js'
 import { getAllCityStats } from './db.js'
 import { calculatePriorities } from './scheduler.js'
 import { compositeSimilarity, isInvalidPOI } from './similarity.js'
 import { resolveCategoryPath } from './categories.js'
+import { computePOIScore } from './merger.js'
 
 /* ═══════════════════════ Types ═══════════════════════ */
 
@@ -318,6 +319,20 @@ function poiToRawPOI(poi: POI): RawPOI {
   }
 }
 
+/** 为单源 POI 构造最小评分 */
+function scoreForRawPOI(raw: RawPOI): POIScore {
+  const report = {
+    sourceCount: 1,
+    sources: [raw.source || 'unknown'],
+    comparablePairs: 0,
+    conflictPairs: 0,
+    conflictCount: 0,
+    agreementRatio: 1,
+    conflictFields: [],
+  }
+  return computePOIScore(raw, report)
+}
+
 /** 用新数据增强已有 POI (填补空白字段) */
 function augmentPOI(existing: POI, newData: RawPOI): POI {
   const updated = { ...existing }
@@ -359,12 +374,36 @@ function augmentPOI(existing: POI, newData: RawPOI): POI {
     updated.bestSeasons = [...merged]
   }
 
+  // 增强后重新计算 score
+  const raw: RawPOI = {
+    namePrimary: updated.namePrimary,
+    nameZh: updated.nameZh,
+    nameEn: updated.nameEn,
+    categoryL1: updated.categoryL1,
+    categoryL3: updated.categoryL3,
+    lat: updated.lat,
+    lng: updated.lng,
+    address: updated.address,
+    addressEn: updated.addressEn,
+    rating: updated.rating,
+    cost: updated.cost,
+    visitDuration: updated.visitDuration,
+    description: updated.description,
+    tags: updated.tags,
+    operatingHours: updated.operatingHours,
+    bestSeasons: updated.bestSeasons,
+    monthlyIndex: updated.monthlyIndex,
+    source: updated.id.split('-')[0] || 'agent',
+  }
+  updated.score = scoreForRawPOI(raw)
+
   return updated
 }
 
 /** RawPOI → POI 最小转换 (用于新增) */
 function rawToMinimalPOI(raw: RawPOI, cityId: string, index: number): POI {
   const path = resolveCategoryPath(raw.categoryL3)
+  const score = scoreForRawPOI(raw)
 
   return {
     id: `${raw.source || 'agent'}-${cityId}-${index}`,
@@ -388,5 +427,6 @@ function rawToMinimalPOI(raw: RawPOI, cityId: string, index: number): POI {
     recommendReason: '',
     bestSeasons: raw.bestSeasons || [],
     monthlyIndex: raw.monthlyIndex || [3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 3, 3],
+    score,
   }
 }

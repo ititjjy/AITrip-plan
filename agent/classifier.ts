@@ -55,20 +55,24 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
   food: {
     suffixes: [
       '餐厅', '饭店', '食堂', '料理店', '菜馆', '小馆', '面馆',
-      '咖啡馆', '茶馆', '甜品店', '酒吧', '酒馆',
-      'restaurant', 'cafe', 'bistro', 'diner', 'eatery', 'pub', 'bar',
+      '咖啡馆', '咖啡厅', '茶馆', '甜品店', '酒吧', '酒馆',
+      '烤鸭店', '奶茶店', '饮品店', '轻食店', '果汁店', '面包房',
+      'restaurant', 'cafe', 'coffee shop', 'bistro', 'diner', 'eatery', 'pub', 'bar',
+      'bakery', 'juice bar', 'tea house',
       '餐廳', '料理',
     ],
     nameWords: [
       '美食', '料理', '招牌', '特色菜', '小吃', '火锅', '烧烤', '面',
-      '寿司', '刺身', '拉面', '咖喱', '甜点', '蛋糕',
-      'cuisine', 'kitchen', 'grill', 'sushi', 'ramen', 'noodle',
+      '寿司', '刺身', '拉面', '咖喱', '甜点', '蛋糕', '奶茶', '果汁',
+      '轻食', '沙拉', '面包', '烤鸭', '咖啡', '茶饮', '现萃', '鲜茶',
+      'cuisine', 'kitchen', 'grill', 'sushi', 'ramen', 'noodle', 'bubble tea',
       'グルメ', '食堂',
     ],
     descWords: [
       '招牌菜', '特色菜', '主厨', '口味', '食材', '新鲜',
-      '人均', '套餐', '菜单', '推荐菜',
+      '人均', '套餐', '菜单', '推荐菜', '果木挂炉', '烤制',
       'chef', 'menu', 'dish', 'flavor', 'ingredient', 'signature',
+      'healthy food', 'salad', 'sandwich', 'cold-pressed juice',
     ],
   },
 
@@ -93,20 +97,20 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
   entertainment: {
     suffixes: [
       '乐园', '游乐园', '赌场', '剧院', '影院', '体育馆',
-      '夜总会', '俱乐部', 'KTV',
+      '夜总会', '俱乐部', 'KTV', '剧场', '小剧场',
       'park', 'casino', 'theater', 'theatre', 'cinema', 'stadium',
       'arena', 'club',
       '樂園',
     ],
     nameWords: [
-      '表演', '演出', '音乐会', '马戏', '杂技', '歌剧',
-      '夜生活', '娱乐', '迪厅', 'Live',
-      'show', 'concert', 'performance', 'nightlife',
+      '表演', '演出', '音乐会', '马戏', '杂技', '歌剧', '脱口秀',
+      '夜生活', '娱乐', '迪厅', 'Live', '观演', '声景剧',
+      'show', 'concert', 'performance', 'nightlife', 'stand-up comedy',
       'ショー', 'パフォーマンス',
     ],
     descWords: [
       '观看', '欣赏', '门票', '表演时间', '座位', '演出时间',
-      '观众', '舞台', '互动',
+      '观众', '舞台', '互动', '观演', '文艺晚会',
       'watch', 'enjoy', 'tickets', 'seats', 'audience', 'stage',
     ],
   },
@@ -135,12 +139,15 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
   hotel: {
     suffixes: [
       '酒店', '旅馆', '客栈', '民宿', '宾馆', '公寓',
-      '度假村', '别墅', '旅舍',
+      '度假村', '旅舍',
+      // 注: '别墅' 已移至 nameWords — 单独作为后缀会错误匹配历史建筑别墅
       'hotel', 'hostel', 'inn', 'resort', 'motel', 'lodge',
       'ゲストハウス', 'ホテル', '旅館',
     ],
     nameWords: [
       '住宿', '客房', '度假', '套房', '标准间',
+      // '别墅' 仅在明确酒店语境下才视为住宿 (配合 descWords 综合判断)
+      '别墅酒店', '别墅度假',
       'accommodation', 'room', 'suite', 'resort',
       '宿泊',
     ],
@@ -152,7 +159,205 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
   },
 }
 
-/* ═══════════════════════ 2. 来源可靠性 ═══════════════════════ */
+/* ═══════════════════════ 2. 类目互斥黑名单 ═══════════════════════ */
+
+/**
+ * 强制排除规则: 名称或描述含有这些关键词时，对应类目得分清零。
+ *
+ * 主要用途:
+ *   - 防止 AI 批次错误将游泳馆/餐厅/步道归入酒店
+ *   - 防止将商业综合体归入景点
+ *
+ * 结构: { category: { nameExcludes, descExcludes, requiredCategory } }
+ *   nameExcludes: 名称中包含这些词 → 该类目得分清零
+ *   requiredCategory: 同时给此类目额外加分，引导到正确结果
+ */
+interface ExclusionRule {
+  nameExcludes: string[]
+  descExcludes?: string[]
+  boostCategory?: L1Category
+  boostScore?: number
+}
+
+const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
+  hotel: [
+    // 体育/游泳/健身场馆 → entertainment
+    {
+      nameExcludes: ['游泳馆', '游泳池', '泳池', '体育馆', '体育场', '体育中心', '球场', '赛马场', '溜冰场', '滑冰场'],
+      boostCategory: 'entertainment',
+      boostScore: 10,
+    },
+    // 餐饮 → food
+    {
+      nameExcludes: ['餐厅', '饭店', '菜馆', '食堂', '面馆', '面包房', '咖啡馆', '咖啡厅', '茶馆', '茶室', '甜品店', '酒吧', '烧烤', '火锅', '烤鸭店', '奶茶店', '饮品店', '轻食店'],
+      boostCategory: 'food',
+      boostScore: 10,
+    },
+    // 剧场/演出 → entertainment
+    {
+      nameExcludes: ['剧场', '剧院', '影院', '脱口秀', '演出'],
+      boostCategory: 'entertainment',
+      boostScore: 10,
+    },
+    // 公园/步道/自然景区 → scenic 或 experience
+    {
+      nameExcludes: ['公园', '步道', '绿道', '古道', '森林', '湿地', '植物园', '动物园', '自然保护区', '国家公园', '风景区', '景区'],
+      boostCategory: 'scenic',
+      boostScore: 10,
+    },
+    // 历史建筑/文化景点: 别墅/故居/旧居/遗址等 → scenic
+    {
+      nameExcludes: ['故居', '旧居', '纪念馆', '博物馆', '美术馆', '展览馆', '遗址', '古迹', '历史建筑', '保护建筑'],
+      boostCategory: 'scenic',
+      boostScore: 10,
+    },
+    // 别墅 + 非住宿描述词: 描述含旅游/游览/参观关键词时视为景点
+    {
+      nameExcludes: [],
+      descExcludes: ['参观', '游览', '对外开放', '历史保护', '文化遗址'],
+      boostCategory: 'scenic',
+      boostScore: 8,
+    },
+  ],
+  scenic: [
+    // 商业综合体/购物中心 → shopping
+    {
+      nameExcludes: ['天地', '广场', '中心', 'MALL', 'Mall', 'mall', '商城', '商业区', '商业综合体'],
+      descExcludes: ['商业', '品牌', '购物', '零售', '店铺', '百货'],
+      boostCategory: 'shopping',
+      boostScore: 8,
+    },
+    // 餐饮场所 → food
+    {
+      nameExcludes: ['餐厅', '饭店', '菜馆', '食堂', '面馆', '咖啡馆', '咖啡厅', '茶馆', '甜品店', '酒吧', '烧烤', '火锅', '烤鸭店', '奶茶店', '饮品店', '轻食店', '果汁店'],
+      descExcludes: ['餐厅', '米其林', '主厨', '菜单', '招牌菜', '人均', '果木挂炉', '现萃', '鲜茶', '轻食', '沙拉', '三明治'],
+      boostCategory: 'food',
+      boostScore: 10,
+    },
+    // 酒店/民宿/公寓 → hotel
+    {
+      nameExcludes: ['酒店', '旅馆', '客栈', '民宿', '宾馆', '公寓', '度假村', '旅舍', '别墅酒店', '酒店式公寓'],
+      descExcludes: ['入住', '退房', '客房', '前台', '房间', '早餐', '观鸟露台', '自然教育'],
+      boostCategory: 'hotel',
+      boostScore: 10,
+    },
+    // 剧场/演出/脱口秀 → entertainment
+    {
+      nameExcludes: ['剧场', '剧院', '影院', '脱口秀', '演出', 'livehouse', ' Live House'],
+      descExcludes: ['演出', '表演', '观演', '文艺晚会', '舞台', '观众', '门票'],
+      boostCategory: 'entertainment',
+      boostScore: 10,
+    },
+    // 体验活动 → experience
+    {
+      nameExcludes: ['探秘', '夜游', '灯光秀', '嘉年华', '冰雪嘉年华', '夜航', '乘船观演', '山地学院', '四季山地学院'],
+      descExcludes: ['滑草', '山地车速降', '岩降', '体能训练', '自然教育课程', '乘船观演', '湖面全息', '渔火对歌', '净身仪式'],
+      boostCategory: 'experience',
+      boostScore: 10,
+    },
+  ],
+  shopping: [
+    // 餐饮场所 → food (购物类目严格排除食品饮料类)
+    {
+      nameExcludes: ['餐厅', '饭店', '菜馆', '食堂', '面馆', '咖啡馆', '咖啡厅', '茶馆', '茶室', '甜品店', '酒吧', '酒馆', '烧烤', '火锅', '烤鸭店', '奶茶店', '饮品店', '轻食店', '果汁店', '面包房'],
+      descExcludes: ['餐厅', '米其林', '主厨', '菜单', '招牌菜', '人均', '果木挂炉', '现萃', '鲜茶', '轻食', '沙拉', '三明治', '茶饮品牌'],
+      boostCategory: 'food',
+      boostScore: 12,
+    },
+    // 酒店/民宿/公寓 → hotel
+    {
+      nameExcludes: ['酒店', '旅馆', '客栈', '民宿', '宾馆', '公寓', '度假村', '旅舍', '别墅酒店', '酒店式公寓', '精品民宿'],
+      descExcludes: ['入住', '退房', '客房', '前台', '房间', '早餐', '观鸟露台', '自然教育', '住宿'],
+      boostCategory: 'hotel',
+      boostScore: 12,
+    },
+    // 剧场/演出/脱口秀 → entertainment
+    {
+      nameExcludes: ['剧场', '剧院', '影院', '脱口秀', '演出', 'livehouse', ' Live House', '国潮脱口秀'],
+      descExcludes: ['演出', '表演', '观演', '文艺晚会', '舞台', '观众', '门票', '观剧'],
+      boostCategory: 'entertainment',
+      boostScore: 12,
+    },
+    // 景点/地标 → scenic
+    {
+      nameExcludes: ['公园', '寺', '庙', '博物馆', '美术馆', '纪念馆', '遗址', '古迹', '长城', '鸟巢', '水立方', '奥林匹克'],
+      descExcludes: ['著名景点', '地标', '文化遗产', '历史建筑', '文物保护单位', '游泳场馆', '世界文化遗产'],
+      boostCategory: 'scenic',
+      boostScore: 12,
+    },
+    // 体验活动 → experience
+    {
+      nameExcludes: ['探秘', '夜游', '灯光秀', '嘉年华', '冰雪嘉年华', '夜航', '乘船观演', '山地学院', '四季山地学院', '滑草', '滑雪中心'],
+      descExcludes: ['滑草', '山地车速降', '岩降', '体能训练', '自然教育课程', '乘船观演', '湖面全息', '渔火对歌', '培训', '学习'],
+      boostCategory: 'experience',
+      boostScore: 12,
+    },
+  ],
+}
+
+/**
+ * 应用互斥规则，对分数进行调整。
+ * 修改传入的 scores 对象（in-place）。
+ */
+function applyExclusionRules(
+  poi: RawPOI,
+  scores: Record<L1Category, number>,
+): void {
+  const name = (poi.namePrimary + ' ' + (poi.nameZh || '')).toLowerCase()
+  const desc = (poi.description || '').toLowerCase()
+
+  for (const [category, rules] of Object.entries(CATEGORY_EXCLUSIONS) as [L1Category, ExclusionRule[]][]) {
+    for (const rule of rules) {
+      const nameHit = rule.nameExcludes.some(kw => name.includes(kw.toLowerCase()))
+      const descHit = rule.descExcludes
+        ? rule.descExcludes.some(kw => desc.includes(kw.toLowerCase()))
+        : false
+
+      // 名称命中 OR (名称规则为空 + 描述命中) 时触发
+      const triggered = nameHit || (rule.nameExcludes.length === 0 && descHit)
+
+      if (triggered) {
+        // 清零该类目分数
+        scores[category] = 0
+        // 给正确类目加分
+        if (rule.boostCategory && rule.boostScore) {
+          scores[rule.boostCategory] += rule.boostScore
+        }
+      }
+    }
+  }
+}
+
+/* ═══════════════════════ 2b. 商业综合体检测 ═══════════════════════ */
+
+/**
+ * 检测 POI 是否为商业综合体（购物中心/商业广场类）。
+ *
+ * 商业综合体特征: 名称含综合体关键词 + 描述含商业/品牌/购物词。
+ * 此类地点常被 AI 误归为景点。
+ */
+const COMMERCIAL_COMPLEX_NAME_WORDS = [
+  '天地', 'IFC', 'ICC', 'ifc', 'icc', 'K11', 'k11', 'WFC', '万象',
+  '环球港', '大悦城', '恒隆', '正大', '南京东路', '陆家嘴', '新天地',
+]
+
+const COMMERCIAL_COMPLEX_DESC_WORDS = [
+  '商业综合体', '综合体', '购物中心', '商业中心', '零售', '品牌入驻',
+  '商业广场', '楼层', '品牌', '店铺', '百货',
+]
+
+/**
+ * 返回 true 表示该 POI 应归为 shopping，而非 scenic
+ */
+export function isCommercialComplex(poi: RawPOI): boolean {
+  const name = (poi.namePrimary + ' ' + (poi.nameZh || '')).toLowerCase()
+  const desc = (poi.description || '').toLowerCase()
+  const nameHit = COMMERCIAL_COMPLEX_NAME_WORDS.some(w => name.includes(w.toLowerCase()))
+  const descHit = COMMERCIAL_COMPLEX_DESC_WORDS.some(w => desc.includes(w.toLowerCase()))
+  return nameHit && descHit
+}
+
+/* ═══════════════════════ 3. 来源可靠性 ═══════════════════════ */
 
 const SOURCE_RELIABILITY: Record<string, number> = {
   osm: 3,
@@ -214,6 +419,9 @@ export function classifyCategory(poi: RawPOI): ClassifyResult {
       }
     }
   }
+
+  // 应用互斥排除规则 (防止游泳馆/餐厅/步道被错归酒店等)
+  applyExclusionRules(poi, scores)
 
   // 找最高分
   const sorted = [...L1_CATEGORIES].sort((a, b) => scores[b] - scores[a])

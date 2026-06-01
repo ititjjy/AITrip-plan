@@ -10,6 +10,7 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { AGENT_CONFIG } from './config.js'
+import type { RawPOI } from './sources/base.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -82,6 +83,21 @@ function initTables() {
   if (!cols.some(c => c.name === 'version')) {
     db.exec('ALTER TABLE city_pois ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
   }
+
+  // 原始采集数据 (城市 × 来源，只保留最新一次)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS raw_pois (
+      city_id      TEXT    NOT NULL,
+      source       TEXT    NOT NULL,
+      data         TEXT    NOT NULL,
+      items_count  INTEGER NOT NULL DEFAULT 0,
+      collected_at INTEGER NOT NULL,
+      PRIMARY KEY (city_id, source)
+    )
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_raw_city ON raw_pois (city_id)
+  `)
 
   // 城市统计
   db.exec(`
@@ -286,6 +302,51 @@ export function getCityVersion(cityId: string): number {
   const d = getDB()
   const row = d.prepare('SELECT version FROM city_pois WHERE city_id = ?').get(cityId) as any
   return row?.version ?? 0
+}
+
+/* ── Raw POI CRUD ── */
+
+/**
+ * 保存某城市某数据源的原始采集数据。
+ * INSERT OR REPLACE 语义：每次覆盖该 (city_id, source) 的旧数据，只保留最新一次。
+ */
+export function saveRawPOIs(cityId: string, source: string, data: RawPOI[]): void {
+  const d = getDB()
+  d.prepare(`
+    INSERT OR REPLACE INTO raw_pois (city_id, source, data, items_count, collected_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(cityId, source, JSON.stringify(data), data.length, Date.now())
+}
+
+/**
+ * 加载某城市所有来源的原始采集数据。
+ * 返回空数组表示该城市尚未采集任何 raw 数据。
+ */
+export function loadRawPOIs(cityId: string): { source: string; data: RawPOI[]; collected_at: number }[] {
+  const d = getDB()
+  const rows = d.prepare('SELECT source, data, collected_at FROM raw_pois WHERE city_id = ?')
+    .all(cityId) as { source: string; data: string; collected_at: number }[]
+  return rows.map(r => ({ source: r.source, data: JSON.parse(r.data) as RawPOI[], collected_at: r.collected_at }))
+}
+
+/**
+ * 加载某城市某来源的原始采集数据。
+ * 返回 null 表示该 (city_id, source) 无数据。
+ */
+export function loadRawPOIsBySource(cityId: string, source: string): RawPOI[] | null {
+  const d = getDB()
+  const row = d.prepare('SELECT data FROM raw_pois WHERE city_id = ? AND source = ?')
+    .get(cityId, source) as { data: string } | undefined
+  return row ? JSON.parse(row.data) as RawPOI[] : null
+}
+
+/**
+ * 获取所有城市×来源的 raw 数据摘要（不解析 JSON，用于 status 命令展示）。
+ */
+export function getRawPOIsSummary(): { city_id: string; source: string; items_count: number; collected_at: number }[] {
+  const d = getDB()
+  return d.prepare('SELECT city_id, source, items_count, collected_at FROM raw_pois ORDER BY city_id, source')
+    .all() as { city_id: string; source: string; items_count: number; collected_at: number }[]
 }
 
 /* ── Close ── */

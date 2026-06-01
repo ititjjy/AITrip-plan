@@ -3,1200 +3,2376 @@
     "lat": 18.2528,
     "lng": 109.512,
     "isDomestic": true,
-    "country": "海南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "海南"
   },
   "chengdu": {
     "lat": 30.5728,
     "lng": 104.0668,
     "isDomestic": true,
-    "country": "四川"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "四川"
   },
   "hangzhou": {
     "lat": 30.2741,
     "lng": 120.1551,
     "isDomestic": true,
-    "country": "浙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
   },
   "chongqing": {
     "lat": 29.563,
     "lng": 106.5516,
     "isDomestic": true,
-    "country": "重庆"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "重庆"
   },
   "beijing": {
     "lat": 39.9042,
     "lng": 116.4074,
     "isDomestic": true,
-    "country": "北京"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "北京"
   },
   "shanghai": {
     "lat": 31.2304,
     "lng": 121.4737,
     "isDomestic": true,
-    "country": "上海"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "上海"
   },
   "xian": {
     "lat": 34.3416,
     "lng": 108.9398,
     "isDomestic": true,
-    "country": "陕西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "陕西"
   },
   "xiamen": {
     "lat": 24.4798,
     "lng": 118.0894,
     "isDomestic": true,
-    "country": "福建"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
   },
   "dali": {
     "lat": 25.6065,
     "lng": 100.2676,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "lijiang": {
     "lat": 26.8721,
     "lng": 100.2299,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "guilin": {
     "lat": 25.2742,
     "lng": 110.29,
     "isDomestic": true,
-    "country": "广西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广西"
   },
   "suzhou": {
     "lat": 31.2989,
     "lng": 120.5853,
     "isDomestic": true,
-    "country": "江苏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
   },
   "nanjing": {
     "lat": 32.0603,
     "lng": 118.7969,
     "isDomestic": true,
-    "country": "江苏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
   },
   "qingdao": {
     "lat": 36.0671,
     "lng": 120.3826,
     "isDomestic": true,
-    "country": "山东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
   },
   "changsha": {
     "lat": 28.2282,
     "lng": 112.9388,
     "isDomestic": true,
-    "country": "湖南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖南"
   },
   "wuhan": {
     "lat": 30.5928,
     "lng": 114.3055,
     "isDomestic": true,
-    "country": "湖北"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖北"
   },
   "lasa": {
     "lat": 29.65,
     "lng": 91.1,
     "isDomestic": true,
-    "country": "西藏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "西藏"
   },
   "zhangjiajie": {
     "lat": 29.117,
     "lng": 110.4793,
     "isDomestic": true,
-    "country": "湖南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖南"
   },
   "huangshan": {
     "lat": 30.1313,
     "lng": 118.168,
     "isDomestic": true,
-    "country": "安徽"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
   },
   "kunming": {
     "lat": 25.0389,
     "lng": 102.7183,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "guangzhou": {
     "lat": 23.1291,
     "lng": 113.2644,
     "isDomestic": true,
-    "country": "广东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
   },
   "shenzhen": {
     "lat": 22.5431,
     "lng": 114.0579,
     "isDomestic": true,
-    "country": "广东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
   },
   "tianjin": {
     "lat": 39.0842,
     "lng": 117.1993,
     "isDomestic": true,
-    "country": "天津"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "天津"
   },
   "ningbo": {
     "lat": 29.8683,
     "lng": 121.544,
     "isDomestic": true,
-    "country": "浙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
   },
   "quanzhou": {
     "lat": 24.8915,
     "lng": 118.6735,
     "isDomestic": true,
-    "country": "福建"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
   },
   "luoyang": {
     "lat": 34.6634,
     "lng": 112.4342,
     "isDomestic": true,
-    "country": "河南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河南"
   },
   "kaifeng": {
     "lat": 34.7923,
     "lng": 114.3019,
     "isDomestic": true,
-    "country": "河南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河南"
   },
   "wuzhen": {
     "lat": 30.8475,
     "lng": 120.5429,
     "isDomestic": true,
-    "country": "浙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
   },
   "yangshuo": {
     "lat": 25.2502,
     "lng": 110.2825,
     "isDomestic": true,
-    "country": "广西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广西"
   },
   "beihai": {
     "lat": 21.4837,
     "lng": 109.1149,
     "isDomestic": true,
-    "country": "广西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广西"
   },
   "jiuzhaigou": {
     "lat": 33.2192,
     "lng": 103.8267,
     "isDomestic": true,
-    "country": "四川"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "四川"
   },
   "hulunbuir": {
     "lat": 49.1926,
     "lng": 119.7444,
     "isDomestic": true,
-    "country": "内蒙古"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "内蒙古"
   },
   "xianggelila": {
     "lat": 27.8123,
     "lng": 99.7048,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "xishuangbanna": {
     "lat": 22.0005,
     "lng": 100.7942,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "weizhoudao": {
     "lat": 21.0998,
     "lng": 109.1241,
     "isDomestic": true,
-    "country": "广西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广西"
   },
   "yantai": {
     "lat": 37.4722,
     "lng": 121.4402,
     "isDomestic": true,
-    "country": "山东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
   },
   "qinhuangdao": {
     "lat": 39.9342,
     "lng": 119.5843,
     "isDomestic": true,
-    "country": "河北"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河北"
   },
   "hongcun": {
     "lat": 29.8775,
     "lng": 117.9737,
     "isDomestic": true,
-    "country": "安徽"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
   },
   "pingyao": {
     "lat": 37.1907,
     "lng": 112.172,
     "isDomestic": true,
-    "country": "山西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山西"
   },
   "dandong": {
     "lat": 40.1292,
     "lng": 124.3741,
     "isDomestic": true,
-    "country": "辽宁"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "辽宁"
   },
   "yichang": {
     "lat": 30.6988,
     "lng": 111.282,
     "isDomestic": true,
-    "country": "湖北"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖北"
   },
   "zhuhai": {
     "lat": 22.2708,
     "lng": 113.5569,
     "isDomestic": true,
-    "country": "广东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
   },
   "lanzhou": {
     "lat": 36.0611,
     "lng": 103.8343,
     "isDomestic": true,
-    "country": "甘肃"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "甘肃"
   },
   "zhangye": {
     "lat": 38.9222,
     "lng": 100.4503,
     "isDomestic": true,
-    "country": "甘肃"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "甘肃"
   },
   "dunhuang": {
     "lat": 40.1421,
     "lng": 94.6618,
     "isDomestic": true,
-    "country": "甘肃"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "甘肃"
   },
   "harbin": {
     "lat": 45.7575,
     "lng": 126.6521,
     "isDomestic": true,
-    "country": "黑龙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "黑龙江"
   },
   "jilin": {
     "lat": 43.8362,
     "lng": 126.5561,
     "isDomestic": true,
-    "country": "吉林"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "吉林"
   },
   "shenyang": {
     "lat": 41.7921,
     "lng": 123.4326,
     "isDomestic": true,
-    "country": "辽宁"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "辽宁"
   },
   "changchun": {
     "lat": 43.8171,
     "lng": 125.3235,
     "isDomestic": true,
-    "country": "吉林"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "吉林"
   },
   "xuzhou": {
     "lat": 34.2616,
     "lng": 117.1846,
     "isDomestic": true,
-    "country": "江苏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
   },
   "nanchang": {
     "lat": 28.6765,
     "lng": 115.8922,
     "isDomestic": true,
-    "country": "江西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
   },
   "shaoxing": {
     "lat": 30.0442,
     "lng": 120.5849,
     "isDomestic": true,
-    "country": "浙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
   },
   "jingdezhen": {
     "lat": 29.2924,
     "lng": 117.2165,
     "isDomestic": true,
-    "country": "江西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
   },
   "tongli": {
     "lat": 31.1598,
     "lng": 120.7257,
     "isDomestic": true,
-    "country": "江苏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
   },
   "zhengzhou": {
     "lat": 34.7466,
     "lng": 113.6254,
     "isDomestic": true,
-    "country": "河南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河南"
   },
   "hohhot": {
     "lat": 40.8185,
     "lng": 111.6707,
     "isDomestic": true,
-    "country": "内蒙古"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "内蒙古"
   },
   "xining": {
     "lat": 36.6232,
     "lng": 101.7777,
     "isDomestic": true,
-    "country": "青海"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "青海"
   },
   "yinchuan": {
     "lat": 38.4831,
     "lng": 106.2713,
     "isDomestic": true,
-    "country": "宁夏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "宁夏"
   },
   "wulumuqi": {
     "lat": 43.8257,
     "lng": 87.6173,
     "isDomestic": true,
-    "country": "新疆"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "新疆"
   },
   "jiujiang": {
     "lat": 29.7139,
     "lng": 115.9825,
     "isDomestic": true,
-    "country": "江西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
   },
   "yibin": {
     "lat": 28.758,
     "lng": 104.6332,
     "isDomestic": true,
-    "country": "四川"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "四川"
   },
   "baotou": {
     "lat": 40.6564,
     "lng": 109.8417,
     "isDomestic": true,
-    "country": "内蒙古"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "内蒙古"
   },
   "qufu": {
     "lat": 35.5923,
     "lng": 116.9925,
     "isDomestic": true,
-    "country": "山东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
   },
   "hefei": {
     "lat": 31.8206,
     "lng": 117.2272,
     "isDomestic": true,
-    "country": "安徽"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
   },
   "lishan": {
     "lat": 23.8728,
     "lng": 120.8927,
     "isDomestic": true,
-    "country": "台湾"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "台湾"
   },
   "zunyi": {
     "lat": 27.6948,
     "lng": 106.9333,
     "isDomestic": true,
-    "country": "贵州"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "贵州"
   },
   "datong": {
     "lat": 40.078,
     "lng": 113.3017,
     "isDomestic": true,
-    "country": "山西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山西"
   },
   "kashgar": {
     "lat": 39.4711,
     "lng": 75.9889,
     "isDomestic": true,
-    "country": "新疆"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "新疆"
   },
   "shantou": {
     "lat": 23.3541,
     "lng": 116.682,
     "isDomestic": true,
-    "country": "广东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
   },
   "wuyishan": {
     "lat": 27.7575,
     "lng": 118.0172,
     "isDomestic": true,
-    "country": "福建"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
   },
   "tengchong": {
     "lat": 25.0227,
     "lng": 98.49,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "jinhua": {
     "lat": 29.0788,
     "lng": 119.6473,
     "isDomestic": true,
-    "country": "浙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
   },
   "binzhou": {
     "lat": 37.3833,
     "lng": 118.0222,
     "isDomestic": true,
-    "country": "山东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
   },
   "fuzhou": {
     "lat": 26.0753,
     "lng": 119.3062,
     "isDomestic": true,
-    "country": "福建"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
   },
   "hengyang": {
     "lat": 27.2142,
     "lng": 112.624,
     "isDomestic": true,
-    "country": "湖南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖南"
   },
   "liaocheng": {
     "lat": 36.4453,
     "lng": 115.978,
     "isDomestic": true,
-    "country": "山东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
   },
   "baiyin": {
     "lat": 36.5542,
     "lng": 104.1815,
     "isDomestic": true,
-    "country": "甘肃"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "甘肃"
   },
   "jixi": {
     "lat": 45.2972,
     "lng": 130.9799,
     "isDomestic": true,
-    "country": "黑龙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "黑龙江"
   },
   "guiyang": {
     "lat": 26.647,
     "lng": 106.63,
     "isDomestic": true,
-    "country": "贵州"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "贵州"
   },
   "libo": {
     "lat": 25.409,
     "lng": 107.883,
     "isDomestic": true,
-    "country": "贵州"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "贵州"
   },
   "wuyuan": {
     "lat": 29.234,
     "lng": 117.876,
     "isDomestic": true,
-    "country": "江西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
   },
   "daocheng": {
     "lat": 29.042,
     "lng": 100.25,
     "isDomestic": true,
-    "country": "四川"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "四川"
   },
   "sedan": {
     "lat": 32.029,
     "lng": 100.307,
     "isDomestic": true,
-    "country": "四川"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "四川"
   },
   "waning": {
     "lat": 18.797,
     "lng": 110.388,
     "isDomestic": true,
-    "country": "海南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "海南"
   },
   "fenghuang": {
     "lat": 27.943,
     "lng": 109.607,
     "isDomestic": true,
-    "country": "湖南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖南"
   },
   "luguhu": {
     "lat": 27.794,
     "lng": 101.23,
     "isDomestic": true,
-    "country": "云南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
   },
   "lishui": {
     "lat": 28.452,
     "lng": 119.923,
     "isDomestic": true,
-    "country": "浙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
   },
   "xiapu": {
     "lat": 26.887,
     "lng": 120.032,
     "isDomestic": true,
-    "country": "福建"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
   },
   "yanji": {
     "lat": 42.913,
     "lng": 129.517,
     "isDomestic": true,
-    "country": "吉林"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "吉林"
   },
   "mohe": {
     "lat": 53.524,
     "lng": 122.537,
     "isDomestic": true,
-    "country": "黑龙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "黑龙江"
   },
   "yili": {
     "lat": 43.922,
     "lng": 81.326,
     "isDomestic": true,
-    "country": "新疆"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "新疆"
   },
   "foshan": {
     "lat": 23.023,
     "lng": 113.123,
     "isDomestic": true,
-    "country": "广东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
   },
   "dalian": {
     "lat": 38.914,
     "lng": 121.619,
     "isDomestic": true,
-    "country": "辽宁"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "辽宁"
   },
   "taiyuan": {
     "lat": 37.87,
     "lng": 112.549,
     "isDomestic": true,
-    "country": "山西"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山西"
   },
   "wuxi": {
     "lat": 31.575,
     "lng": 120.297,
     "isDomestic": true,
-    "country": "江苏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
   },
   "yangzhou": {
     "lat": 32.393,
     "lng": 119.415,
     "isDomestic": true,
-    "country": "江苏"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
   },
   "chaozhou": {
     "lat": 23.667,
     "lng": 116.622,
     "isDomestic": true,
-    "country": "广东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
   },
   "weihai": {
     "lat": 37.507,
     "lng": 122.113,
     "isDomestic": true,
-    "country": "山东"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
   },
   "haikou": {
     "lat": 20.044,
     "lng": 110.199,
     "isDomestic": true,
-    "country": "海南"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "海南"
   },
   "yabuli": {
     "lat": 44.62,
     "lng": 128.5,
     "isDomestic": true,
-    "country": "黑龙江"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "黑龙江"
   },
   "tokyo": {
     "lat": 35.6762,
     "lng": 139.6503,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "kyoto": {
     "lat": 35.0116,
     "lng": 135.7681,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "osaka": {
     "lat": 34.6937,
     "lng": 135.5023,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "hokkaido": {
     "lat": 43.0621,
     "lng": 141.3544,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "bangkok": {
     "lat": 13.7563,
     "lng": 100.5018,
     "isDomestic": false,
-    "country": "泰国"
+    "country": "泰国",
+    "continent": "亚洲",
+    "province": ""
   },
   "chiangmai": {
     "lat": 18.7883,
     "lng": 98.9853,
     "isDomestic": false,
-    "country": "泰国"
+    "country": "泰国",
+    "continent": "亚洲",
+    "province": ""
   },
   "phuket": {
     "lat": 7.8804,
     "lng": 98.3923,
     "isDomestic": false,
-    "country": "泰国"
+    "country": "泰国",
+    "continent": "亚洲",
+    "province": ""
   },
   "seoul": {
     "lat": 37.5665,
     "lng": 126.978,
     "isDomestic": false,
-    "country": "韩国"
+    "country": "韩国",
+    "continent": "亚洲",
+    "province": ""
   },
   "jeju": {
     "lat": 33.4996,
     "lng": 126.5312,
     "isDomestic": false,
-    "country": "韩国"
+    "country": "韩国",
+    "continent": "亚洲",
+    "province": ""
   },
   "bali": {
     "lat": -8.3405,
     "lng": 115.092,
     "isDomestic": false,
-    "country": "印度尼西亚"
+    "country": "印度尼西亚",
+    "continent": "亚洲",
+    "province": ""
   },
   "paris": {
     "lat": 48.8566,
     "lng": 2.3522,
     "isDomestic": false,
-    "country": "法国"
+    "country": "法国",
+    "continent": "欧洲",
+    "province": ""
   },
   "singapore": {
     "lat": 1.3521,
     "lng": 103.8198,
     "isDomestic": false,
-    "country": "新加坡"
+    "country": "新加坡",
+    "continent": "亚洲",
+    "province": ""
   },
   "maldives": {
     "lat": 3.2028,
     "lng": 73.2207,
     "isDomestic": false,
-    "country": "马尔代夫"
+    "country": "马尔代夫",
+    "continent": "其他",
+    "province": ""
   },
   "london": {
     "lat": 51.5074,
     "lng": -0.1278,
     "isDomestic": false,
-    "country": "英国"
+    "country": "英国",
+    "continent": "欧洲",
+    "province": ""
   },
   "rome": {
     "lat": 41.9028,
     "lng": 12.4964,
     "isDomestic": false,
-    "country": "意大利"
+    "country": "意大利",
+    "continent": "欧洲",
+    "province": ""
   },
   "santorini": {
     "lat": 36.3932,
     "lng": 25.4615,
     "isDomestic": false,
-    "country": "希腊"
+    "country": "希腊",
+    "continent": "欧洲",
+    "province": ""
   },
   "sydney": {
     "lat": -33.8688,
     "lng": 151.2093,
     "isDomestic": false,
-    "country": "澳大利亚"
+    "country": "澳大利亚",
+    "continent": "大洋洲",
+    "province": ""
   },
   "barcelona": {
     "lat": 41.3874,
     "lng": 2.1686,
     "isDomestic": false,
-    "country": "西班牙"
+    "country": "西班牙",
+    "continent": "欧洲",
+    "province": ""
   },
   "danang": {
     "lat": 16.0544,
     "lng": 108.2022,
     "isDomestic": false,
-    "country": "越南"
+    "country": "越南",
+    "continent": "亚洲",
+    "province": ""
   },
   "kualalumpur": {
     "lat": 3.139,
     "lng": 101.6869,
     "isDomestic": false,
-    "country": "马来西亚"
+    "country": "马来西亚",
+    "continent": "亚洲",
+    "province": ""
   },
   "hongkong": {
     "lat": 22.3193,
     "lng": 114.1694,
     "isDomestic": false,
-    "country": "中国"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "香港"
   },
   "taipei": {
     "lat": 25.032,
     "lng": 121.5654,
     "isDomestic": false,
-    "country": "中国"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "台湾"
   },
   "luangprabang": {
     "lat": 19.8975,
     "lng": 102.1278,
     "isDomestic": false,
-    "country": "老挝"
+    "country": "老挝",
+    "continent": "亚洲",
+    "province": ""
   },
   "siemreap": {
     "lat": 13.3622,
     "lng": 103.8599,
     "isDomestic": false,
-    "country": "柬埔寨"
+    "country": "柬埔寨",
+    "continent": "亚洲",
+    "province": ""
   },
   "colombo": {
     "lat": 6.9271,
     "lng": 79.8612,
     "isDomestic": false,
-    "country": "斯里兰卡"
+    "country": "斯里兰卡",
+    "continent": "亚洲",
+    "province": ""
   },
   "kathmandu": {
     "lat": 27.7172,
     "lng": 85.324,
     "isDomestic": false,
-    "country": "尼泊尔"
+    "country": "尼泊尔",
+    "continent": "亚洲",
+    "province": ""
   },
   "vientiane": {
     "lat": 17.9678,
     "lng": 102.6033,
     "isDomestic": false,
-    "country": "老挝"
+    "country": "老挝",
+    "continent": "亚洲",
+    "province": ""
   },
   "yangon": {
     "lat": 16.8409,
     "lng": 96.1735,
     "isDomestic": false,
-    "country": "缅甸"
+    "country": "缅甸",
+    "continent": "亚洲",
+    "province": ""
   },
   "hochiminhcity": {
     "lat": 10.7703,
     "lng": 106.7017,
     "isDomestic": false,
-    "country": "越南"
+    "country": "越南",
+    "continent": "亚洲",
+    "province": ""
   },
   "hanoi": {
     "lat": 21.0278,
     "lng": 105.8342,
     "isDomestic": false,
-    "country": "越南"
+    "country": "越南",
+    "continent": "亚洲",
+    "province": ""
   },
   "cagayan": {
     "lat": 8.4775,
     "lng": 124.8422,
     "isDomestic": false,
-    "country": "菲律宾"
+    "country": "菲律宾",
+    "continent": "亚洲",
+    "province": ""
   },
   "boracay": {
     "lat": 11.9885,
     "lng": 121.9203,
     "isDomestic": false,
-    "country": "菲律宾"
+    "country": "菲律宾",
+    "continent": "亚洲",
+    "province": ""
   },
   "chittagong": {
     "lat": 22.3381,
     "lng": 91.8218,
     "isDomestic": false,
-    "country": "孟加拉国"
+    "country": "孟加拉国",
+    "continent": "亚洲",
+    "province": ""
   },
   "jaipur": {
     "lat": 26.9124,
     "lng": 75.7873,
     "isDomestic": false,
-    "country": "印度"
+    "country": "印度",
+    "continent": "亚洲",
+    "province": ""
   },
   "varanasi": {
     "lat": 25.3167,
     "lng": 83.0122,
     "isDomestic": false,
-    "country": "印度"
+    "country": "印度",
+    "continent": "亚洲",
+    "province": ""
   },
   "kandy": {
     "lat": 7.2906,
     "lng": 80.6337,
     "isDomestic": false,
-    "country": "斯里兰卡"
+    "country": "斯里兰卡",
+    "continent": "亚洲",
+    "province": ""
   },
   "baguio": {
     "lat": 16.4221,
     "lng": 120.5939,
     "isDomestic": false,
-    "country": "菲律宾"
+    "country": "菲律宾",
+    "continent": "亚洲",
+    "province": ""
   },
   "sapporo": {
     "lat": 43.0618,
     "lng": 141.3545,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "nagoya": {
     "lat": 35.1815,
     "lng": 136.9066,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "fukuoka": {
     "lat": 33.5904,
     "lng": 130.4017,
     "isDomestic": false,
-    "country": "日本"
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
   },
   "busan": {
     "lat": 35.1796,
     "lng": 129.0756,
     "isDomestic": false,
-    "country": "韩国"
+    "country": "韩国",
+    "continent": "亚洲",
+    "province": ""
   },
   "macau": {
     "lat": 22.1987,
     "lng": 113.5439,
     "isDomestic": false,
-    "country": "中国"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "澳门"
   },
   "penang": {
     "lat": 5.4149,
     "lng": 100.3292,
     "isDomestic": false,
-    "country": "马来西亚"
+    "country": "马来西亚",
+    "continent": "亚洲",
+    "province": ""
   },
   "hualien": {
     "lat": 23.9739,
     "lng": 121.6081,
     "isDomestic": false,
-    "country": "中国"
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "台湾"
   },
   "newyork": {
     "lat": 40.7128,
     "lng": -74.006,
     "isDomestic": false,
-    "country": "美国"
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
   },
   "amsterdam": {
     "lat": 52.3676,
     "lng": 4.9041,
     "isDomestic": false,
-    "country": "荷兰"
+    "country": "荷兰",
+    "continent": "欧洲",
+    "province": ""
   },
   "prague": {
     "lat": 50.0755,
     "lng": 14.4378,
     "isDomestic": false,
-    "country": "捷克"
+    "country": "捷克",
+    "continent": "欧洲",
+    "province": ""
   },
   "lisbon": {
     "lat": 38.7223,
     "lng": -9.1393,
     "isDomestic": false,
-    "country": "葡萄牙"
+    "country": "葡萄牙",
+    "continent": "欧洲",
+    "province": ""
   },
   "vienna": {
     "lat": 48.2082,
     "lng": 16.3738,
     "isDomestic": false,
-    "country": "奥地利"
+    "country": "奥地利",
+    "continent": "欧洲",
+    "province": ""
   },
   "berlin": {
     "lat": 52.52,
     "lng": 13.405,
     "isDomestic": false,
-    "country": "德国"
+    "country": "德国",
+    "continent": "欧洲",
+    "province": ""
   },
   "reykjavik": {
     "lat": 64.1466,
     "lng": -21.9426,
     "isDomestic": false,
-    "country": "冰岛"
+    "country": "冰岛",
+    "continent": "欧洲",
+    "province": ""
   },
   "copenhaguen": {
     "lat": 55.6761,
     "lng": 12.5683,
     "isDomestic": false,
-    "country": "丹麦"
+    "country": "丹麦",
+    "continent": "欧洲",
+    "province": ""
   },
   "zurich": {
     "lat": 47.3769,
     "lng": 8.5417,
     "isDomestic": false,
-    "country": "瑞士"
+    "country": "瑞士",
+    "continent": "欧洲",
+    "province": ""
   },
   "dubrovnik": {
     "lat": 42.6507,
     "lng": 18.0944,
     "isDomestic": false,
-    "country": "克罗地亚"
+    "country": "克罗地亚",
+    "continent": "欧洲",
+    "province": ""
   },
   "budapest": {
     "lat": 47.4979,
     "lng": 19.0402,
     "isDomestic": false,
-    "country": "匈牙利"
+    "country": "匈牙利",
+    "continent": "欧洲",
+    "province": ""
   },
   "quebec": {
     "lat": 46.8139,
     "lng": -71.208,
     "isDomestic": false,
-    "country": "加拿大"
+    "country": "加拿大",
+    "continent": "北美洲",
+    "province": ""
   },
   "vancouver": {
     "lat": 49.2827,
     "lng": -123.1207,
     "isDomestic": false,
-    "country": "加拿大"
+    "country": "加拿大",
+    "continent": "北美洲",
+    "province": ""
   },
   "mexicocity": {
     "lat": 19.4326,
     "lng": -99.1332,
     "isDomestic": false,
-    "country": "墨西哥"
+    "country": "墨西哥",
+    "continent": "北美洲",
+    "province": ""
   },
   "cancun": {
     "lat": 21.1619,
     "lng": -86.8515,
     "isDomestic": false,
-    "country": "墨西哥"
+    "country": "墨西哥",
+    "continent": "北美洲",
+    "province": ""
   },
   "lima": {
     "lat": -12.0464,
     "lng": -77.0428,
     "isDomestic": false,
-    "country": "秘鲁"
+    "country": "秘鲁",
+    "continent": "南美洲",
+    "province": ""
   },
   "cusco": {
     "lat": -13.5164,
     "lng": -71.9774,
     "isDomestic": false,
-    "country": "秘鲁"
+    "country": "秘鲁",
+    "continent": "南美洲",
+    "province": ""
   },
   "santiago": {
     "lat": -33.4484,
     "lng": -70.6693,
     "isDomestic": false,
-    "country": "智利"
+    "country": "智利",
+    "continent": "南美洲",
+    "province": ""
   },
   "valparaiso": {
     "lat": -33.0458,
     "lng": -71.6197,
     "isDomestic": false,
-    "country": "智利"
+    "country": "智利",
+    "continent": "南美洲",
+    "province": ""
   },
   "buenosaires": {
     "lat": -34.6037,
     "lng": -58.3816,
     "isDomestic": false,
-    "country": "阿根廷"
+    "country": "阿根廷",
+    "continent": "南美洲",
+    "province": ""
   },
   "rio": {
     "lat": -22.9068,
     "lng": -43.1729,
     "isDomestic": false,
-    "country": "巴西"
+    "country": "巴西",
+    "continent": "南美洲",
+    "province": ""
   },
   "salvador": {
     "lat": -12.9714,
     "lng": -38.5111,
     "isDomestic": false,
-    "country": "巴西"
+    "country": "巴西",
+    "continent": "南美洲",
+    "province": ""
   },
   "tromso": {
     "lat": 69.6492,
     "lng": 18.9553,
     "isDomestic": false,
-    "country": "挪威"
+    "country": "挪威",
+    "continent": "欧洲",
+    "province": ""
   },
   "stockholm": {
     "lat": 59.3293,
     "lng": 18.0686,
     "isDomestic": false,
-    "country": "瑞典"
+    "country": "瑞典",
+    "continent": "欧洲",
+    "province": ""
   },
   "helsinki": {
     "lat": 60.1699,
     "lng": 24.9384,
     "isDomestic": false,
-    "country": "芬兰"
+    "country": "芬兰",
+    "continent": "欧洲",
+    "province": ""
   },
   "krakow": {
     "lat": 50.0647,
     "lng": 19.945,
     "isDomestic": false,
-    "country": "波兰"
+    "country": "波兰",
+    "continent": "欧洲",
+    "province": ""
   },
   "edmonton": {
     "lat": 53.5461,
     "lng": -113.4938,
     "isDomestic": false,
-    "country": "加拿大"
+    "country": "加拿大",
+    "continent": "北美洲",
+    "province": ""
   },
   "halifax": {
     "lat": 44.6488,
     "lng": -63.5752,
     "isDomestic": false,
-    "country": "加拿大"
+    "country": "加拿大",
+    "continent": "北美洲",
+    "province": ""
   },
   "santafe": {
     "lat": 35.687,
     "lng": -105.9378,
     "isDomestic": false,
-    "country": "美国"
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
   },
   "dubai": {
     "lat": 25.2769,
     "lng": 55.2962,
     "isDomestic": false,
-    "country": "阿联酋"
+    "country": "阿联酋",
+    "continent": "亚洲",
+    "province": ""
   },
   "cairo": {
     "lat": 30.0444,
     "lng": 31.2357,
     "isDomestic": false,
-    "country": "埃及"
+    "country": "埃及",
+    "continent": "非洲",
+    "province": ""
   },
   "telaviv": {
     "lat": 32.0853,
     "lng": 34.7818,
     "isDomestic": false,
-    "country": "以色列"
+    "country": "以色列",
+    "continent": "亚洲",
+    "province": ""
   },
   "istanbul": {
     "lat": 41.0082,
     "lng": 28.9784,
     "isDomestic": false,
-    "country": "土耳其"
+    "country": "土耳其",
+    "continent": "亚洲",
+    "province": ""
   },
   "antalya": {
     "lat": 36.8969,
     "lng": 30.7133,
     "isDomestic": false,
-    "country": "土耳其"
+    "country": "土耳其",
+    "continent": "亚洲",
+    "province": ""
   },
   "cape town": {
     "lat": -33.9249,
     "lng": 18.4241,
     "isDomestic": false,
-    "country": "南非"
+    "country": "南非",
+    "continent": "非洲",
+    "province": ""
   },
   "marrakech": {
     "lat": 31.6295,
     "lng": -7.9811,
     "isDomestic": false,
-    "country": "摩洛哥"
+    "country": "摩洛哥",
+    "continent": "非洲",
+    "province": ""
   },
   "nairobi": {
     "lat": -1.2864,
     "lng": 36.8172,
     "isDomestic": false,
-    "country": "肯尼亚"
+    "country": "肯尼亚",
+    "continent": "非洲",
+    "province": ""
   },
   "fiji": {
     "lat": -18.1439,
     "lng": 178.431,
     "isDomestic": false,
-    "country": "斐济"
+    "country": "斐济",
+    "continent": "大洋洲",
+    "province": ""
   },
   "auckland": {
     "lat": -36.8485,
     "lng": 174.7633,
     "isDomestic": false,
-    "country": "新西兰"
+    "country": "新西兰",
+    "continent": "大洋洲",
+    "province": ""
   },
   "queenstown": {
     "lat": -45.0312,
     "lng": 168.6626,
     "isDomestic": false,
-    "country": "新西兰"
+    "country": "新西兰",
+    "continent": "大洋洲",
+    "province": ""
   },
   "tahiti": {
     "lat": -17.651,
     "lng": -149.4239,
     "isDomestic": false,
-    "country": "法属波利尼西亚"
+    "country": "法属波利尼西亚",
+    "continent": "大洋洲",
+    "province": ""
   },
   "almaty": {
     "lat": 43.2389,
     "lng": 76.8897,
     "isDomestic": false,
-    "country": "哈萨克斯坦"
+    "country": "哈萨克斯坦",
+    "continent": "亚洲",
+    "province": ""
   },
   "bishkek": {
     "lat": 42.8746,
     "lng": 74.5698,
     "isDomestic": false,
-    "country": "吉尔吉斯斯坦"
+    "country": "吉尔吉斯斯坦",
+    "continent": "亚洲",
+    "province": ""
   },
   "tashkent": {
     "lat": 41.2995,
     "lng": 69.2401,
     "isDomestic": false,
-    "country": "乌兹别克斯坦"
+    "country": "乌兹别克斯坦",
+    "continent": "亚洲",
+    "province": ""
   },
   "samarkand": {
     "lat": 39.6541,
     "lng": 66.9743,
     "isDomestic": false,
-    "country": "乌兹别克斯坦"
+    "country": "乌兹别克斯坦",
+    "continent": "亚洲",
+    "province": ""
   },
   "port louis": {
     "lat": -20.1619,
     "lng": 57.4999,
     "isDomestic": false,
-    "country": "毛里求斯"
+    "country": "毛里求斯",
+    "continent": "非洲",
+    "province": ""
   },
   "grand baie": {
     "lat": -20.0292,
     "lng": 57.6372,
     "isDomestic": false,
-    "country": "毛里求斯"
+    "country": "毛里求斯",
+    "continent": "非洲",
+    "province": ""
   },
   "petra": {
     "lat": 30.3128,
     "lng": 35.4729,
     "isDomestic": false,
-    "country": "约旦"
+    "country": "约旦",
+    "continent": "亚洲",
+    "province": ""
   },
   "amman": {
     "lat": 31.9539,
     "lng": 35.9106,
     "isDomestic": false,
-    "country": "约旦"
+    "country": "约旦",
+    "continent": "亚洲",
+    "province": ""
   },
   "windhoek": {
     "lat": -22.5705,
     "lng": 17.0834,
     "isDomestic": false,
-    "country": "纳米比亚"
+    "country": "纳米比亚",
+    "continent": "非洲",
+    "province": ""
   },
   "zanzibar": {
     "lat": -6.165,
     "lng": 39.1967,
     "isDomestic": false,
-    "country": "坦桑尼亚"
+    "country": "坦桑尼亚",
+    "continent": "非洲",
+    "province": ""
   },
   "luanda": {
     "lat": -8.8382,
     "lng": 13.2392,
     "isDomestic": false,
-    "country": "安哥拉"
+    "country": "安哥拉",
+    "continent": "非洲",
+    "province": ""
   },
   "astana": {
     "lat": 51.1694,
     "lng": 71.4491,
     "isDomestic": false,
-    "country": "哈萨克斯坦"
+    "country": "哈萨克斯坦",
+    "continent": "亚洲",
+    "province": ""
   },
   "george town": {
     "lat": 5.4149,
     "lng": 100.3292,
     "isDomestic": false,
-    "country": "马来西亚"
+    "country": "马来西亚",
+    "continent": "亚洲",
+    "province": ""
   },
   "valletta": {
     "lat": 35.8992,
     "lng": 14.5141,
     "isDomestic": false,
-    "country": "马耳他"
+    "country": "马耳他",
+    "continent": "欧洲",
+    "province": ""
   },
   "la paz": {
     "lat": -16.5,
     "lng": -68.15,
     "isDomestic": false,
-    "country": "玻利维亚"
+    "country": "玻利维亚",
+    "continent": "南美洲",
+    "province": ""
+  },
+  "shijiazhuang": {
+    "lat": 38.0428,
+    "lng": 114.5149,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河北"
+  },
+  "jinan": {
+    "lat": 36.6512,
+    "lng": 117.1201,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山东"
+  },
+  "hezhou": {
+    "lat": 24.4035,
+    "lng": 111.5526,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广西"
+  },
+  "baoshan": {
+    "lat": 25.1122,
+    "lng": 99.1636,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "云南"
+  },
+  "puxian": {
+    "lat": 25.4435,
+    "lng": 119.0059,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
+  },
+  "tonghua": {
+    "lat": 41.7282,
+    "lng": 125.9394,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "吉林"
+  },
+  "anqing": {
+    "lat": 30.5428,
+    "lng": 117.0533,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "langfang": {
+    "lat": 39.5379,
+    "lng": 116.6831,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河北"
+  },
+  "nanyang": {
+    "lat": 32.9988,
+    "lng": 112.5292,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河南"
+  },
+  "linfen": {
+    "lat": 36.0881,
+    "lng": 111.5195,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山西"
+  },
+  "yangquan": {
+    "lat": 37.8568,
+    "lng": 113.5691,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "山西"
+  },
+  "jieyang": {
+    "lat": 23.5479,
+    "lng": 116.3655,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
+  },
+  "qingyuan": {
+    "lat": 23.6981,
+    "lng": 113.0565,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "广东"
+  },
+  "zhangzhou": {
+    "lat": 24.5139,
+    "lng": 117.6474,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "福建"
+  },
+  "luohe": {
+    "lat": 33.5754,
+    "lng": 114.0166,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河南"
+  },
+  "changde": {
+    "lat": 29.0308,
+    "lng": 111.6987,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "湖南"
+  },
+  "suqian": {
+    "lat": 33.9657,
+    "lng": 118.2753,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "xuancheng": {
+    "lat": 30.9453,
+    "lng": 118.7588,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "tangshan": {
+    "lat": 39.6303,
+    "lng": 118.1802,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "河北"
+  },
+  "taizhou": {
+    "lat": 32.4573,
+    "lng": 119.9273,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "zhoushan": {
+    "lat": 29.9853,
+    "lng": 122.2069,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "wenzhou": {
+    "lat": 28.0005,
+    "lng": 120.6722,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "jiaxing": {
+    "lat": 30.7522,
+    "lng": 120.7505,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "huzhou": {
+    "lat": 30.8703,
+    "lng": 120.0937,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "quzhou": {
+    "lat": 28.9352,
+    "lng": 118.8742,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "jiashan": {
+    "lat": 30.8325,
+    "lng": 120.9192,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "anji": {
+    "lat": 30.6361,
+    "lng": 119.6805,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "moganshan": {
+    "lat": 30.6237,
+    "lng": 119.8047,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "longyou": {
+    "lat": 29.0295,
+    "lng": 119.1699,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "kaihua": {
+    "lat": 29.1524,
+    "lng": 118.4143,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "yongkang": {
+    "lat": 28.8884,
+    "lng": 120.0477,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "panan": {
+    "lat": 29.0562,
+    "lng": 120.4493,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "dongyang": {
+    "lat": 29.2793,
+    "lng": 120.2415,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "lanxi": {
+    "lat": 29.2087,
+    "lng": 119.4607,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "pujiang": {
+    "lat": 29.4537,
+    "lng": 119.8913,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "wuyi": {
+    "lat": 28.8936,
+    "lng": 119.8278,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "shengzhou": {
+    "lat": 29.5982,
+    "lng": 120.8295,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "xinchang": {
+    "lat": 29.4997,
+    "lng": 120.9002,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "zhuji": {
+    "lat": 29.7164,
+    "lng": 120.2355,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "shangyu": {
+    "lat": 30.0322,
+    "lng": 120.8743,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "linan": {
+    "lat": 30.2302,
+    "lng": 119.7166,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "fuyang": {
+    "lat": 30.0497,
+    "lng": 119.9578,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "jiande": {
+    "lat": 29.4769,
+    "lng": 119.2792,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "tonglu": {
+    "lat": 29.7943,
+    "lng": 119.6908,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "chunan": {
+    "lat": 29.6078,
+    "lng": 118.9965,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "浙江"
+  },
+  "longnan": {
+    "lat": 24.9023,
+    "lng": 114.7893,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
+  },
+  "ruichang": {
+    "lat": 29.6785,
+    "lng": 115.6813,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
+  },
+  "gongqingcheng": {
+    "lat": 29.2468,
+    "lng": 115.9898,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江西"
+  },
+  "lianyungang": {
+    "lat": 34.5964,
+    "lng": 119.2226,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "huaian": {
+    "lat": 33.5012,
+    "lng": 119.0217,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "yancheng": {
+    "lat": 33.3475,
+    "lng": 120.1635,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "zhenjiang": {
+    "lat": 32.1879,
+    "lng": 119.4249,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "changzhou": {
+    "lat": 31.7712,
+    "lng": 119.9741,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "nantong": {
+    "lat": 31.9793,
+    "lng": 120.8944,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "江苏"
+  },
+  "huaibei": {
+    "lat": 33.9554,
+    "lng": 116.7983,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "bengbu": {
+    "lat": 32.9168,
+    "lng": 117.3886,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "fuyang-ah": {
+    "lat": 32.8986,
+    "lng": 115.8145,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "bozhou": {
+    "lat": 33.8442,
+    "lng": 115.7789,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "suzhou-ah": {
+    "lat": 33.6364,
+    "lng": 116.9778,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "chuzhou": {
+    "lat": 32.3003,
+    "lng": 118.3161,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "liuan": {
+    "lat": 31.7549,
+    "lng": 116.5074,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "chizhou": {
+    "lat": 30.6647,
+    "lng": 117.4906,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "tongling": {
+    "lat": 30.9452,
+    "lng": 117.8126,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "xuanzhou": {
+    "lat": 30.9453,
+    "lng": 118.7588,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "huainan": {
+    "lat": 32.6257,
+    "lng": 117.0153,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "maanshan": {
+    "lat": 31.6704,
+    "lng": 118.5066,
+    "isDomestic": true,
+    "country": "中国",
+    "continent": "亚洲",
+    "province": "安徽"
+  },
+  "yokohama": {
+    "lat": 35.4437,
+    "lng": 139.638,
+    "isDomestic": false,
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "kobe": {
+    "lat": 34.6901,
+    "lng": 135.1956,
+    "isDomestic": false,
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "nara": {
+    "lat": 34.6851,
+    "lng": 135.8049,
+    "isDomestic": false,
+    "country": "日本",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "hoian": {
+    "lat": 15.8801,
+    "lng": 108.338,
+    "isDomestic": false,
+    "country": "越南",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "ubud": {
+    "lat": -8.5069,
+    "lng": 115.2625,
+    "isDomestic": false,
+    "country": "印度尼西亚",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "jakarta": {
+    "lat": -6.2088,
+    "lng": 106.8456,
+    "isDomestic": false,
+    "country": "印度尼西亚",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "manila": {
+    "lat": 14.5995,
+    "lng": 120.9842,
+    "isDomestic": false,
+    "country": "菲律宾",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "cebu": {
+    "lat": 10.3157,
+    "lng": 123.8854,
+    "isDomestic": false,
+    "country": "菲律宾",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "cappadocia": {
+    "lat": 38.6431,
+    "lng": 34.8289,
+    "isDomestic": false,
+    "country": "土耳其",
+    "continent": "亚洲",
+    "province": ""
+  },
+  "venice": {
+    "lat": 45.4408,
+    "lng": 12.3155,
+    "isDomestic": false,
+    "country": "意大利",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "florence": {
+    "lat": 43.7696,
+    "lng": 11.2558,
+    "isDomestic": false,
+    "country": "意大利",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "athens": {
+    "lat": 37.9755,
+    "lng": 23.7348,
+    "isDomestic": false,
+    "country": "希腊",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "munich": {
+    "lat": 48.1351,
+    "lng": 11.582,
+    "isDomestic": false,
+    "country": "德国",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "losangeles": {
+    "lat": 34.0522,
+    "lng": -118.2437,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "sanfrancisco": {
+    "lat": 37.7749,
+    "lng": -122.4194,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "lasvegas": {
+    "lat": 36.1699,
+    "lng": -115.1398,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "honolulu": {
+    "lat": 21.3069,
+    "lng": -157.8583,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "miami": {
+    "lat": 25.7617,
+    "lng": -80.1918,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "chicago": {
+    "lat": 41.8781,
+    "lng": -87.6298,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "seattle": {
+    "lat": 47.6062,
+    "lng": -122.3321,
+    "isDomestic": false,
+    "country": "美国",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "toronto": {
+    "lat": 43.6532,
+    "lng": -79.3832,
+    "isDomestic": false,
+    "country": "加拿大",
+    "continent": "北美洲",
+    "province": ""
+  },
+  "melbourne": {
+    "lat": -37.8136,
+    "lng": 144.9631,
+    "isDomestic": false,
+    "country": "澳大利亚",
+    "continent": "大洋洲",
+    "province": ""
+  },
+  "cairns": {
+    "lat": -16.9203,
+    "lng": 145.7709,
+    "isDomestic": false,
+    "country": "澳大利亚",
+    "continent": "大洋洲",
+    "province": ""
+  },
+  "moscow": {
+    "lat": 55.7558,
+    "lng": 37.6173,
+    "isDomestic": false,
+    "country": "俄罗斯",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "stpetersburg": {
+    "lat": 59.9311,
+    "lng": 30.3609,
+    "isDomestic": false,
+    "country": "俄罗斯",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "madrid": {
+    "lat": 40.4168,
+    "lng": -3.7038,
+    "isDomestic": false,
+    "country": "西班牙",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "porto": {
+    "lat": 41.1579,
+    "lng": -8.6291,
+    "isDomestic": false,
+    "country": "葡萄牙",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "oslo": {
+    "lat": 59.9139,
+    "lng": 10.7522,
+    "isDomestic": false,
+    "country": "挪威",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "copenhagen": {
+    "lat": 55.6761,
+    "lng": 12.5683,
+    "isDomestic": false,
+    "country": "丹麦",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "dublin": {
+    "lat": 53.3498,
+    "lng": -6.2603,
+    "isDomestic": false,
+    "country": "爱尔兰",
+    "continent": "欧洲",
+    "province": ""
+  },
+  "edinburg": {
+    "lat": 55.9533,
+    "lng": -3.1883,
+    "isDomestic": false,
+    "country": "英国",
+    "continent": "欧洲",
+    "province": ""
   }
 }

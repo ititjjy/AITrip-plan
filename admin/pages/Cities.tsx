@@ -32,13 +32,19 @@ export default function Cities() {
 
   const filtered = cities.filter((c) => {
     const q = search.toLowerCase()
-    return !q || c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q) || c.country.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)
+    return !q || c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q)
+      || c.continent.toLowerCase().includes(q) || c.country.toLowerCase().includes(q)
+      || c.province.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)
   })
 
   const handleDelete = async (cityId: string) => {
     if (!confirm(`确认删除城市 "${cityId}"？`)) return
-    await api.delete(`/cities/${cityId}`).catch(() => {})
-    fetchCities()
+    try {
+      await api.delete(`/cities/${cityId}`)
+      fetchCities()
+    } catch (err: any) {
+      alert(`删除失败：${err.message || '未知错误'}`)
+    }
   }
 
   return (
@@ -55,7 +61,7 @@ export default function Cities() {
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="搜索城市名称、英文名、国家..."
+            placeholder="搜索城市名称、英文名、大洲、国家、省份..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm"
@@ -78,7 +84,9 @@ export default function Cities() {
                 <TableHead>城市 ID</TableHead>
                 <TableHead>城市名称</TableHead>
                 <TableHead>英文名</TableHead>
+                <TableHead>大洲</TableHead>
                 <TableHead>国家</TableHead>
+                <TableHead>省份</TableHead>
                 <TableHead className="text-right">POI 数量</TableHead>
                 <TableHead>最近更新</TableHead>
                 <TableHead className="w-[140px]">操作</TableHead>
@@ -90,7 +98,9 @@ export default function Cities() {
                   <TableCell className="font-mono text-xs text-muted-foreground">{city.id}</TableCell>
                   <TableCell className="font-medium">{city.name}</TableCell>
                   <TableCell className="text-muted-foreground">{city.nameEn}</TableCell>
+                  <TableCell><Badge variant="secondary">{city.continent}</Badge></TableCell>
                   <TableCell><Badge variant="outline">{city.country}</Badge></TableCell>
+                  <TableCell><Badge variant="outline">{city.province}</Badge></TableCell>
                   <TableCell className="text-right font-medium">{city.poiCount ?? 0}</TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(city.lastUpdated)}</TableCell>
                   <TableCell>
@@ -125,7 +135,7 @@ export default function Cities() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     {search ? '没有找到匹配的城市' : '暂无城市数据'}
                   </TableCell>
                 </TableRow>
@@ -147,7 +157,9 @@ export default function Cities() {
 }
 
 function AddCityDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
-  const [form, setForm] = useState({ id: '', name: '', nameEn: '', country: '', lat: '', lng: '' })
+  const [form, setForm] = useState({
+    id: '', name: '', nameEn: '', continent: '', country: '', province: '', lat: '', lng: ''
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -169,7 +181,9 @@ function AddCityDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
         id: form.id,
         name: form.name,
         nameEn: form.nameEn,
+        continent: form.continent,
         country: form.country,
+        province: form.province,
         lat,
         lng,
       })
@@ -183,7 +197,7 @@ function AddCityDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-4 text-lg font-semibold">添加城市</h2>
         <div className="space-y-3">
           <div>
@@ -200,9 +214,19 @@ function AddCityDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
               <Input placeholder="Tokyo" value={form.nameEn} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} />
             </div>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">国家</label>
-            <Input placeholder="日本" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium">大洲</label>
+              <Input placeholder="亚洲" value={form.continent} onChange={(e) => setForm({ ...form, continent: e.target.value })} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">国家 <span className="text-destructive">*</span></label>
+              <Input placeholder="日本" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">省份</label>
+              <Input placeholder="东京都" value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value })} />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

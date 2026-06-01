@@ -60,7 +60,9 @@ export interface City {
   id: string
   name: string
   nameEn: string
+  continent: string
   country: string
+  province: string
   image: string
   description: string
   avgDailyBudget: number
@@ -69,6 +71,7 @@ export interface City {
   tags: string[]
   lat: number
   lng: number
+  isDomestic: boolean
 }
 
 export interface Attraction {
