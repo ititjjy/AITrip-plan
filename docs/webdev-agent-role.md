@@ -31,12 +31,12 @@
 | 职责 | 说明 |
 |------|------|
 | REST API 设计与实现 | Express 路由、请求处理、错误码规范 |
-| AI 大模型集成 | 豆包/DashScope API 接入、Prompt 工程、响应解析与容错 |
+| AI 大模型集成 | 豆包 ARK API 接入、Prompt 工程、响应解析与容错 |
 | 数据库 Schema | SQLite 表结构设计、索引优化、迁移脚本 |
 | 缓存策略 | POI 三级缓存（fresh/stale/expired）、后台异步刷新 |
 | 认证授权 | JWT 鉴权、用户注册登录、验证码 |
 
-**涉及文件**：`server/*.ts`、`server/db.ts`、`server/qwen.ts`、`server/qwen-hotels.ts`
+**涉及文件**：`server/*.ts`
 
 ### 2.3 算法与数据处理
 
@@ -64,14 +64,14 @@
 
 | 事项 | 负责 Agent | 原因 |
 |------|-----------|------|
-| 服务器基础设施 | 运维 Agent | SSH、ECS购买、操作系统配置 |
-| Nginx 配置 | 运维 Agent | 反向代理、SSL证书、超时参数 |
+| 服务器基础设施 | 运维 Agent | SSH、ECS 购买、操作系统配置 |
+| Nginx 配置 | 运维 Agent | 反向代理、SSL 证书、超时参数 |
 | PM2 管理 | 运维 Agent | 进程启动/重启/日志查看 |
-| Git 仓库管理 | 运维 Agent | 远程仓库配置、分支策略、tag管理 |
+| Git 仓库管理 | 运维 Agent | 远程仓库配置、分支策略、tag 管理 |
 | 代码部署上线 | 运维 Agent | git pull/stash、npm build、pm2 restart |
 | 生产环境监控 | 运维 Agent | 日志巡检、健康检查、告警 |
-| 数据库运维备份 | 运维 Agent | SQLite文件备份、灾难恢复 |
-| 网络与安全 | 运维 Agent | 防火墙/EDR排查、端口策略 |
+| 数据库运维备份 | 运维 Agent | SQLite 文件备份、灾难恢复 |
+| 网络与安全 | 运维 Agent | 防火墙/EDR 排查、端口策略 |
 | 数据采集脚本 | 数据 Agent | agent/*.ts 执行、城市数据批量生产 |
 
 ---
@@ -128,30 +128,30 @@
 | 地图 | Leaflet + React-Leaflet | ★★★★ |
 | 后端框架 | Express 5 + TypeScript | ★★★★★ |
 | 数据库 | SQLite (better-sqlite3) | ★★★★ |
-| AI 集成 | 火山引擎 ARK API（OpenAI兼容格式） | ★★★★★ |
+| AI 集成 | 火山引擎 ARK API（OpenAI 兼容格式） | ★★★★★ |
 | 认证 | JWT + bcrypt | ★★★ |
 
 ### 5.2 项目架构知识
 
 | 知识点 | 详情 |
 |--------|------|
-| 项目入口 | `server/index.ts`（Express 5）→ `src/pages/HomePage.tsx`（React SPA）|
-| 数据流 | 用户请求 → Express路由 → 缓存查询 → AI API调用 → 数据库写入 → JSON响应 |
+| 项目入口 | `server/index.ts`（Express 5）→ `src/pages/HomePage.tsx`（React SPA） |
+| 数据流 | 用户请求 → Express 路由 → 缓存查询 → AI API 调用 → 数据库写入 → JSON 响应 |
 | 缓存三层 | FRESH(1h) → STALE(24h) → EXPIRED(重新请求) |
-| AI调用链 | `server/qwen.ts` 按类别顺序调用：scenic→food→shopping→activity |
-| 酒店调用链 | `server/qwen-hotels.ts` 单次调用30家 |
-| Admin后台 | `/admin` → `admin.html` → `admin/pages/*`（独立SPA）|
+| AI 调用链 | `server/qwen.ts` 按类别顺序调用：scenic → food → shopping → activity |
+| 酒店调用链 | `server/qwen-hotels.ts` 单次调用 30 家 |
+| Admin 后台 | `/admin` → `admin.html` → `admin/pages/*`（独立 SPA） |
 | 数据库路径 | 本地: `server/data/pois.db` / 生产: `/data/aitrip/pois.db` |
-| 环境变量 | `.env.local` → `ARK_API_KEY`（在线服务）+ `DASHSCOPE_API_KEY`（Agent采集） |
+| 环境变量 | `.env.local` → `ARK_API_KEY`（在线服务）+ `DASHSCOPE_API_KEY`（Agent 采集） |
 
 ### 5.3 设计系统知识
 
 | Token | 值 | 说明 |
 |-------|---|------|
 | 风格参考 | Stripe/Linear/Apple | 优雅间距、深色层级、大留白 |
-| 色彩策略 | 2-3主色 + 中性色 | 通过 CSS HSL token 定义 |
-| 字号层级 | 12/16/24/36 | 最多4级，权重变化优先于字号 |
-| 间距节奏 | 4/8/16/24/32/48/64 | 8px基础网格 |
+| 色彩策略 | 2-3 主色 + 中性色 | 通过 CSS HSL token 定义 |
+| 字号层级 | 12/16/24/36 | 最多 4 级，权重变化优先于字号 |
+| 间距节奏 | 4/8/16/24/32/48/64 | 8px 基础网格 |
 | 动效原则 | 0.2-0.3s cubic-bezier | 有意义过渡，不做装饰动效 |
 
 ---
@@ -162,7 +162,7 @@
 |----------|------|------|
 | `ui-designer` | UI 设计专家 | 建立设计系统、生成视觉原型、创建组件变体 |
 | `code-reviewer` | 代码审查 | Review 变更的正确性、安全性、性能 |
-| `explore-agent` | 代码探索 | 快速搜索文件/符号/API端点 |
+| `explore-agent` | 代码探索 | 快速搜索文件/符号/API 端点 |
 | `plan-agent` | 方案规划 | 设计实现方案、识别关键文件、架构权衡 |
 
 ---
@@ -179,31 +179,24 @@
 | Bash | npm build / tsx 启动测试 | ★★★★ |
 | Task | 启动子 Agent 执行复杂任务 | ★★★ |
 | ImageGen | 生成 UI 所需图片 | ★★ |
-| WebSearch | 搜索技术文档/API说明 | ★★ |
-| WebFetch | 获取在线文档内容 | ★★ |
+| WebSearch | 搜索技术文档/API 说明 | ★★ |
 | TodoWrite | 任务追踪 | ★★★★ |
 
-**不使用的运维工具**：SSH到服务器、PM2操作、Nginx配置、git部署脚本
+**不使用的运维工具**：SSH 到服务器、PM2 操作、Nginx 配置、git 部署脚本
 
 ---
 
 ## 八、日常工作流程
 
 ```
-┌─────────────────────────────────────────────────┐
-│  WebDev Agent 日常工作循环                        │
-├─────────────────────────────────────────────────┤
-│                                                  │
-│  1. 接收需求 → 拆解任务 (TodoWrite)              │
-│  2. 探索代码 → 理解现有架构 (Glob/Grep/Read)     │
-│  3. 方案设计 → 规划实现路径 (plan-agent)          │
-│  4. UI 设计 → 建立视觉规范 (ui-designer)         │
-│  5. 编码实现 → 前端+后端+数据 (Edit/Write)       │
-│  6. 本地测试 → 编译+启动+API测试 (Bash/npm)     │
-│  7. 代码提交 → git commit (Bash/git)             │
-│  8. 交付运维 → push双仓库,通知运维部署            │
-│                                                  │
-└─────────────────────────────────────────────────┘
+  1. 接收需求 → 拆解任务 (TodoWrite)
+  2. 探索代码 → 理解现有架构 (Glob/Grep/Read)
+  3. 方案设计 → 规划实现路径 (plan-agent)
+  4. UI 设计 → 建立视觉规范 (ui-designer)
+  5. 编码实现 → 前端+后端+数据 (Edit/Write)
+  6. 本地测试 → 编译+启动+API测试 (Bash/npm)
+  7. 代码提交 → git commit (Bash/git)
+  8. 交付运维 → push 双仓库, 通知运维部署
 ```
 
 ---
@@ -214,7 +207,7 @@
 |------|------|
 | 编译 | `npm run build` 零报错 |
 | 类型 | TypeScript strict 模式无 error |
-| 设计 | 一致性（token引用）、美观性（参考Stripe/Linear） |
+| 设计 | 一致性（token 引用）、美观性（参考 Stripe/Linear） |
 | 功能 | 每个按钮/链接可点击，每个 API 端点可调用 |
 | 安全 | 不泄露 API Key，不提交 .env 文件到仓库 |
-| 性能 | 首屏 < 3s，API 响应 < 合理阈值 |
+| 性能 | 首屏 < 3s，API 响应 < 超时阈值 |
