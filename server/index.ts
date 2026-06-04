@@ -129,10 +129,10 @@ app.get('/api/pois/:cityId', async (req, res) => {
     if (!apiKey) {
       return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
     }
-    console.log(`[API] Fetching POIs for ${cityName} (${season})...`)
-    const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
-    if (pois.length > 0) upsertPOIs(cityId, pois)
-    return res.json({ success: true, data: pois, fromCache: false, refreshing: false, currentSeason: season })
+    // 无缓存时：立即返回 generating 状态，后台异步调用豆包 API，避免 Nginx 504 超时
+    console.log(`[API] No cache for ${cityName}, triggering async generation...`)
+    backgroundRefresh(cityId, cityName, cityNameEn)
+    return res.json({ success: true, data: [], fromCache: false, refreshing: true, generating: true, currentSeason: season })
   } catch (err) {
     const cached = getCachedPOIs(cityId)
     if (cached) {

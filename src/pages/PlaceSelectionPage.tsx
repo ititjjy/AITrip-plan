@@ -100,6 +100,7 @@ export default function PlaceSelectionPage() {
   // AI recommendation state
   const [aiLoading, setAiLoading] = useState(false)
   const [aiRefreshing, setAiRefreshing] = useState(false)
+  const [aiGenerating, setAiGenerating] = useState(false) // 首次无缓存生成中
   const [aiError, setAiError] = useState<string | null>(null)
   const [isAIPowered, setIsAIPowered] = useState(false)
 
@@ -123,14 +124,17 @@ export default function PlaceSelectionPage() {
     if (!city) return
     setAiLoading(true)
     setAiError(null)
+    setAiGenerating(false)
 
     try {
       const result = await loadPOIRecommendations(
         city.name, city.nameEn, city.id,
-        // Background refresh callback (stale-while-revalidate)
+        // Background refresh callback (stale-while-revalidate 或首次生成完成)
         (freshAttractions) => {
           setAIAttractions(city.id, freshAttractions)
           setAiRefreshing(false)
+          setAiGenerating(false)
+          setIsAIPowered(true)
           // Force re-render by toggling state
           setIsAIPowered(false)
           setTimeout(() => setIsAIPowered(true), 0)
@@ -139,6 +143,10 @@ export default function PlaceSelectionPage() {
 
       if (result.error) {
         setAiError(`AI 推荐加载失败：${result.error}`)
+      } else if (result.generating) {
+        // 首次无缓存：服务端正在后台生成，前端显示等待状态
+        setAiGenerating(true)
+        setIsAIPowered(false)
       } else if (result.attractions.length > 0) {
         setAIAttractions(city.id, result.attractions)
         setIsAIPowered(true)
@@ -561,14 +569,27 @@ export default function PlaceSelectionPage() {
             {/* No data, show loading/retry prompt */}
             {!aiLoading && allAttractions.length === 0 && !isAIPowered && (
               <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
-                <div className="h-14 w-14 rounded-full bg-gradient-to-r from-violet-500/10 to-blue-500/10 flex items-center justify-center mb-4">
-                  <Sparkles className="h-6 w-6 text-violet-500" />
+                <div className="h-14 w-14 rounded-full bg-gradient-to-r from-violet-500/10 to-blue-500/10 flex items-center justify-center mb-4 relative">
+                  {aiGenerating ? (
+                    <>
+                      <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
+                      <Sparkles className="h-6 w-6 text-violet-500" />
+                    </>
+                  ) : (
+                    <Sparkles className="h-6 w-6 text-violet-500" />
+                  )}
                 </div>
-                <h3 className="text-base font-bold text-foreground mb-1">AI 智能推荐</h3>
+                <h3 className="text-base font-bold text-foreground mb-1">
+                  {aiGenerating ? 'AI 首次生成数据' : 'AI 智能推荐'}
+                </h3>
                 <p className="text-[11px] text-muted-foreground text-center max-w-[260px] mb-4">
-                  {aiError ? '加载失败，请点击重试' : `正在从服务器加载 ${city.name} ${seasonLabel}推荐数据...`}
+                  {aiGenerating
+                    ? `AI 正在为 ${city.name} 首次生成推荐数据，通常需要 1-3 分钟，请稍候...`
+                    : aiError
+                      ? '加载失败，请点击重试'
+                      : `正在从服务器加载 ${city.name} ${seasonLabel}推荐数据...`}
                 </p>
-                {aiError && (
+                {aiError && !aiGenerating && (
                   <Button
                     variant="coral"
                     size="sm"

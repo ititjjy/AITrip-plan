@@ -23,6 +23,8 @@ export interface AIRecommendResult {
   fromCache: boolean
   /** If server returned cached data and is refreshing in background */
   refreshing: boolean
+  /** If server is generating for the first time (no cache yet) */
+  generating?: boolean
   error?: string
 }
 
@@ -69,8 +71,8 @@ export async function loadPOIRecommendations(
 
     const attractions = castAttractions(result.data || [])
 
-    // If server said it's refreshing in background, start polling
-    if (result.refreshing && onBackgroundRefresh) {
+    // 首次生成（无缓存）或后台刷新（缓存过期），均开启轮询
+    if ((result.refreshing || result.generating) && onBackgroundRefresh) {
       pollForFreshData(cityId, cityName, cityNameEn, onBackgroundRefresh)
     }
 
@@ -78,6 +80,7 @@ export async function loadPOIRecommendations(
       attractions,
       fromCache: !!result.fromCache,
       refreshing: !!result.refreshing,
+      generating: !!result.generating,
     }
   } catch (err) {
     console.error('[aiRecommend] loadPOIRecommendations error:', err)
