@@ -200,10 +200,10 @@ app.get('/api/hotels/:cityId', async (req, res) => {
     if (!apiKey) {
       return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
     }
-    console.log(`[API] Fetching hotels for ${cityName}...`)
-    const hotels = await fetchHotelsFromQwen(cityName, cityNameEn, cityId, apiKey)
-    if (hotels.length > 0) upsertHotels(cityId, hotels)
-    return res.json({ success: true, data: hotels, fromCache: false, refreshing: false })
+    // 无缓存时：立即返回 generating 状态，后台异步调用豆包 API，避免 Nginx 504 超时
+    console.log(`[API] No cache for hotels ${cityName}, triggering async generation...`)
+    backgroundRefreshHotels(cityId, cityName, cityNameEn)
+    return res.json({ success: true, data: [], fromCache: false, refreshing: true, generating: true })
   } catch (err) {
     const cached = getCachedHotels(cityId)
     if (cached) return res.json({ success: true, data: cached, fromCache: true, refreshing: false, warning: 'API failed, cached data' })
