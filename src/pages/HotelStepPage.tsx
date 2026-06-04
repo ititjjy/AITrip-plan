@@ -964,14 +964,3 @@ function MobileSearchOverlay({ searchQuery, setSearchQuery, search, clearResults
     </div>
   )
 }
-                  <button onClick={onApplyAll} className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium hover:bg-secondary">全部天</button>
-                  <button onClick={onRemoveHotel} className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-destructive hover:bg-secondary">移除</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
