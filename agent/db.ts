@@ -99,6 +99,22 @@ function initTables() {
     CREATE INDEX IF NOT EXISTS idx_raw_city ON raw_pois (city_id)
   `)
 
+  // 待确认更新 (每城市最多一条)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pending_updates (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      city_id       TEXT    NOT NULL UNIQUE,
+      data          TEXT    NOT NULL,
+      quality_score REAL    DEFAULT NULL,
+      by_category   TEXT    NOT NULL DEFAULT '{}',
+      score_dist    TEXT    NOT NULL DEFAULT '{}',
+      total_pois    INTEGER NOT NULL DEFAULT 0,
+      sources_used  TEXT    NOT NULL DEFAULT '[]',
+      issues_count  INTEGER NOT NULL DEFAULT 0,
+      created_at    INTEGER NOT NULL
+    )
+  `)
+
   // 城市统计
   db.exec(`
     CREATE TABLE IF NOT EXISTS city_stats (
@@ -348,6 +364,89 @@ export function getRawPOIsSummary(): { city_id: string; source: string; items_co
   return d.prepare('SELECT city_id, source, items_count, collected_at FROM raw_pois ORDER BY city_id, source')
     .all() as { city_id: string; source: string; items_count: number; collected_at: number }[]
 }
+
+/* ── Pending Updates ── */
+
+export interface PendingMeta {
+  qualityScore?: number
+  byCategory: Record<string, number>
+  scoreDist: Record<string, number>
+  totalPois: number
+  sourcesUsed: string[]
+  issuesCount: number
+}
+
+export function upsertPendingUpdate(cityId: string, data: any[], meta: PendingMeta): void {
+  const d = getDB()
+  d.prepare(`
+    INSERT OR REPLACE INTO pending_updates
+      (city_id, data, quality_score, by_category, score_dist, total_pois, sources_used, issues_count, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    cityId,
+    JSON.stringify(data),
+    meta.qualityScore ?? null,
+    JSON.stringify(meta.byCategory),
+    JSON.stringify(meta.scoreDist),
+    meta.totalPois,
+    JSON.stringify(meta.sourcesUsed),
+    meta.issuesCount,
+    Date.now(),
+  )
+}
+
+export function getPendingUpdates(): Array<{
+  id: number; city_id: string; quality_score: number | null;
+  by_category: string; score_dist: string; total_pois: number;
+  sources_used: string; issues_count: number; created_at: number;
+}> {
+  const d = getDB()
+  return d.prepare(`
+    SELECT id, city_id, quality_score, by_category, score_dist,
+           total_pois, sources_used, issues_count, created_at
+    FROM pending_updates ORDER BY created_at DESC
+  `).all() as any[]
+}
+
+export function getPendingUpdate(cityId: string): {
+  id: number; city_id: string; data: string; quality_score: number | null;
+  by_category: string; score_dist: string; total_pois: number;
+  sources_used: string; issues_count: number; created_at: number;
+} | null {
+  const d = getDB()
+  return d.prepare('SELECT * FROM pending_updates WHERE city_id = ?').get(cityId) as any || null
+}
+
+export function getPendingUpdateCount(): number {
+  const d = getDB()
+  const row = d.prepare('SELECT COUNT(*) as cnt FROM pending_updates').get() as any
+  return row.cnt
+}
+
+export function deletePendingUpdate(cityId: string): void {
+  const d = getDB()
+  d.prepare('DELETE FROM pending_updates WHERE city_id = ?').run(cityId)
+}
+
+export function applyPendingUpdate(cityId: string): number {
+  const pending = getPendingUpdate(cityId)
+  if (!pending) return 0
+
+  const pois = JSON.parse(pending.data)
+  upsertPOIs(cityId, pois)
+
+  updateCityStats(cityId, {
+    totalPois: pending.total_pois,
+    qualityScore: pending.quality_score ?? undefined,
+    source: JSON.parse(pending.sources_used).join(','),
+    byCategory: JSON.parse(pending.by_category),
+    success: true,
+  })
+
+  deletePendingUpdate(cityId)
+  return pois.length
+}
+
 
 /* ── Close ── */
 

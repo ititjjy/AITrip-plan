@@ -33,7 +33,7 @@ const CROSS_CATEGORY_ENABLED = true
 const MAX_TAGS = 6
 
 const SOURCE_RELIABILITY: Record<string, number> = {
-  osm: 3, google: 2, foursquare: 2, amap: 2, ai: 1,
+  osm: 3, google: 2, foursquare: 2, amap: 2, ai: 1, spark: 1, doubao: 1,
 }
 
 /* ═══════════════════════ Tag 双语化 ═══════════════════════ */
@@ -430,20 +430,20 @@ export function computeCompleteness(poi: RawPOI): number {
 
   // 核心四要素
   if (poi.lat !== 0 || poi.lng !== 0) filled += COMPLETENESS_WEIGHTS.coords
-  if (poi.namePrimary && poi.namePrimary.trim().length >= 2) filled += COMPLETENESS_WEIGHTS.namePrimary
-  if (poi.address && poi.address.trim().length > 0) filled += COMPLETENESS_WEIGHTS.address
+  if (poi.namePrimary && String(poi.namePrimary).trim().length >= 2) filled += COMPLETENESS_WEIGHTS.namePrimary
+  if (poi.address && String(poi.address).trim().length > 0) filled += COMPLETENESS_WEIGHTS.address
   if (poi.categoryL1 && L1_CATEGORIES.includes(poi.categoryL1)) filled += COMPLETENESS_WEIGHTS.categoryL1
 
   // 重要字段
-  if (poi.nameZh && poi.nameZh.trim()) filled += COMPLETENESS_WEIGHTS.nameZh
-  if (poi.nameEn && poi.nameEn.trim()) filled += COMPLETENESS_WEIGHTS.nameEn
+  if (poi.nameZh && String(poi.nameZh).trim()) filled += COMPLETENESS_WEIGHTS.nameZh
+  if (poi.nameEn && String(poi.nameEn).trim()) filled += COMPLETENESS_WEIGHTS.nameEn
   if (poi.description && poi.description.length >= 10) filled += COMPLETENESS_WEIGHTS.description
   if (poi.rating && poi.rating > 0) filled += COMPLETENESS_WEIGHTS.rating
   if (poi.tags && poi.tags.length > 0) filled += COMPLETENESS_WEIGHTS.tags
-  if (poi.operatingHours && poi.operatingHours.trim()) filled += COMPLETENESS_WEIGHTS.operatingHours
+  if (poi.operatingHours && String(poi.operatingHours).trim()) filled += COMPLETENESS_WEIGHTS.operatingHours
 
   // 锦上添花
-  if (poi.addressEn && poi.addressEn.trim()) filled += COMPLETENESS_WEIGHTS.addressEn
+  if (poi.addressEn && String(poi.addressEn).trim()) filled += COMPLETENESS_WEIGHTS.addressEn
   if (poi.cost && poi.cost > 0) filled += COMPLETENESS_WEIGHTS.cost
   if (poi.visitDuration && poi.visitDuration > 0) filled += COMPLETENESS_WEIGHTS.visitDuration
   if (poi.bestSeasons && poi.bestSeasons.length > 0) filled += COMPLETENESS_WEIGHTS.bestSeasons

@@ -7,7 +7,7 @@
 #   cd /opt/aitrip && bash scripts/server-pull.sh v0.3.2    # 部署指定版本
 #
 # 流程:
-#   1. 自动寻优：优先阿里云仓库（速度快），失败自动切换 GitHub
+#   1. 自动寻优：优先 GitHub，失败自动切换阿里云仓库
 #   2. 显示版本变更日志
 #   3. 安装依赖
 #   4. 构建项目
@@ -46,21 +46,21 @@ setup_remotes() {
 }
 
 # ── 双源自动寻优拉取 ──
-# 优先尝试阿里云（国内 ECS 速度快），失败则切换 GitHub
+# 优先尝试 GitHub，失败则切换阿里云仓库
 smart_fetch() {
     local target="${1:-main}"
 
-    echo -e "${CYAN}  尝试 [1/2] 阿里云仓库...${NC}"
-    if git fetch alibaba "$target" --tags 2>/dev/null; then
-        echo -e "${GREEN}  ✓ 阿里云仓库拉取成功${NC}"
-        FETCH_REMOTE="alibaba"
-        return 0
-    fi
-
-    echo -e "${YELLOW}  ⚠ 阿里云仓库不可达，切换 [2/2] GitHub...${NC}"
+    echo -e "${CYAN}  尝试 [1/2] GitHub...${NC}"
     if git fetch origin "$target" --tags 2>/dev/null; then
         echo -e "${GREEN}  ✓ GitHub 拉取成功${NC}"
         FETCH_REMOTE="origin"
+        return 0
+    fi
+
+    echo -e "${YELLOW}  ⚠ GitHub 不可达，切换 [2/2] 阿里云仓库...${NC}"
+    if git fetch alibaba "$target" --tags 2>/dev/null; then
+        echo -e "${GREEN}  ✓ 阿里云仓库拉取成功${NC}"
+        FETCH_REMOTE="alibaba"
         return 0
     fi
 

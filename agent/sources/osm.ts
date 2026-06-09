@@ -8,6 +8,7 @@
 import { AGENT_CONFIG } from '../config.js'
 import { RateLimiter } from '../utils.js'
 import { osmTagsToCategory } from '../categories.js'
+import { fillMissingTranslations } from '../translate.js'
 import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
 import { roundCoord } from './base.js'
 
@@ -256,6 +257,9 @@ export class OSMCollector implements SourceCollector {
         console.error(`  [OSM] ${category} failed:`, (err as Error).message)
       }
     }
+
+    // 补齐缺失的中文名/英文名翻译
+    await fillMissingTranslations(allPOIs)
 
     return allPOIs
   }

@@ -8,10 +8,13 @@
 import { AGENT_CONFIG, API_KEYS } from '../config.js'
 import { RateLimiter, clamp } from '../utils.js'
 import { externalCategoryToL3 } from '../categories.js'
+import { fillMissingTranslations } from '../translate.js'
 import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
 import { roundCoord } from './base.js'
 
-const BASE_URL = 'https://api.foursquare.com/v3/places/search'
+// 2025-06 迁移至新端点，认证改为 Bearer + Service API Key
+const BASE_URL = 'https://places-api.foursquare.com/places/search'
+const FSQ_API_VERSION = '2025-06-17'
 
 const rateLimiter = new RateLimiter(AGENT_CONFIG.foursquareInterval)
 
@@ -32,8 +35,9 @@ function transformPlace(place: any, l1: L1Category): RawPOI | null {
   const name = place.name
   if (!name) return null
 
-  const rawLat = place.geocodes?.main?.latitude
-  const rawLng = place.geocodes?.main?.longitude
+  // 新端点 (places-api.foursquare.com) 坐标在顶层，旧端点在 geocodes.main
+  const rawLat = place.latitude ?? place.geocodes?.main?.latitude
+  const rawLng = place.longitude ?? place.geocodes?.main?.longitude
   if (!rawLat || !rawLng) return null
 
   const addr = place.location?.formatted_address || place.location?.address || ''
@@ -136,7 +140,8 @@ async function searchPlaces(
     const response = await fetch(`${BASE_URL}?${params}`, {
       headers: {
         'Accept': 'application/json',
-        'Authorization': API_KEYS.foursquare,
+        'Authorization': `Bearer ${API_KEYS.foursquare}`,
+        'X-Places-Api-Version': FSQ_API_VERSION,
       },
       signal: controller.signal,
     })
@@ -184,6 +189,9 @@ export class FoursquareCollector implements SourceCollector {
         console.error(`  [Foursquare] ${category} failed:`, (err as Error).message)
       }
     }
+
+    // 补齐缺失的中文名/英文名翻译
+    await fillMissingTranslations(allPOIs)
 
     return allPOIs
   }

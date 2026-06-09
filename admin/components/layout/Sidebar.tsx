@@ -5,6 +5,7 @@ import {
   MapPin,
   Database,
   RefreshCw,
+  Clock,
   ClipboardCheck,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +16,7 @@ const navItems = [
   { to: 'cities', icon: MapPin, label: '城市管理' },
   { to: 'pois', icon: Database, label: 'POI 浏览' },
   { to: 'updates', icon: RefreshCw, label: '数据更新' },
+  { to: 'pending', icon: Clock, label: '待确认更新' },
   { to: 'review', icon: ClipboardCheck, label: '审核发布' },
 ]
 

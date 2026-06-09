@@ -5,6 +5,7 @@ import Cities from './pages/Cities'
 import POIBrowser from './pages/POIBrowser'
 import POIDetail from './pages/POIDetail'
 import Updates from './pages/Updates'
+import PendingUpdates from './pages/PendingUpdates'
 import ReviewQueue from './pages/ReviewQueue'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="pois" element={<POIBrowser />} />
         <Route path="pois/:id" element={<POIDetail />} />
         <Route path="updates" element={<Updates />} />
+        <Route path="pending" element={<PendingUpdates />} />
         <Route path="review" element={<ReviewQueue />} />
         <Route path="*" element={<Navigate to="" replace />} />
       </Route>

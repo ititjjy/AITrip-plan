@@ -12,6 +12,8 @@ export interface POIScore {
 export interface POI {
   id: string
   name: string
+  nameZh?: string
+  nameEn?: string
   aliases?: string[]
   category: string       // L1.L2.L3 path e.g. "scenic.natural.mountain"
   categoryL1: L1Category
@@ -247,4 +249,30 @@ export interface PublishResult {
   totalServerPOIs: number
   validationPassed: boolean
   validationMessage: string
+}
+
+/* ═══ Pending Updates ═══ */
+
+export interface PendingUpdate {
+  cityId: string
+  cityName: string
+  country: string
+  newTotalPOIs: number
+  newQualityScore: number | null
+  newByCategory: Record<string, number>
+  newScoreDist: { A: number; B: number; C: number; D: number }
+  newSources: string[]
+  newIssuesCount: number
+  createdAt: number
+  oldTotalPOIs: number
+  oldQualityScore: number | null
+  oldByCategory: Record<string, number>
+  poiDelta: number
+}
+
+export interface PendingUpdateDetail extends PendingUpdate {
+  newPOIs: ReviewPOI[]
+  updatedPOIs: ReviewPOI[]
+  removedPOIs: ReviewPOI[]
+  unchangedPOIs: ReviewPOI[]
 }

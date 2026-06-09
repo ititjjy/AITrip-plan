@@ -2,7 +2,7 @@
 
 > 从错题本中提炼的分类规则。每条原则对应一个具体的混淆场景和推荐的代码修改。
 >
-> 原则生命周期: 🔍观察中 → 📝待应用 → ✅已应用 → 🔄已修正 → ❌已废弃
+> 原则生命周期: 🔍观察中 → ✅ 已应用 → ✅已应用 → 🔄已修正 → ❌已废弃
 
 ## 原则索引
 
@@ -193,6 +193,128 @@
 
 ---
 
+### P-011 · 地点型POI（以地点后缀命名）不归体验
+
+- **混淆对**: experience ↔ scenic
+- **混淆机制**: 描述词过度触发 — 许多景点 POI 的描述中含有"体验""感受""参与"等词，但这些词描述的是游览感受而非活动项目，导致 experience 得分虚高
+- **判断规则**: 当 POI 名称以地点型后缀结尾（园、公园、御苑、风景区、景区、遗址、古迹），且名称中无明确活动词（体验、工坊、课程、营地、基地）时，应归入 scenic 而非 experience
+- **来源错误**: #003（颐和园）、#005（首钢园）、#009（世界花卉大观园）、#010（百里山水画廊）、#011
+- **推荐修改**:
+  ```yaml
+  file: agent/classifier.ts
+  section: CATEGORY_EXCLUSIONS.experience（新增规则）
+  action: |
+    nameExcludes 后缀：['园', '公园', '御苑', '御花园', '花园', '风景区', '景区', '遗址', '古迹', '风景带', '画廊']
+    boostCategory: scenic, boostScore: 10
+  ```
+- **状态**: 📝 待应用
+- **验证**: 颐和园、世界花卉大观园等应出现在 scenic，不应出现在 experience
+
+---
+
+### P-012 · 古村落古镇归景点，不归体验
+
+- **混淆对**: experience ↔ scenic
+- **混淆机制**: 名称词误匹配 — "村""古村""古镇"类地名的描述通常包含"体验乡村生活""民俗体验"等词，触发 experience 得分
+- **判断规则**: 当 POI 名称含古村落/古镇类词汇（古村、古村落、古镇、历史村落、传统村落、明清村落），且描述含文化遗产/保护类词汇时，应归入 scenic
+- **来源错误**: #004（爨底下村）
+- **推荐修改**:
+  ```yaml
+  file: agent/classifier.ts
+  section: CATEGORY_EXCLUSIONS.experience（新增规则）+ scenic.nameWords（扩充）
+  action: |
+    CATEGORY_EXCLUSIONS.experience 新增：
+      nameExcludes: ['古村', '古村落', '古镇', '历史村落', '传统村落', '明清村落', '工业遗迹', '工业遗址', '创意园区', '文创园']
+      boostCategory: scenic, boostScore: 10
+    scenic.nameWords 新增：'古村', '古镇', '古村落', '工业遗址', '山水画廊'
+  ```
+- **状态**: 📝 待应用
+- **验证**: 爨底下村、首钢园应出现在 scenic，不应出现在 experience
+
+---
+
+### P-013 · 商业综合体品牌词扩充（天街/合生汇/熙悦）
+
+- **混淆对**: experience/scenic ↔ shopping
+- **混淆机制**: 品牌词覆盖不足 — isCommercialComplex() 词典未收录"天街""合生汇""熙悦"等知名购物中心品牌名
+- **判断规则**: "天街"（龙湖商业品牌）、"合生汇"、"熙悦天街"等均为商业综合体，名称命中 + 描述含购物词时，强制归入 shopping
+- **来源错误**: #006（首创·龙湖长楹天街、合生汇、熙悦天街）
+- **推荐修改**:
+  ```yaml
+  file: agent/classifier.ts
+  section: COMMERCIAL_COMPLEX_NAME_WORDS + CATEGORY_EXCLUSIONS.experience（新增）
+  action: |
+    COMMERCIAL_COMPLEX_NAME_WORDS 新增：'天街', '合生汇', '熙悦', '龙湖', '吾悦', '印象城', '壹方城'
+    CATEGORY_EXCLUSIONS.experience 新增规则：
+      nameExcludes: ['天街', '合生汇', '熙悦', '购物中心', '商业综合体', '吾悦', '印象城']
+      descExcludes: ['商业', '品牌', '购物', '零售', '店铺', '楼层']
+      boostCategory: shopping, boostScore: 12
+  ```
+- **状态**: 📝 待应用
+- **验证**: 天街/合生汇类 POI 应出现在 shopping，不应出现在 experience
+
+---
+
+### P-014 · 宗教场所（寺庙宫观）默认归景点，不归体验
+
+- **混淆对**: experience ↔ scenic
+- **混淆机制**: 名称词干扰 — 寺庙/宫殿等宗教场所的描述有时含"感受""修行""体验"等词，但这些词描述游览感受而非活动项目
+- **判断规则**: 当 POI 名称以宗教建筑后缀结尾（寺、庙、宫（非故宫等模糊）、观、堂、庵、清真寺、教堂、神社），且名称中**无**明确活动词（禅修、礼佛课程、道家功法、瑜伽营）时，应归入 scenic
+- **来源错误**: #007（雍和宫）
+- **推荐修改**:
+  ```yaml
+  file: agent/classifier.ts
+  section: CATEGORY_EXCLUSIONS.experience（新增规则）
+  action: |
+    nameExcludes 含宗教场所后缀的组合检测：
+    ['寺', '庙', '观', '堂', '庵', '清真寺', '教堂', '神社']
+    触发条件：名称以上述词结尾 且 名称不含活动词（禅修、工坊、课程、营）
+    boostCategory: scenic, boostScore: 10
+  note: 单纯"宫"不加入（可能是"宫殿景区"），需配合描述词判断
+  ```
+- **状态**: 📝 待应用
+- **验证**: 雍和宫、潭柘寺等寺庙类 POI 应出现在 scenic，不应出现在 experience；"雍和宫禅修营"等含活动词的变体可保留在 experience
+
+---
+
+### P-015 · 国内城市过滤赌场类无效POI
+
+- **混淆对**: — → 应排除（不应作为 POI 存在）
+- **混淆机制**: AI 数据源幻觉 — AI（DashScope/LLM）采集时可能生成不存在的 POI，赌场在中国大陆属于违法经营，北京等内地城市不存在合法赌场
+- **判断规则**: 对 `isDomestic: true`（中国大陆）城市，名称含"赌场""赌博""博彩""casino"的 POI 为无效数据，应在后处理阶段过滤
+- **来源错误**: #002（北京赌场）
+- **推荐修改**:
+  ```yaml
+  file: agent/quality.ts 或 agent/merger.ts（cleanPOIs 阶段）
+  action: |
+    在 cleanPOIs() 中新增国内无效 POI 过滤：
+    对 isDomestic=true 城市，过滤名称含 ['赌场', '赌博', '博彩', 'casino', 'Casino'] 的 POI
+    并记录过滤日志（filterReason: 'domestic_illegal_venue'）
+  ```
+- **状态**: ✅ 已应用（从 Prompt 中移除"赌场"词，防止 AI 采集阶段生成此类 POI）
+- **验证**: 北京/上海等国内城市的 POI 列表中不应出现赌场类条目
+
+---
+
+### P-016 · 主题乐园归娱乐，不归体验
+
+- **混淆对**: experience → entertainment
+- **混淆机制**: 主题乐园名称未命中 entertainment 关键词，AI 倾向将"体验刺激项目"归为体验类
+- **判断规则**: 名称含"欢乐谷""主题乐园""游乐园""游乐场""嘉年华"等词 → entertainment
+- **来源错误**: 北京欢乐谷被归入 experience（本次批次新发现）
+- **推荐修改**:
+  ```yaml
+  file: agent/classifier.ts
+  action: |
+    在 CATEGORY_EXCLUSIONS.experience 中新增规则：
+    nameExcludes: ['欢乐谷', '主题乐园', '游乐园', '游乐场', '嘉年华']
+    boostCategory: 'entertainment', boostScore: 12, forceExclude: true
+  ```
+- **状态**: ✅ 已应用
+- **验证**: `reprocess --city beijing` → 北京欢乐谷归入 entertainment
+
+---
+
 ## 模板
 
 > 添加新原则时复制以下模板：
@@ -208,6 +330,17 @@
   ```yaml
   file: agent/classifier.ts
   section: [目标代码段]
+  action: [具体修改]
+  ```
+- **状态**: [🔍 观察中 / 📝 待应用 / ✅ 已应用 / 🔄 已修正 / ❌ 已废弃]
+- **验证**: [如何确认修改生效]
+-->
+  action: [具体修改]
+  ```
+- **状态**: [🔍 观察中 / 📝 待应用 / ✅ 已应用 / 🔄 已修正 / ❌ 已废弃]
+- **验证**: [如何确认修改生效]
+-->
+-->
   action: [具体修改]
   ```
 - **状态**: [🔍 观察中 / 📝 待应用 / ✅ 已应用 / 🔄 已修正 / ❌ 已废弃]

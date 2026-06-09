@@ -137,7 +137,7 @@ export function selectIncrementalSources(
 ): SourceCollector[] {
   if (fullRefresh) return allCollectors
 
-  const priority = ['osm', 'ai', 'foursquare', 'amap', 'google']
+  const priority = ['osm', 'ai', 'spark', 'doubao', 'foursquare', 'amap', 'google']
   const sorted = [...allCollectors].sort((a, b) => {
     const ia = priority.indexOf(a.name)
     const ib = priority.indexOf(b.name)

@@ -227,7 +227,6 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
       boostCategory: 'shopping',
       boostScore: 8,
     },
-    // 餐饮场所 → food
     {
       nameExcludes: ['餐厅', '饭店', '菜馆', '食堂', '面馆', '咖啡馆', '咖啡厅', '茶馆', '甜品店', '酒吧', '烧烤', '火锅', '烤鸭店', '奶茶店', '饮品店', '轻食店', '果汁店'],
       descExcludes: ['餐厅', '米其林', '主厨', '菜单', '招牌菜', '人均', '果木挂炉', '现萃', '鲜茶', '轻食', '沙拉', '三明治'],
@@ -291,6 +290,52 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
       descExcludes: ['滑草', '山地车速降', '岩降', '体能训练', '自然教育课程', '乘船观演', '湖面全息', '渔火对歌', '培训', '学习'],
       boostCategory: 'experience',
       boostScore: 12,
+    },
+  ],
+
+  // P-011~P-016: experience 类目排除规则（forceExclude 强制负分）
+  // 地点型/商业型/娱乐型 POI 不应归入体验类
+  experience: [
+    // P-011: 公园/风景区/皇家园林/遗址等 → scenic
+    {
+      nameExcludes: ['公园', '御苑', '御花园', '颐和园', '风景区', '景区', '遗址', '古迹', '风景带', '风景道',
+        '植物园', '动物园', '大观园', '博览园', '生态园', '湿地公园', '国家公园', '森林公园', '郊野公园',
+        '陵寝', '神道', '十三陵', '长城', '故宫', '天坛', '地坛', '北海', '圆明园'],
+      boostCategory: 'scenic',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-012: 古村落/古镇/工业遗存/历史街道 → scenic
+    {
+      nameExcludes: ['古村', '古村落', '古镇', '历史村落', '传统村落', '明清村落',
+        '工业遗迹', '工业遗址', '工业遗存', '山水画廊', '历史文化游览区', '漕运',
+        '创意园', '文创园', '示范区', '爨底下', '首钢园', '会展中心'],
+      boostCategory: 'scenic',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-014: 宗教场所 → scenic
+    {
+      nameExcludes: ['清真寺', '教堂', '神社', '大昭寺', '雍和宫', '喇嘛庙', '寺院'],
+      boostCategory: 'scenic',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-013: 商业综合体 → shopping
+    {
+      nameExcludes: ['天街', '合生汇', '熙悦', '吾悦广场', '印象城', '壹方城', '购物中心', '商业综合体',
+        '太古里', '大悦城', '万象城', '三里屯'],
+      descExcludes: ['商业', '品牌', '购物', '零售', '店铺', '楼层', '百货'],
+      boostCategory: 'shopping',
+      boostScore: 12,
+      forceExclude: true,
+    },
+    // P-016: 主题乐园/娱乐设施 → entertainment
+    {
+      nameExcludes: ['欢乐谷', '主题乐园', '游乐园', '游乐场', '嘉年华'],
+      boostCategory: 'entertainment',
+      boostScore: 12,
+      forceExclude: true,
     },
   ],
 }

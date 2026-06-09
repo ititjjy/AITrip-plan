@@ -99,11 +99,20 @@ export default function POIDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{poi.name}</h1>
-            {poi.aliases && poi.aliases.length > 0 && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                别名: {poi.aliases.join(', ')}
-              </p>
-            )}
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+              {poi.nameZh && poi.nameZh !== poi.name && (
+                <Badge variant="secondary" className="text-xs">中: {poi.nameZh}</Badge>
+              )}
+              {poi.nameEn && poi.nameEn !== poi.name && (
+                <Badge variant="secondary" className="text-xs">英: {poi.nameEn}</Badge>
+              )}
+              {poi.aliases && poi.aliases
+                .filter(a => a !== poi.nameZh && a !== poi.nameEn)
+                .map(alias => (
+                  <Badge key={alias} variant="outline" className="text-xs">{alias}</Badge>
+                ))
+              }
+            </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Badge className={L1_LABELS[poi.categoryL1]?.color || ''}>
                 {L1_LABELS[poi.categoryL1]?.zh || poi.categoryL1}

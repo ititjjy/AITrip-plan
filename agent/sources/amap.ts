@@ -1,14 +1,15 @@
 /**
  * agent/sources/amap.ts — 高德地图 POI 采集器
  *
- * 高德 POI 搜索 API，国内城市数据最准确。
- * 仅用于国内城市 (isDomestic = true)。
- * 个人开发者每日 5000 次请求。
+ * 高德 POI 搜索 API，国内及日本城市数据准确。
+ * 仅用于中国 (isDomestic = true) 和日本 (country = '日本') 城市。
+ * 个人开发者每月 5000 次请求。
  */
 
 import { AGENT_CONFIG, API_KEYS } from '../config.js'
 import { RateLimiter, clamp, gcj02ToWgs84 } from '../utils.js'
 import { externalCategoryToL3 } from '../categories.js'
+import { fillMissingTranslations } from '../translate.js'
 import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
 import { roundCoord } from './base.js'
 
@@ -187,9 +188,10 @@ export class AmapCollector implements SourceCollector {
   }
 
   async collect(city: CityInfo, categories: L1Category[]): Promise<RawPOI[]> {
-    // 仅用于国内城市
-    if (!city.isDomestic) {
-      console.log(`  [Amap] Skipping ${city.name} (international city)`)
+    // 仅用于中国和日本城市
+    const isSupported = city.isDomestic || city.country === '日本'
+    if (!isSupported) {
+      console.log(`  [Amap] Skipping ${city.name} (unsupported region: ${city.country})`)
       return []
     }
 
@@ -220,6 +222,9 @@ export class AmapCollector implements SourceCollector {
         console.error(`  [Amap] ${category} failed:`, (err as Error).message)
       }
     }
+
+    // 补齐缺失的英文名翻译
+    await fillMissingTranslations(allPOIs)
 
     return allPOIs
   }

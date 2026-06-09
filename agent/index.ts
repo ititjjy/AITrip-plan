@@ -28,12 +28,16 @@ import {
   insertRefreshCycle, updateRefreshCycle,
   getRefreshHistory, incrementCityVersion,
   saveRawPOIs, loadRawPOIs, getRawPOIsSummary,
+  upsertPendingUpdate, getPendingUpdates, getPendingUpdate,
+  getPendingUpdateCount, deletePendingUpdate, applyPendingUpdate,
 } from './db.js'
 import { runWithConcurrency } from './utils.js'
 import { type L1Category, type CityInfo as SourceCityInfo, type RawPOI, type SourceCollector } from './sources/base.js'
 import { L1_CATEGORIES, L1_LABELS } from './categories.js'
 import { OSMCollector } from './sources/osm.js'
 import { AICollector } from './sources/ai.js'
+import { SparkCollector } from './sources/spark.js'
+import { DoubaoCollector } from './sources/doubao.js'
 import { FoursquareCollector } from './sources/foursquare.js'
 import { GoogleCollector } from './sources/google.js'
 import { AmapCollector } from './sources/amap.js'
@@ -97,6 +101,9 @@ function parseArgs(): CLIArgs {
       case '--skip-collect':
         result.skipCollect = true
         break
+      case '--force':
+        result.force = true
+        break
     }
   }
 
@@ -112,6 +119,8 @@ function createCollectors(filterSources?: string[]): SourceCollector[] {
     new GoogleCollector(),
     new AmapCollector(),
     new AICollector(),
+    new SparkCollector(),
+    new DoubaoCollector(),
   ]
 
   if (filterSources && filterSources.length > 0) {
@@ -125,7 +134,8 @@ function createCollectors(filterSources?: string[]): SourceCollector[] {
 async function collectCity(
   city: SourceCityInfo,
   collectors: SourceCollector[],
-): Promise<{ pois: number; success: boolean }> {
+  force = false,
+): Promise<{ pois: number; success: boolean; pending?: boolean }> {
   const categories: L1Category[] = [...L1_CATEGORIES]
   const startTime = Date.now()
   const allRawPOIs: RawPOI[] = []
@@ -194,7 +204,7 @@ async function collectCity(
     return { pois: 0, success: false }
   }
 
-  return processRawData(city, allRawPOIs, collectors.map(c => c.name))
+  return processRawData(city, allRawPOIs, collectors.map(c => c.name), force)
 }
 
 /* ── 后处理: 合并 / 清洗 / 存储 ── */
@@ -202,12 +212,15 @@ async function collectCity(
 /**
  * 对已聚合的 RawPOI[] 执行合并去重、质量清洗、写库。
  * 同时被 collectCity() 和 cmdReprocess() 调用，是两个 phase 的共享核心。
+ *
+ * 当城市已有 POI 数据且未指定 force 时，存入 pending_updates 待确认，而非直接覆盖。
  */
 function processRawData(
   city: SourceCityInfo,
   allRawPOIs: RawPOI[],
   sourceNames: string[],
-): { pois: number; success: boolean } {
+  force = false,
+): { pois: number; success: boolean; pending?: boolean } {
   if (allRawPOIs.length === 0) {
     console.log(`  No raw POIs to process`)
     return { pois: 0, success: false }
@@ -224,19 +237,47 @@ function processRawData(
   console.log(`  Issues: ${report.issues.length} found, ${report.fixedCount} auto-fixed, ${report.discardedCount} discarded`)
   console.log(`  Score Distribution: A=${stats.scoreDistribution.A}, B=${stats.scoreDistribution.B}, C=${stats.scoreDistribution.C}, D=${stats.scoreDistribution.D}`)
 
-  // 存储到数据库
-  upsertPOIs(city.id, cleaned)
+  // 检查是否已有数据
+  const existingPOIs = getCachedPOIs(city.id)
+  const hasExisting = existingPOIs && existingPOIs.length > 0
 
-  // 更新统计
-  updateCityStats(city.id, {
-    totalPois: cleaned.length,
+  if (!hasExisting || force) {
+    // 无已有数据或强制模式：直接写入
+    if (hasExisting && force) {
+      console.log(`  [Force] Overwriting existing ${existingPOIs!.length} POIs`)
+    }
+    upsertPOIs(city.id, cleaned)
+
+    updateCityStats(city.id, {
+      totalPois: cleaned.length,
+      qualityScore: report.overallScore,
+      source: sourceNames.join(','),
+      success: true,
+      byCategory: stats.byCategory,
+    })
+
+    return { pois: cleaned.length, success: true, pending: false }
+  }
+
+  // 有已有数据：存入 pending_updates 待确认
+  upsertPendingUpdate(city.id, cleaned, {
     qualityScore: report.overallScore,
-    source: sourceNames.join(','),
-    success: true,
     byCategory: stats.byCategory,
+    scoreDist: {
+      A: stats.scoreDistribution.A,
+      B: stats.scoreDistribution.B,
+      C: stats.scoreDistribution.C,
+      D: stats.scoreDistribution.D,
+    },
+    totalPois: cleaned.length,
+    sourcesUsed: sourceNames,
+    issuesCount: report.issues.length,
   })
 
-  return { pois: cleaned.length, success: true }
+  console.log(`  ⏸ Pending update stored (${cleaned.length} POIs). Existing ${existingPOIs!.length} POIs unchanged.`)
+  console.log(`  Use 'confirm --city ${city.id}' to apply, or Admin UI to review.`)
+
+  return { pois: 0, success: true, pending: true }
 }
 
 /* ── 命令: collect ── */
@@ -298,12 +339,16 @@ async function cmdCollect(args: CLIArgs): Promise<void> {
   const concurrency = args.concurrency || AGENT_CONFIG.concurrentCities
   console.log(`\nCollecting ${targetCities.length} cities (concurrency: ${concurrency})...`)
 
-  const tasks = targetCities.map(city => () => collectCity(city, availableCollectors))
+  const tasks = targetCities.map(city => () => collectCity(city, availableCollectors, args.force))
   const results = await runWithConcurrency(tasks, concurrency)
 
   // 汇总
   const succeeded = results.filter(r => r.status === 'fulfilled' && (r as any).value?.success).length
   const failed = results.length - succeeded
+  const pendingCount = results
+    .filter((r): r is PromiseFulfilledResult<{ pois: number; success: boolean; pending?: boolean }> =>
+      r.status === 'fulfilled' && r.value?.pending === true)
+    .length
   const totalPOIs = results
     .filter((r): r is PromiseFulfilledResult<{ pois: number; success: boolean }> =>
       r.status === 'fulfilled')
@@ -314,6 +359,9 @@ async function cmdCollect(args: CLIArgs): Promise<void> {
   console.log(`  Success: ${succeeded}/${results.length}`)
   console.log(`  Failed: ${failed}`)
   console.log(`  Total POIs: ${totalPOIs}`)
+  if (pendingCount > 0) {
+    console.log(`  Pending updates: ${pendingCount} (use 'pending' to review, 'confirm' to apply)`)
+  }
   console.log(`${'='.repeat(50)}`)
 }
 
@@ -354,6 +402,7 @@ async function cmdReprocess(args: CLIArgs): Promise<void> {
   let successCount = 0
   let failCount = 0
   let skipCount = 0
+  let pendingCount = 0
   let totalPOIs = 0
 
   for (const city of targetCities) {
@@ -376,11 +425,15 @@ async function cmdReprocess(args: CLIArgs): Promise<void> {
     console.log(`\n━━━ ${city.name} (${city.nameEn}) ━━━`)
     console.log(`  Raw sources: ${ages.join(', ')} → ${allRawPOIs.length} total`)
 
-    const result = processRawData(city, allRawPOIs, sourceNames)
+    const result = processRawData(city, allRawPOIs, sourceNames, args.force)
     if (result.success) {
       successCount++
-      totalPOIs += result.pois
-      console.log(`  ${result.pois} POIs saved`)
+      if (result.pending) {
+        pendingCount++
+      } else {
+        totalPOIs += result.pois
+        console.log(`  ${result.pois} POIs saved`)
+      }
     } else {
       failCount++
     }
@@ -390,6 +443,9 @@ async function cmdReprocess(args: CLIArgs): Promise<void> {
   console.log(`Reprocess complete:`)
   console.log(`  Success: ${successCount}, Failed: ${failCount}, Skipped: ${skipCount}`)
   console.log(`  Total POIs: ${totalPOIs}`)
+  if (pendingCount > 0) {
+    console.log(`  Pending updates: ${pendingCount}`)
+  }
   console.log(`${'='.repeat(50)}`)
 }
 
@@ -490,6 +546,12 @@ function cmdStatus(): void {
   console.log(`  Cities in registry: ${cities.length}`)
   console.log(`  Cities with POIs: ${counts.withPois}`)
   console.log(`  Coverage: ${Math.round(counts.withPois / Math.max(cities.length, 1) * 100)}%`)
+
+  // 待确认更新
+  const pendingCount = getPendingUpdateCount()
+  if (pendingCount > 0) {
+    console.log(`  Pending updates: ${pendingCount}`)
+  }
 
   // 数据源状态
   const sources = getSourceAvailability()
@@ -672,11 +734,11 @@ async function cmdRefresh(args: CLIArgs): Promise<void> {
 
     if (!existingPOIs || existingPOIs.length === 0 || isFullRefresh) {
       // 无已有数据或全量刷新: 直接采集
-      const result = await collectCity(city, collectors)
+      const result = await collectCity(city, collectors, args.force)
       if (result.success) {
         successCount++
-        incrementCityVersion(city.id)
-        results.push({ city: city.name, status: 'collected', pois: result.pois })
+        if (!result.pending) incrementCityVersion(city.id)
+        results.push({ city: city.name, status: result.pending ? 'pending' : 'collected', pois: result.pois })
       } else {
         failCount++
         results.push({ city: city.name, status: 'failed', pois: 0 })
@@ -705,16 +767,31 @@ async function cmdRefresh(args: CLIArgs): Promise<void> {
       if (allRaw.length > 0) {
         const { pois: mergedPOIs, stats: mergeStats } = mergeIncremental(existingPOIs, allRaw, city)
         const cleaned = cleanPOIs(mergedPOIs, city)
-        upsertPOIs(city.id, cleaned)
-        incrementCityVersion(city.id)
-        updateCityStats(city.id, {
-          totalPois: cleaned.length,
-          source: collectors.map(c => c.name).join(','),
-          success: true,
-        })
-        successCount++
-        console.log(`  Merged: ${mergeStats.matched} matched, ${mergeStats.newAdded} new, ${mergeStats.augmented} augmented`)
-        results.push({ city: city.name, status: 'incremental', pois: cleaned.length })
+
+        if (args.force) {
+          upsertPOIs(city.id, cleaned)
+          incrementCityVersion(city.id)
+          updateCityStats(city.id, {
+            totalPois: cleaned.length,
+            source: collectors.map(c => c.name).join(','),
+            success: true,
+          })
+          successCount++
+          console.log(`  Merged: ${mergeStats.matched} matched, ${mergeStats.newAdded} new, ${mergeStats.augmented} augmented`)
+          results.push({ city: city.name, status: 'incremental', pois: cleaned.length })
+        } else {
+          // 增量结果也存 pending
+          upsertPendingUpdate(city.id, cleaned, {
+            byCategory: {},
+            scoreDist: { A: 0, B: 0, C: 0, D: 0 },
+            totalPois: cleaned.length,
+            sourcesUsed: collectors.map(c => c.name),
+            issuesCount: 0,
+          })
+          successCount++
+          console.log(`  ⏸ Incremental result stored as pending (${cleaned.length} POIs, +${mergeStats.newAdded} new)`)
+          results.push({ city: city.name, status: 'pending', pois: 0 })
+        }
       } else {
         failCount++
         results.push({ city: city.name, status: 'no_data', pois: 0 })
@@ -804,6 +881,121 @@ async function cmdValidate(args: CLIArgs): Promise<void> {
   console.log(`  New available: ${totalNew}`)
 }
 
+/* ── 命令: pending ── */
+
+function cmdPending(): void {
+  const pending = getPendingUpdates()
+  const cities = loadCities()
+
+  if (pending.length === 0) {
+    console.log('\nNo pending updates.')
+    return
+  }
+
+  console.log(`\n--- Pending Updates (${pending.length}) ---\n`)
+
+  for (const p of pending) {
+    const city = cities.find(c => c.id === p.city_id)
+    const cityName = city?.name || p.city_id
+    const byCat = JSON.parse(p.by_category) as Record<string, number>
+    const sources = JSON.parse(p.sources_used) as string[]
+    const ageHours = Math.round((Date.now() - p.created_at) / 3_600_000)
+
+    // 获取旧数据对比
+    const existing = getCachedPOIs(p.city_id)
+    const oldCount = existing?.length || 0
+    const stats = getAllCityStats().find(s => s.city_id === p.city_id)
+    const oldScore = stats?.quality_score ?? null
+
+    console.log(`  ${cityName} (${p.city_id})`)
+    console.log(`    POIs: ${oldCount} → ${p.total_pois} (${p.total_pois - oldCount >= 0 ? '+' : ''}${p.total_pois - oldCount})`)
+    console.log(`    Quality: ${oldScore ?? '?'} → ${p.quality_score ?? '?'}`)
+    console.log(`    Categories: ${Object.entries(byCat).map(([k, v]) => `${k}:${v}`).join(', ')}`)
+    console.log(`    Sources: ${sources.join(', ')} | Issues: ${p.issues_count} | Age: ${ageHours}h`)
+    console.log()
+  }
+
+  console.log(`Use 'confirm --city <id>' to apply, or 'reject --city <id>' to discard.`)
+}
+
+/* ── 命令: confirm ── */
+
+function cmdConfirm(args: CLIArgs): void {
+  const cities = loadCities()
+
+  if (args.all) {
+    const pending = getPendingUpdates()
+    if (pending.length === 0) {
+      console.log('No pending updates to confirm.')
+      return
+    }
+
+    console.log(`\nConfirming ${pending.length} pending updates...`)
+    let totalPOIs = 0
+    for (const p of pending) {
+      const count = applyPendingUpdate(p.city_id)
+      const city = cities.find(c => c.id === p.city_id)
+      console.log(`  ${city?.name || p.city_id}: ${count} POIs applied`)
+      totalPOIs += count
+    }
+    console.log(`\nDone. ${pending.length} cities confirmed, ${totalPOIs} POIs applied.`)
+    return
+  }
+
+  if (!args.city) {
+    console.error('Specify --city <id> or --all')
+    return
+  }
+
+  const pending = getPendingUpdate(args.city)
+  if (!pending) {
+    console.error(`No pending update for city: ${args.city}`)
+    return
+  }
+
+  const count = applyPendingUpdate(args.city)
+  const city = cities.find(c => c.id === args.city)
+  console.log(`\nConfirmed ${city?.name || args.city}: ${count} POIs applied.`)
+}
+
+/* ── 命令: reject ── */
+
+function cmdReject(args: CLIArgs): void {
+  const cities = loadCities()
+
+  if (args.all) {
+    const pending = getPendingUpdates()
+    if (pending.length === 0) {
+      console.log('No pending updates to reject.')
+      return
+    }
+
+    console.log(`\nRejecting ${pending.length} pending updates...`)
+    for (const p of pending) {
+      deletePendingUpdate(p.city_id)
+      const city = cities.find(c => c.id === p.city_id)
+      console.log(`  ${city?.name || p.city_id}: discarded`)
+    }
+    console.log(`\nDone. ${pending.length} pending updates rejected.`)
+    return
+  }
+
+  if (!args.city) {
+    console.error('Specify --city <id> or --all')
+    return
+  }
+
+  const pending = getPendingUpdate(args.city)
+  if (!pending) {
+    console.error(`No pending update for city: ${args.city}`)
+    return
+  }
+
+  deletePendingUpdate(args.city)
+  const city = cities.find(c => c.id === args.city)
+  console.log(`\nRejected pending update for ${city?.name || args.city}.`)
+}
+
 /* ── 命令: help ── */
 
 function cmdHelp(): void {
@@ -820,11 +1012,23 @@ Commands:
     --sources <names>   指定数据源 (逗号分隔: osm,ai)
     --concurrency <N>   并发城市数 (默认: 3)
     --skip-collect      跳过 API 采集，直接用已存储的 raw data 重处理
+    --force             强制覆盖已有数据 (跳过 pending 确认)
 
   reprocess   从已保存的原始数据重新执行合并/清洗 (不调用 API)
     --city <id>         指定城市
     --batch <N>         处理 N 个城市
     --all               处理所有有 raw data 的城市
+    --force             强制覆盖已有数据
+
+  pending     查看待确认的更新列表
+
+  confirm     确认应用待更新数据
+    --city <id>         确认指定城市
+    --all               确认所有待更新
+
+  reject      丢弃待确认的更新数据
+    --city <id>         丢弃指定城市
+    --all               丢弃所有待更新
 
   export      导出到 data-sync/cache-export.json
 
@@ -840,6 +1044,7 @@ Commands:
     --full              强制全量刷新 (含验证)
     --city <id>         指定城市
     --max-cities <N>    限制城市数
+    --force             强制覆盖已有数据
 
   validate    验证 POI 有效性
     --city <id>         指定城市
@@ -848,9 +1053,14 @@ Examples:
   npx tsx agent/index.ts collect --city sanya
   npx tsx agent/index.ts collect --batch 5 --sources osm,ai
   npx tsx agent/index.ts collect --all --concurrency 5
+  npx tsx agent/index.ts collect --city sanya --force
   npx tsx agent/index.ts reprocess --city sanya
   npx tsx agent/index.ts reprocess --all
   npx tsx agent/index.ts collect --city sanya --skip-collect
+  npx tsx agent/index.ts pending
+  npx tsx agent/index.ts confirm --city sanya
+  npx tsx agent/index.ts confirm --all
+  npx tsx agent/index.ts reject --city sanya
   npx tsx agent/index.ts export
   npx tsx agent/index.ts quality --city sanya
   npx tsx agent/index.ts status
@@ -895,6 +1105,15 @@ async function main(): Promise<void> {
         break
       case 'validate':
         await cmdValidate(args)
+        break
+      case 'pending':
+        cmdPending()
+        break
+      case 'confirm':
+        cmdConfirm(args)
+        break
+      case 'reject':
+        cmdReject(args)
         break
       case 'help':
       default:

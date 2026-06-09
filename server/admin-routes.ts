@@ -336,7 +336,12 @@ function mapAgentPOI(poi: any) {
   return {
     ...poi,
     name: poi.namePrimary || poi.name || '',
-    aliases: [poi.nameZh, poi.nameEn].filter(Boolean),
+    // 别名：去重后只保留不同于主名的名称
+    aliases: [poi.nameZh, poi.nameEn]
+      .filter(Boolean)
+      .filter(n => n !== (poi.namePrimary || poi.name || '')),
+    nameZh: poi.nameZh || '',
+    nameEn: poi.nameEn || '',
     duration: poi.visitDuration ? `${Math.round(poi.visitDuration / 60 * 10) / 10}小时` : poi.duration,
     openingHours: poi.operatingHours || poi.openingHours,
     images: poi.image ? [poi.image] : (poi.images || []),
@@ -405,22 +410,36 @@ function getAllStats() {
 
 function scorePOI(poi: any, query: string): number {
   const q = query.toLowerCase()
-  const name = (poi.name || '').toLowerCase()
+  const qZh = query // preserve original for Chinese matching
+  const name = (poi.name || poi.namePrimary || '').toLowerCase()
   const nameZh = poi.nameZh || ''
+  const nameEn = (poi.nameEn || '').toLowerCase()
+  const address = (poi.address || poi.addressEn || '').toLowerCase()
+  const description = (poi.description || poi.recommendReason || '').toLowerCase()
 
-  // Exact match on English or Chinese name
-  if (name === q || nameZh === query) return 100
-  // Prefix match on either name
-  if (name.startsWith(q) || nameZh.startsWith(query)) return 70
-  if (Array.isArray(poi.aliases) && poi.aliases.some((a: string) => a.toLowerCase() === q || a === query)) return 60
-  // Contains match on either name
-  if (name.includes(q) || nameZh.includes(query)) return 40
-  if (Array.isArray(poi.aliases) && poi.aliases.some((a: string) => a.toLowerCase().includes(q) || a.includes(query))) return 35
-  if (poi.address?.toLowerCase().includes(q) || poi.address?.includes(query)) return 30
-  if (poi.categoryL2?.toLowerCase().includes(q) || poi.categoryL2?.includes(query)
-    || poi.categoryL3?.toLowerCase().includes(q) || poi.categoryL3?.includes(query)) return 25
-  if (Array.isArray(poi.tags) && poi.tags.some((t: string) => t.toLowerCase().includes(q) || t.includes(query))) return 25
-  if (poi.description?.toLowerCase().includes(q) || poi.description?.includes(query)) return 20
+  // Exact match (100)
+  if (name === q || nameZh === qZh) return 100
+  // Prefix match (70)
+  if (name.startsWith(q) || nameZh.startsWith(qZh) || nameEn.startsWith(q)) return 70
+  // Alias exact match (65)
+  if (Array.isArray(poi.aliases) && poi.aliases.some((a: string) => a.toLowerCase() === q || a === qZh)) return 65
+  // Contains match on name (50)
+  if (name.includes(q) || nameZh.includes(qZh) || nameEn.includes(q)) return 50
+  // Alias contains (40)
+  if (Array.isArray(poi.aliases) && poi.aliases.some((a: string) => a.toLowerCase().includes(q) || a.includes(qZh))) return 40
+  // Address match (35)
+  if (address.includes(q)) return 35
+  // Tag match (30) — split "中文名|EngName" and match each part
+  if (Array.isArray(poi.tags) && poi.tags.some((t: string) => {
+    if (typeof t !== 'string') return false
+    const parts = t.split('|')
+    return parts.some(part => part.toLowerCase().includes(q) || part.includes(qZh))
+  })) return 30
+  // Category path match (25)
+  if (poi.categoryL2?.toLowerCase().includes(q) || poi.categoryL2?.includes(qZh)
+    || poi.categoryL3?.toLowerCase().includes(q) || poi.categoryL3?.includes(qZh)) return 25
+  // Description match (20)
+  if (description.includes(q)) return 20
 
   return 0
 }
@@ -627,7 +646,8 @@ router.delete('/cities/:id', (req: Request, res: Response) => {
     const r2 = dbw.prepare('DELETE FROM city_stats WHERE city_id = ?').run(id)
     const r3 = dbw.prepare('DELETE FROM raw_pois WHERE city_id = ?').run(id)
     const r4 = dbw.prepare('DELETE FROM collection_logs WHERE city_id = ?').run(id)
-    agentDeleted = (r1.changes + r2.changes + r3.changes + r4.changes) > 0
+    const r5 = dbw.prepare('DELETE FROM pending_updates WHERE city_id = ?').run(id)
+    agentDeleted = (r1.changes + r2.changes + r3.changes + r4.changes + r5.changes) > 0
   } catch (err) {
     console.error(`[Admin] Failed to clean Agent DB for ${id}:`, err)
   }
@@ -737,7 +757,7 @@ router.get('/pois', (req: Request, res: Response) => {
 /* ═══════════════════════ POI Search ═══════════════════════ */
 
 router.get('/pois/search', (req: Request, res: Response) => {
-  const { q, city, l1, page = '1', pageSize = '20' } = req.query
+  const { q, city, l1, l2, l3, page = '1', pageSize = '20', scoreGrade } = req.query
   const pageNum = Math.max(1, Number(page))
   const size = Math.min(50, Math.max(1, Number(pageSize)))
   const query = (q as string || '').trim()
@@ -756,6 +776,19 @@ router.get('/pois/search', (req: Request, res: Response) => {
   }
 
   if (l1) allPOIs = allPOIs.filter((p) => p.categoryL1 === l1)
+  if (l2) allPOIs = allPOIs.filter((p) => p.categoryL2 === l2)
+  if (l3) allPOIs = allPOIs.filter((p) => p.categoryL3 === l3)
+
+  // Score grade filtering
+  if (scoreGrade) {
+    const range = SCORE_GRADE_RANGES[scoreGrade as string]
+    if (range) {
+      allPOIs = allPOIs.filter((p) => {
+        const s = p.score?.total
+        return s != null && s >= range.min && s <= range.max
+      })
+    }
+  }
 
   const scored = allPOIs
     .map((p) => ({ poi: p, score: scorePOI(p, query) }))
@@ -1195,6 +1228,253 @@ router.get('/publish/validate/:cityId', (req: Request, res: Response) => {
       issues,
     },
   })
+})
+
+/* ══════════════════════ Pending Updates ══════════════════════ */
+
+/** GET /pending — List all pending updates with comparison stats */
+router.get('/pending', (_req: Request, res: Response) => {
+  try {
+    const db = getAgentDB()
+    const pending = db.prepare(`
+      SELECT id, city_id, quality_score, by_category, score_dist,
+             total_pois, sources_used, issues_count, created_at
+      FROM pending_updates ORDER BY created_at DESC
+    `).all() as any[]
+
+    const registry = loadCityRegistry()
+    const coords = loadCityCoords()
+
+    const result = pending.map((p: any) => {
+      const cityMeta = registry.find(c => c.id === p.city_id)
+      const coord = coords[p.city_id]
+
+      // Load current stats for comparison
+      const stats = db.prepare('SELECT total_pois, quality_score, by_category FROM city_stats WHERE city_id = ?')
+        .get(p.city_id) as any
+
+      return {
+        cityId: p.city_id,
+        cityName: cityMeta?.name || p.city_id,
+        country: coord?.country || '',
+        newTotalPOIs: p.total_pois,
+        newQualityScore: p.quality_score,
+        newByCategory: JSON.parse(p.by_category),
+        newScoreDist: JSON.parse(p.score_dist),
+        newSources: JSON.parse(p.sources_used),
+        newIssuesCount: p.issues_count,
+        createdAt: p.created_at,
+        oldTotalPOIs: stats?.total_pois || 0,
+        oldQualityScore: stats?.quality_score ?? null,
+        oldByCategory: stats ? JSON.parse(stats.by_category) : {},
+        poiDelta: p.total_pois - (stats?.total_pois || 0),
+      }
+    })
+
+    res.json({ success: true, data: result })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+/** GET /pending/:cityId — Detailed comparison for one city */
+router.get('/pending/:cityId', (req: Request, res: Response) => {
+  try {
+    const cityId = req.params.cityId as string
+    const db = getAgentDB()
+
+    const pending = db.prepare('SELECT * FROM pending_updates WHERE city_id = ?').get(cityId) as any
+    if (!pending) {
+      res.status(404).json({ success: false, error: 'No pending update for this city' })
+      return
+    }
+
+    const newPOIs: any[] = JSON.parse(pending.data)
+    const { pois: currentPOIs } = loadPOIsForCity(cityId)
+
+    // POI-level diff using existing comparePOIs
+    const diff = comparePOIs(newPOIs, currentPOIs)
+
+    const registry = loadCityRegistry()
+    const cityMeta = registry.find(c => c.id === cityId)
+    const stats = db.prepare('SELECT total_pois, quality_score, by_category FROM city_stats WHERE city_id = ?')
+      .get(cityId) as any
+
+    res.json({
+      success: true,
+      data: {
+        cityId,
+        cityName: cityMeta?.name || cityId,
+        newTotalPOIs: pending.total_pois,
+        newQualityScore: pending.quality_score,
+        newByCategory: JSON.parse(pending.by_category),
+        newScoreDist: JSON.parse(pending.score_dist),
+        newSources: JSON.parse(pending.sources_used),
+        newIssuesCount: pending.issues_count,
+        createdAt: pending.created_at,
+        oldTotalPOIs: stats?.total_pois || 0,
+        oldQualityScore: stats?.quality_score ?? null,
+        oldByCategory: stats ? JSON.parse(stats.by_category) : {},
+        poiDelta: pending.total_pois - (stats?.total_pois || 0),
+        newPOIs: diff.newPOIs,
+        updatedPOIs: diff.updatedPOIs,
+        removedPOIs: diff.publishedPOIs.filter((p: any) =>
+          !newPOIs.some((np: any) => np.id === p.id)
+        ),
+        unchangedPOIs: diff.publishedPOIs.filter((p: any) =>
+          newPOIs.some((np: any) => np.id === p.id)
+        ),
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+/** POST /pending/confirm — Confirm a pending update */
+router.post('/pending/confirm', (req: Request, res: Response) => {
+  try {
+    const { cityId } = req.body
+    if (!cityId) {
+      res.status(400).json({ success: false, error: 'cityId required' })
+      return
+    }
+
+    const db = getAgentDBWritable()
+
+    const pending = db.prepare('SELECT * FROM pending_updates WHERE city_id = ?').get(cityId) as any
+    if (!pending) {
+      res.status(404).json({ success: false, error: 'No pending update for this city' })
+      return
+    }
+
+    const pois = JSON.parse(pending.data)
+
+    // Apply: upsert into city_pois
+    db.prepare(`
+      INSERT INTO city_pois (city_id, data, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(city_id)
+      DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+    `).run(cityId, JSON.stringify(pois), Date.now())
+
+    // Update city_stats
+    const byCategory = JSON.parse(pending.by_category)
+    const sources = JSON.parse(pending.sources_used)
+    const existingStats = db.prepare('SELECT * FROM city_stats WHERE city_id = ?').get(cityId) as any
+
+    if (existingStats) {
+      db.prepare(`
+        UPDATE city_stats SET
+          total_pois = ?,
+          quality_score = COALESCE(?, quality_score),
+          last_collection_at = ?,
+          collection_count = collection_count + 1,
+          sources_used = ?,
+          by_category = COALESCE(?, by_category)
+        WHERE city_id = ?
+      `).run(
+        pending.total_pois,
+        pending.quality_score,
+        Date.now(),
+        JSON.stringify(sources),
+        JSON.stringify(byCategory),
+        cityId,
+      )
+    } else {
+      db.prepare(`
+        INSERT INTO city_stats (city_id, total_pois, quality_score, last_collection_at, collection_count, failure_count, sources_used, by_category)
+        VALUES (?, ?, ?, ?, 1, 0, ?, ?)
+      `).run(cityId, pending.total_pois, pending.quality_score, Date.now(), JSON.stringify(sources), JSON.stringify(byCategory))
+    }
+
+    // Delete pending
+    db.prepare('DELETE FROM pending_updates WHERE city_id = ?').run(cityId)
+
+    res.json({ success: true, data: { cityId, poisApplied: pois.length } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+/** POST /pending/reject — Reject a pending update */
+router.post('/pending/reject', (req: Request, res: Response) => {
+  try {
+    const { cityId } = req.body
+    if (!cityId) {
+      res.status(400).json({ success: false, error: 'cityId required' })
+      return
+    }
+
+    const db = getAgentDBWritable()
+    const pending = db.prepare('SELECT id FROM pending_updates WHERE city_id = ?').get(cityId)
+    if (!pending) {
+      res.status(404).json({ success: false, error: 'No pending update for this city' })
+      return
+    }
+
+    db.prepare('DELETE FROM pending_updates WHERE city_id = ?').run(cityId)
+    res.json({ success: true, data: { cityId } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+/** POST /pending/confirm-batch — Confirm multiple pending updates */
+router.post('/pending/confirm-batch', (req: Request, res: Response) => {
+  try {
+    const { cityIds } = req.body
+    if (!Array.isArray(cityIds) || cityIds.length === 0) {
+      res.status(400).json({ success: false, error: 'cityIds array required' })
+      return
+    }
+
+    const db = getAgentDBWritable()
+    const results: { cityId: string; poisApplied: number }[] = []
+
+    for (const cityId of cityIds) {
+      const pending = db.prepare('SELECT * FROM pending_updates WHERE city_id = ?').get(cityId) as any
+      if (!pending) continue
+
+      const pois = JSON.parse(pending.data)
+
+      db.prepare(`
+        INSERT INTO city_pois (city_id, data, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(city_id)
+        DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+      `).run(cityId, JSON.stringify(pois), Date.now())
+
+      const byCategory = JSON.parse(pending.by_category)
+      const sources = JSON.parse(pending.sources_used)
+      const existingStats = db.prepare('SELECT * FROM city_stats WHERE city_id = ?').get(cityId) as any
+
+      if (existingStats) {
+        db.prepare(`
+          UPDATE city_stats SET
+            total_pois = ?,
+            quality_score = COALESCE(?, quality_score),
+            last_collection_at = ?,
+            collection_count = collection_count + 1,
+            sources_used = ?,
+            by_category = COALESCE(?, by_category)
+          WHERE city_id = ?
+        `).run(pending.total_pois, pending.quality_score, Date.now(), JSON.stringify(sources), JSON.stringify(byCategory), cityId)
+      } else {
+        db.prepare(`
+          INSERT INTO city_stats (city_id, total_pois, quality_score, last_collection_at, collection_count, failure_count, sources_used, by_category)
+          VALUES (?, ?, ?, ?, 1, 0, ?, ?)
+        `).run(cityId, pending.total_pois, pending.quality_score, Date.now(), JSON.stringify(sources), JSON.stringify(byCategory))
+      }
+
+      db.prepare('DELETE FROM pending_updates WHERE city_id = ?').run(cityId)
+      results.push({ cityId, poisApplied: pois.length })
+    }
+
+    res.json({ success: true, data: { confirmed: results.length, results } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
 })
 
 export default router

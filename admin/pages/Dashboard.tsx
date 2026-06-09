@@ -5,23 +5,26 @@ import { formatDate } from '../lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Skeleton } from '../components/ui/skeleton'
 import { Button } from '../components/ui/button'
-import { Database, MapPin, Tag, Clock, TrendingUp, ClipboardCheck } from 'lucide-react'
-import type { StatsData, UpdateJob } from '../types'
+import { Database, MapPin, Tag, Clock, TrendingUp, ClipboardCheck, AlertCircle } from 'lucide-react'
+import type { StatsData, UpdateJob, PendingUpdate } from '../types'
 import { Badge } from '../components/ui/badge'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [stats, setStats] = useState<StatsData | null>(null)
   const [recentJobs, setRecentJobs] = useState<UpdateJob[]>([])
+  const [pendingCount, setPendingCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       api.get<{ data: StatsData }>('/stats').catch(() => null),
       api.get<{ data: UpdateJob[] }>('/updates?limit=5').catch(() => null),
-    ]).then(([statsRes, jobsRes]) => {
+      api.get<{ data: PendingUpdate[] }>('/pending').catch(() => null),
+    ]).then(([statsRes, jobsRes, pendingRes]) => {
       if (statsRes?.data) setStats(statsRes.data)
       if (jobsRes?.data) setRecentJobs(jobsRes.data)
+      if (pendingRes?.data) setPendingCount(pendingRes.data.length)
       setLoading(false)
     })
   }, [])
@@ -71,6 +74,26 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Pending Update Card */}
+      {pendingCount > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 text-blue-600" />
+              <div>
+                <p className="font-semibold text-blue-900">待确认更新</p>
+                <p className="text-sm text-blue-700">
+                  {pendingCount} 个城市有新采集数据等待确认后应用
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" className="border-blue-300 text-blue-800 hover:bg-blue-100" onClick={() => navigate('/pending')}>
+              前往确认
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending Review Card */}
       {(stats?.pendingReviewPOIs ?? 0) > 0 && (

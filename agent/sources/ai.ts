@@ -8,7 +8,7 @@
 import { AGENT_CONFIG, API_KEYS } from '../config.js'
 import { RateLimiter, clamp, delay, repairTruncatedJSON } from '../utils.js'
 import { externalCategoryToL3 } from '../categories.js'
-import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
+import type { SourceCollector, CityInfo, L1Category, RawPOI, ExperienceItem } from './base.js'
 import { roundCoord } from './base.js'
 
 const DASHSCOPE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
@@ -18,18 +18,18 @@ const rateLimiter = new RateLimiter(AGENT_CONFIG.aiCategoryDelay)
 
 /* ── 6 大类目 Prompt 描述 ── */
 
-const CATEGORY_LABELS: Record<L1Category, string> = {
+export const CATEGORY_LABELS: Record<L1Category, string> = {
   scenic: '景点（自然风光、历史古迹、现代地标、公园园林）',
   food: '餐饮（地方特色、异国料理、咖啡茶饮、酒吧、美食集市）',
   shopping: '购物（商场百货、特色店铺、集市市场、免税店）',
-  entertainment: '娱乐（主题乐园、演出表演、夜生活、体育赛事、赌场）',
+  entertainment: '娱乐（主题乐园、演出表演、夜生活、体育赛事）',
   experience: '体验（户外运动、文化体验、休闲养生、研学教育、冒险运动）',
   hotel: '酒店（高端酒店、舒适酒店、经济住宿、特色住宿）',
 }
 
 /* ── Prompt 构建 ── */
 
-const JSON_FORMAT = `[
+export const JSON_FORMAT = `[
   {
     "namePrimary":"当地语言正式名称",
     "nameZh":"中文名称（无则空串）",
@@ -50,7 +50,37 @@ const JSON_FORMAT = `[
   }
 ]`
 
-const JSON_RULES = `要求：
+/** 体验类目专用格式（含 experienceItems 字段） */
+export const JSON_FORMAT_EXPERIENCE = `[
+  {
+    "namePrimary":"当地语言正式名称",
+    "nameZh":"中文名称（无则空串）",
+    "nameEn":"英文名称（无则空串）",
+    "subCategory":"具体子类别英文（如 hiking, cooking_class, spa 等）",
+    "lat":35.6762,
+    "lng":139.6503,
+    "address":"本地语言完整地址",
+    "addressEn":"英文地址",
+    "rating":4.5,
+    "cost":0,
+    "visitDuration":90,
+    "description":"50字以内的简介",
+    "tags":["中文标签1|English Tag1","中文标签2|English Tag2"],
+    "operatingHours":"09:00-18:00",
+    "bestSeasons":["spring","autumn"],
+    "monthlyIndex":[3,3,4,5,5,4,4,4,5,5,4,3],
+    "experienceItems":[
+      {
+        "name":"项目名称（如：皮划艇、陶艺体验、晨间太极课）",
+        "summary":"1-2句话介绍项目内容、特色或适合人群",
+        "durationMinutes":60,
+        "pricePerPerson":200
+      }
+    ]
+  }
+]`
+
+export const JSON_RULES = `要求：
 1. 地点必须真实存在，坐标准确。
 2. namePrimary 使用当地语言的正式名称。
 3. monthlyIndex 为 1-12 月的推荐指数（0-5整数），反映该月的游览推荐度。
@@ -60,7 +90,7 @@ const JSON_RULES = `要求：
 7. tags 必须使用 "中文|English" 的双语格式，如 "古迹|Historic Site"。
 8. 按热门程度排序，最热门的排前面。`
 
-function buildPrompt(
+export function buildPrompt(
   cityName: string,
   cityNameEn: string,
   category: L1Category,
@@ -68,6 +98,7 @@ function buildPrompt(
   excludeNames?: string[],
 ): string {
   const catLabel = CATEGORY_LABELS[category]
+  const format = category === 'experience' ? JSON_FORMAT_EXPERIENCE : JSON_FORMAT
 
   let excludeClause = ''
   if (excludeNames && excludeNames.length > 0) {
@@ -78,7 +109,7 @@ function buildPrompt(
 
   return `推荐${cityName}（${cityNameEn}）的${catLabel}类旅游地点，共${count}个。${excludeClause}
 直接输出JSON数组，格式如下（不要输出任何说明文字，不要用markdown代码块）：
-${JSON_FORMAT}
+${format}
 
 ${JSON_RULES}`
 }
@@ -134,7 +165,7 @@ async function callDashScope(prompt: string): Promise<any[]> {
 
 /* ── Raw Response → RawPOI ── */
 
-function transformItem(item: any, l1: L1Category): RawPOI {
+export function transformItem(item: any, l1: L1Category, sourceName = 'ai'): RawPOI {
   // 尝试从 subCategory 映射到 L3
   const subCat = String(item.subCategory || '')
   const mapped = subCat ? externalCategoryToL3('google', subCat) : null
@@ -157,7 +188,17 @@ function transformItem(item: any, l1: L1Category): RawPOI {
     operatingHours: String(item.operatingHours || '09:00-22:00'),
     bestSeasons: Array.isArray(item.bestSeasons) ? item.bestSeasons.map(String) : [],
     monthlyIndex: normalizeMonthlyIndex(item.monthlyIndex),
-    source: 'ai',
+    source: sourceName,
+    experienceItems: l1 === 'experience' && Array.isArray(item.experienceItems)
+      ? item.experienceItems
+          .map((e: any): ExperienceItem => ({
+            name: String(e.name || ''),
+            summary: String(e.summary || ''),
+            durationMinutes: Math.max(0, Number(e.durationMinutes) || 0),
+            pricePerPerson: Math.max(0, Number(e.pricePerPerson) || 0),
+          }))
+          .filter((e: ExperienceItem) => e.name)
+      : undefined,
   }
 }
 
@@ -192,13 +233,13 @@ function normalizeMonthlyIndex(raw: any): number[] {
 /* ── SourceCollector 实现 ── */
 
 /** 每轮请求 POI 数量（小批量以避免超时） */
-const BATCH_SIZE = 15
+export const BATCH_SIZE = 15
 
 /** 单类目最大轮次（15×10=150，够采满 100 个去重后剩余） */
-const MAX_ROUNDS = 10
+export const MAX_ROUNDS = 10
 
 /** 名称归一化，用于去重判断 */
-function normalizeName(name: string): string {
+export function normalizeName(name: string): string {
   return name.trim().toLowerCase().replace(/[\s\-·•·]+/g, '')
 }
 

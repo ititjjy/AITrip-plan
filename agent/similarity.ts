@@ -279,10 +279,10 @@ export function nameSimilarity(a: RawPOI, b: RawPOI): number {
  * 都空 → 0.5 (中性)
  */
 export function addressSimilarity(a: RawPOI, b: RawPOI): number {
-  const addrA = (a.address || '').trim()
-  const addrB = (b.address || '').trim()
-  const addrEnA = (a.addressEn || '').trim()
-  const addrEnB = (b.addressEn || '').trim()
+  const addrA = String(a.address || '').trim()
+  const addrB = String(b.address || '').trim()
+  const addrEnA = String(a.addressEn || '').trim()
+  const addrEnB = String(b.addressEn || '').trim()
 
   if (!addrA && !addrB && !addrEnA && !addrEnB) return 0.5
 
@@ -406,8 +406,9 @@ export function compositeSimilarity(a: RawPOI, b: RawPOI): CompositeResult {
  */
 export function isInvalidPOI(poi: RawPOI): boolean {
   if (poi.lat === 0 && poi.lng === 0) return true
-  if (/^\d+$/.test(poi.namePrimary.trim())) return true
-  if (poi.nameZh && /^\d*$/.test(poi.nameZh.trim())) return true
-  if (poi.namePrimary.trim().length < 2) return true
+  const name = String(poi.namePrimary || '').trim()
+  if (/^\d+$/.test(name)) return true
+  if (poi.nameZh && /^\d*$/.test(String(poi.nameZh).trim())) return true
+  if (name.length < 2) return true
   return false
 }

@@ -49,6 +49,8 @@ tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, WebFetch
 - **数据采集**：agent/*.ts 执行、城市数据批量生产 → 数据 Agent
 - **离线POI算法**：评分模型训练、知识库建设 → 数据 Agent
 
+> 完整的三角色路由规则见项目根目录 `AGENTS.md`
+
 ## 交付标准
 
 每次代码变更交付前必须验证：

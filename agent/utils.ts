@@ -147,3 +147,44 @@ export function repairTruncatedJSON(text: string): string | null {
     return null
   }
 }
+
+/**
+ * 修复格式错误的 JSON（处理未引号属性名、单引号等问题）
+ * 主要用于处理轻量级模型（如 Spark Lite）输出的不规范 JSON
+ */
+export function repairMalformedJSON(text: string): string | null {
+  let clean = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim()
+
+  // 找到数组起始位置
+  const arrStart = clean.indexOf('[')
+  if (arrStart === -1) return null
+  clean = clean.slice(arrStart)
+
+  // 修复未引号的属性名: {name: "value"} → {"name": "value"}
+  // 匹配 { 或 , 后面跟着的非引号标识符
+  clean = clean.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3')
+
+  // 修复单引号字符串: {'name': 'value'} → {"name": "value"}
+  // 注意：这个替换可能不够完美，但能处理大部分情况
+  clean = clean.replace(/'([^']*)'/g, '"$1"')
+
+  // 移除尾部逗号: [1,2,3,] → [1,2,3]
+  clean = clean.replace(/,\s*([}\]])/g, '$1')
+
+  // 尝试解析
+  try {
+    JSON.parse(clean)
+    return clean
+  } catch {
+    // 如果仍然失败，尝试截断修复
+    const lastBrace = clean.lastIndexOf('}')
+    if (lastBrace === -1) return null
+    const truncated = clean.slice(0, lastBrace + 1) + ']'
+    try {
+      JSON.parse(truncated)
+      return truncated
+    } catch {
+      return null
+    }
+  }
+}

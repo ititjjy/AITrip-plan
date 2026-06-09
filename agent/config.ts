@@ -22,6 +22,9 @@ export const API_KEYS = {
   foursquare: process.env.FOURSQUARE_API_KEY || '',
   google: process.env.GOOGLE_PLACES_API_KEY || '',
   amap: process.env.AMAP_API_KEY || '',
+  sparkApiKey: process.env.SPARK_API_KEY || '',
+  sparkApiSecret: process.env.SPARK_API_SECRET || '',
+  doubaoApiKey: process.env.DOUBAO_API_KEY || '',
 }
 
 /* ── Agent 运行参数 ── */
@@ -42,8 +45,12 @@ export const AGENT_CONFIG = {
   osmInterval: 10_000,       // Overpass 公平使用: 10s
   foursquareInterval: 1_000, // 1 req/s
   googleInterval: 500,       // 2 req/s
-  amapInterval: 200,         // 5 req/s
+  amapInterval: 1000,        // 1 req/s (个人账号 QPS=5, 并发3城需保守)
   aiCategoryDelay: 3_000,    // AI 分类间延迟
+  sparkCategoryDelay: 3_000, // Spark 分类间延迟
+  sparkTimeout: 300_000,     // Spark 单类目超时
+  doubaoCategoryDelay: 3_000, // 豆包 分类间延迟
+  doubaoTimeout: 300_000,     // 豆包 单类目超时
 
   // 采集参数
   searchRadiusKm: 15,        // OSM 搜索半径
@@ -65,7 +72,7 @@ export const AGENT_CONFIG = {
 
   // 来源可靠性权重
   sourceReliability: {
-    osm: 3, google: 2, foursquare: 2, amap: 2, ai: 1,
+    osm: 3, google: 2, foursquare: 2, amap: 2, ai: 1, spark: 1, doubao: 1,
   } as Record<string, number>,
 }
 
@@ -103,6 +110,16 @@ export function getSourceAvailability(): SourceAvailability[] {
       name: 'ai',
       available: !!API_KEYS.dashscope,
       reason: API_KEYS.dashscope ? undefined : 'VITE_DASHSCOPE_API_KEY not configured',
+    },
+    {
+      name: 'spark',
+      available: !!(API_KEYS.sparkApiKey && API_KEYS.sparkApiSecret),
+      reason: (API_KEYS.sparkApiKey && API_KEYS.sparkApiSecret) ? undefined : 'SPARK_API_KEY or SPARK_API_SECRET not configured',
+    },
+    {
+      name: 'doubao',
+      available: !!API_KEYS.doubaoApiKey,
+      reason: API_KEYS.doubaoApiKey ? undefined : 'DOUBAO_API_KEY not configured',
     },
   ]
 }

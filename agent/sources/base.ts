@@ -24,6 +24,19 @@ export interface CityInfo {
   province: string
 }
 
+/* ── 体验类目项目描述 ── */
+
+export interface ExperienceItem {
+  /** 项目名称，如"皮划艇""陶艺体验""晨间太极课" */
+  name: string
+  /** 项目简介（1-2句），说明内容、特色或适合人群 */
+  summary: string
+  /** 时长（分钟），0 表示未知 */
+  durationMinutes?: number
+  /** 人均费用（当地货币），0 表示免费或未知 */
+  pricePerPerson?: number
+}
+
 /* ── 采集器返回的原始 POI 数据 ── */
 
 export interface RawPOI {
@@ -150,6 +163,9 @@ export interface POI {
   operatingHours: string
   /** 推荐理由 */
   recommendReason: string
+
+  /** 体验类目专属：可参与的体验项目列表（categoryL1=experience 时填充） */
+  experienceItems?: ExperienceItem[]
 
   /** 最佳游览季节 */
   bestSeasons: string[]

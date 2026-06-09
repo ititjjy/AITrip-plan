@@ -69,7 +69,7 @@ export default function POIBrowser() {
     params.set('page', String(page))
     params.set('pageSize', String(pageSize))
 
-    const endpoint = debouncedQuery && !city ? `/pois/search?${params}` : `/pois?${params}`
+    const endpoint = debouncedQuery ? `/pois/search?${params}` : `/pois?${params}`
     api.get<{ data: POI[]; total: number }>(endpoint)
       .then((res) => {
         setPois(res.data || [])
