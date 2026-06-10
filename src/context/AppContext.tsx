@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react'
-import { Trip, DayPlan, ItineraryItem, AppView, HotelPOI } from '@/types'
+import { Trip, DayPlan, ItineraryItem, AppView, HotelPOI, Attraction } from '@/types'
 
 interface AppState {
   currentView: AppView
@@ -17,6 +17,8 @@ interface AppState {
   detailHotelData: string | null
   /** Server-side trip ID (set when loaded from or saved to server) */
   savedTripId: string | null
+  /** POIs selected by user but not scheduled in the itinerary */
+  skippedPOIs: Attraction[]
 }
 
 type Action =
@@ -31,7 +33,7 @@ type Action =
   | { type: 'SET_DAY_HOTEL'; payload: { dayIndex: number; hotel: HotelPOI | null } }
   | { type: 'SET_DAYS_HOTEL'; payload: { dayIndices: number[]; hotel: HotelPOI | null } }
   | { type: 'TOGGLE_PLACE'; payload: string }
-  | { type: 'SET_ALL_DAYS_ITEMS'; payload: { dayItems: ItineraryItem[][] } }
+  | { type: 'SET_ALL_DAYS_ITEMS'; payload: { dayItems: ItineraryItem[][]; skippedPOIs?: Attraction[] } }
   | { type: 'VIEW_DETAIL'; payload: string }
   | { type: 'VIEW_HOTEL_DETAIL'; payload: string }
   | { type: 'GO_BACK'; fallback?: AppView }
@@ -51,6 +53,7 @@ const initialState: AppState = {
   preSelectedCityId: null,
   detailHotelData: null,
   savedTripId: null,
+  skippedPOIs: [],
 }
 
 function generateDays(startDate: string, endDate: string): DayPlan[] {
@@ -87,12 +90,11 @@ function appReducer(state: AppState, action: Action): AppState {
 
     case 'CREATE_TRIP': {
       const trip = action.payload
-      // 仅当 payload 没有带有效 days 数据时才重新生成空天数
       const hasExistingDays = Array.isArray(trip.days) && trip.days.length > 0 && trip.days.some((d: DayPlan) => d.items?.length > 0 || d.hotel)
       if (!hasExistingDays) {
         trip.days = generateDays(trip.startDate, trip.endDate)
       }
-      return { ...state, currentTrip: trip, currentView: hasExistingDays ? state.currentView : 'hotel-step', selectedDayIndex: 0, selectedPlaceIds: [] }
+      return { ...state, currentTrip: trip, currentView: hasExistingDays ? state.currentView : 'hotel-step', selectedDayIndex: 0, selectedPlaceIds: [], skippedPOIs: [] }
     }
 
     case 'SELECT_DAY':
@@ -176,13 +178,14 @@ function appReducer(state: AppState, action: Action): AppState {
     case 'SET_ALL_DAYS_ITEMS': {
       if (!state.currentTrip) return state
       const newDaysAll = [...state.currentTrip.days]
-      const { dayItems } = action.payload
+      const { dayItems, skippedPOIs } = action.payload
       for (let i = 0; i < newDaysAll.length && i < dayItems.length; i++) {
         newDaysAll[i] = { ...newDaysAll[i], items: dayItems[i] }
       }
       return {
         ...state,
         currentTrip: { ...state.currentTrip, days: newDaysAll, totalBudget: recalcBudget(newDaysAll) },
+        skippedPOIs: skippedPOIs || [],
       }
     }
 

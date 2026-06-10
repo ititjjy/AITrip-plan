@@ -20,7 +20,19 @@
 - [agent/utils.ts](file://agent/utils.ts)
 - [agent/categories.ts](file://agent/categories.ts)
 - [agent/exporter.ts](file://agent/exporter.ts)
+- [admin/types/index.ts](file://admin/types/index.ts)
+- [admin/pages/CollectionDetail.tsx](file://admin/pages/CollectionDetail.tsx)
+- [server/admin-routes.ts](file://server/admin-routes.ts)
+- [scripts/fetch-cities-batch.ts](file://scripts/fetch-cities-batch.ts)
+- [scripts/generated-batch-cities.ts](file://scripts/generated-batch-cities.ts)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 增强了批处理系统，支持批量创建和状态更新功能
+- 改进了类别分布跟踪机制，新增collection_batches表结构
+- 更新了命令行界面的数据源命名约定，支持batch和targeted作业类型
+- 新增了批处理作业管理和监控功能
 
 ## 目录
 1. [项目概述](#项目概述)
@@ -32,10 +44,11 @@
 7. [质量评估系统](#质量评估系统)
 8. [分类器工作原理](#分类器工作原理)
 9. [数据处理管道](#数据处理管道)
-10. [配置管理](#配置管理)
-11. [性能优化](#性能优化)
-12. [故障排查](#故障排查)
-13. [总结](#总结)
+10. [批处理系统增强](#批处理系统增强)
+11. [配置管理](#配置管理)
+12. [性能优化](#性能优化)
+13. [故障排查](#故障排查)
+14. [总结](#总结)
 
 ## 项目概述
 
@@ -43,7 +56,7 @@ AI数据采集系统是一个基于人工智能的大规模POI（兴趣点）数
 
 该系统的核心目标是为旅行规划应用提供高质量的POI数据，涵盖六大类目：景点、餐饮、购物、娱乐、体验和酒店。通过智能化的数据处理流程，确保采集到的数据具有高准确性、完整性和实用性。
 
-**更新** 新增Spark和Doubao AI提供程序支持，增强分类系统排除规则，新增翻译服务功能
+**更新** 新增Spark和Doubao AI提供程序支持，增强分类系统排除规则，新增翻译服务功能，增强批处理系统支持批量创建和状态更新
 
 ## 系统架构
 
@@ -52,6 +65,7 @@ graph TB
 subgraph "用户界面层"
 Admin[管理界面]
 Web[Web前端]
+BatchUI[批处理界面]
 end
 subgraph "业务逻辑层"
 Scheduler[调度器]
@@ -60,6 +74,7 @@ Merger[数据合并器]
 Classifier[分类器]
 Quality[质量评估]
 Translate[翻译服务]
+BatchManager[批处理管理器]
 end
 subgraph "数据源层"
 AI[AI服务(Qwen)]
@@ -75,9 +90,11 @@ subgraph "数据存储层"
 DB[SQLite数据库]
 Cache[缓存系统]
 Export[导出文件]
+BatchDB[批处理数据库]
 end
 Admin --> Scheduler
 Web --> Collector
+BatchUI --> BatchManager
 Scheduler --> Collector
 Collector --> Merger
 Merger --> Classifier
@@ -85,6 +102,8 @@ Classifier --> Quality
 Quality --> Translate
 Translate --> DB
 Collector --> DB
+BatchManager --> BatchDB
+BatchDB --> DB
 DB --> Export
 Export --> Web
 ```
@@ -93,6 +112,7 @@ Export --> Web
 - [agent/index.ts:115-130](file://agent/index.ts#L115-L130)
 - [agent/scheduler.ts:18-87](file://agent/scheduler.ts#L18-L87)
 - [agent/db.ts:34-131](file://agent/db.ts#L34-L131)
+- [agent/db.ts:94-147](file://agent/db.ts#L94-L147)
 
 ## 核心组件
 
@@ -153,17 +173,31 @@ class SourceCollector {
 +isAvailable() Promise~boolean~
 +collect(city, categories) Promise~RawPOI[]~
 }
+class CollectionBatch {
++number id
++string batch_type
++string status
++number cities_count
++number started_at
++number completed_at
++string config
++string results
++string by_category
+}
 RawPOI --> POI : "转换"
 SourceCollector --> RawPOI : "生成"
+CollectionBatch --> CollectionBatchInfo : "映射"
 ```
 
 **图表来源**
 - [agent/sources/base.ts:42-87](file://agent/sources/base.ts#L42-L87)
 - [agent/sources/base.ts:121-177](file://agent/sources/base.ts#L121-L177)
 - [agent/sources/base.ts:91-100](file://agent/sources/base.ts#L91-L100)
+- [agent/db.ts:470-540](file://agent/db.ts#L470-L540)
 
 **章节来源**
 - [agent/sources/base.ts:1-252](file://agent/sources/base.ts#L1-L252)
+- [agent/db.ts:94-147](file://agent/db.ts#L94-L147)
 
 ### 数据库架构
 
@@ -187,6 +221,7 @@ integer items_accepted
 string error_message
 integer duration_ms
 integer created_at
+text by_category
 }
 RAW_POIS {
 string city_id PK
@@ -226,10 +261,22 @@ integer completed_at
 text config
 text results
 }
+COLLECTION_BATCHES {
+integer id PK
+string batch_type
+string status
+integer started_at
+integer completed_at
+integer cities_count
+text config
+text results
+text by_category
+}
 ```
 
 **图表来源**
 - [agent/db.ts:36-131](file://agent/db.ts#L36-L131)
+- [agent/db.ts:94-147](file://agent/db.ts#L94-L147)
 
 **章节来源**
 - [agent/db.ts:1-459](file://agent/db.ts#L1-L459)
@@ -484,6 +531,81 @@ Merge->>DB : 记录更新统计
 - [agent/incremental.ts:1-433](file://agent/incremental.ts#L1-L433)
 - [agent/exporter.ts:21-72](file://agent/exporter.ts#L21-L72)
 
+## 批处理系统增强
+
+### 批处理作业管理
+
+系统新增了完整的批处理作业管理系统，支持批量创建和状态更新：
+
+```mermaid
+sequenceDiagram
+participant Admin as 管理界面
+participant BatchManager as 批处理管理器
+participant Agent as AI采集器
+participant DB as 数据库
+Admin->>BatchManager : 创建批处理作业
+BatchManager->>DB : 保存作业状态
+BatchManager->>Agent : 启动批处理执行
+Agent->>Agent : 批量城市采集
+Agent->>DB : 更新作业进度
+Agent->>DB : 保存批处理结果
+DB->>BatchManager : 返回作业状态
+BatchManager->>Admin : 更新作业界面
+```
+
+**图表来源**
+- [server/admin-routes.ts:875-914](file://server/admin-routes.ts#L875-L914)
+- [agent/db.ts:470-540](file://agent/db.ts#L470-L540)
+
+### 批处理数据库结构
+
+系统新增了专门的批处理数据库表来管理批量作业：
+
+```mermaid
+erDiagram
+COLLECTION_BATCHES {
+integer id PK
+string batch_type
+string status
+integer started_at
+integer completed_at
+integer cities_count
+text config
+text results
+text by_category
+}
+BATCH_TYPES {
+string init
+string incremental
+}
+BATCH_STATUS {
+string pending
+string running
+string completed
+string failed
+}
+```
+
+**图表来源**
+- [agent/db.ts:94-147](file://agent/db.ts#L94-L147)
+- [agent/db.ts:470-540](file://agent/db.ts#L470-L540)
+
+### 命令行界面数据源命名约定
+
+系统更新了命令行界面的数据源命名约定，支持新的作业类型：
+
+| 作业类型 | 命令行参数 | 描述 |
+|----------|------------|------|
+| 批处理 | `--batch` | 批量城市采集作业 |
+| 目标化 | `--targeted` | 目标城市采集作业 |
+| 增量更新 | `--incremental` | 增量数据更新作业 |
+| 初始化 | `--init` | 初始数据采集作业 |
+
+**章节来源**
+- [agent/index.ts:352-381](file://agent/index.ts#L352-L381)
+- [agent/db.ts:94-147](file://agent/db.ts#L94-L147)
+- [admin/types/index.ts:103-108](file://admin/types/index.ts#L103-L108)
+
 ## 配置管理
 
 ### 环境配置
@@ -518,6 +640,7 @@ Merge->>DB : 记录更新统计
 2. **Union-Find去重**：使用并查集算法高效处理去重
 3. **速率限制器**：防止API限流
 4. **批量处理**：优化数据库操作性能
+5. **批处理队列**：支持大规模数据的有序处理
 
 ### 内存管理
 
@@ -533,6 +656,7 @@ Merge->>DB : 记录更新统计
 2. **数据质量异常**：自动质量检测和修复
 3. **并发冲突**：使用Promise.race机制处理并发竞争
 4. **数据库锁定**：采用WAL模式避免数据库锁定
+5. **批处理失败**：支持断点续传和错误恢复
 
 ### 调试工具
 
@@ -581,8 +705,9 @@ AI数据采集系统是一个功能完整、架构清晰的大规模POI数据处
 3. **质量保障**：多维度质量评估和自动修复机制
 4. **性能优化**：高效的并发处理和缓存策略
 5. **多语言支持**：新增翻译服务功能，支持POI数据的多语言处理
-6. **易用性**：提供完整的命令行工具和管理界面
+6. **批处理增强**：全新的批处理系统支持批量创建和状态更新，改进类别分布跟踪
+7. **易用性**：提供完整的命令行工具和管理界面
 
-**更新** 新增Spark和Doubao AI提供程序支持，增强分类系统排除规则，新增翻译服务功能
+**更新** 新增Spark和Doubao AI提供程序支持，增强分类系统排除规则，新增翻译服务功能，增强批处理系统支持批量创建和状态更新，改进类别分布跟踪，更新命令行界面的数据源命名约定
 
 该系统为旅行规划应用提供了高质量的POI数据支撑，能够满足大规模数据采集和处理的需求。通过持续的算法优化和架构改进，系统将继续提升数据质量和处理效率。

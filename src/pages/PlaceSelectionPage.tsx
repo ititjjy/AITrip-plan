@@ -244,7 +244,7 @@ export default function PlaceSelectionPage() {
       setTimeout(() => {
         try {
           const result = generateItinerary(selectedAttractions, trip.days, city.id)
-          dispatch({ type: 'SET_ALL_DAYS_ITEMS', payload: { dayItems: result.dayItems } })
+          dispatch({ type: 'SET_ALL_DAYS_ITEMS', payload: { dayItems: result.dayItems, skippedPOIs: result.skippedPOIs } })
         } catch (e) { console.error('Route planning failed:', e) }
         setIsPlanning(false)
         dispatch({ type: 'SET_VIEW', payload: 'planner' })

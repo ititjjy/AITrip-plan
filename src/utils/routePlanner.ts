@@ -211,7 +211,17 @@ function greedyRouteWithDirection(
         backtrackPenalty = Math.max(0, distToEndAfterVisit - distToEndNow) * 1.5
       }
 
-      const score = travel + waitTime * 0.3 + backtrackPenalty
+      // Time-of-day preference: scenic → day-time, shopping → noon/evening
+      let timePrefPenalty = 0
+      if (a.type === 'scenic' && slot > 17 * 60) {
+        timePrefPenalty = (slot - 17 * 60) * 0.4 // avoid evening for scenic
+      } else if (a.type === 'shopping') {
+        if (slot < 11 * 60) timePrefPenalty = (11 * 60 - slot) * 0.2 // avoid early morning
+      } else if (a.type === 'activity' && slot > 18 * 60) {
+        timePrefPenalty = (slot - 18 * 60) * 0.4 // avoid evening for activities
+      }
+
+      const score = travel + waitTime * 0.3 + backtrackPenalty + timePrefPenalty
       if (score < bestScore) {
         bestScore = score
         bestIdx = i
@@ -423,11 +433,16 @@ function findAutoFillMeal(
   nearLng: number,
   cityId: string,
   usedIds: Set<string>,
+  maxDistKm?: number,
 ): Attraction | null {
   const allPOIs = getAllAttractions(cityId)
   const candidates = allPOIs.filter(a => {
     if (a.type !== 'food') return false
     if (usedIds.has(a.id)) return false
+    if (maxDistKm != null) {
+      const dist = haversine(nearLat, nearLng, a.lat, a.lng)
+      if (dist > maxDistKm) return false
+    }
     const mt = a.mealType || inferMealType(a)
     // For lunch/dinner: accept matching type or generic
     if (mealType === 'breakfast') return mt === 'breakfast'
@@ -437,8 +452,16 @@ function findAutoFillMeal(
   })
 
   if (candidates.length === 0) {
-    // Fallback: any food POI not yet used
-    const fallback = allPOIs.filter(a => a.type === 'food' && !usedIds.has(a.id))
+    // Fallback: any food POI not yet used (still respect maxDistKm)
+    const fallback = allPOIs.filter(a => {
+      if (a.type !== 'food') return false
+      if (usedIds.has(a.id)) return false
+      if (maxDistKm != null) {
+        const dist = haversine(nearLat, nearLng, a.lat, a.lng)
+        if (dist > maxDistKm) return false
+      }
+      return true
+    })
     if (fallback.length === 0) return null
     // Pick nearest
     fallback.sort((a, b) =>
@@ -653,6 +676,8 @@ function resolveOverlaps(schedule: ScheduledPOI[]): ScheduledPOI[] {
 
 export interface PlanResult {
   dayItems: ItineraryItem[][]
+  /** POIs selected by user but could not be scheduled (time/space constraints) */
+  skippedPOIs?: Attraction[]
 }
 
 /**
@@ -739,23 +764,35 @@ export function generateItinerary(
   }))
   poisWithDist.sort((a, b) => Math.min(...a.dists) - Math.min(...b.dists))
 
-  // Assign each POI to the nearest day with available time budget
+  // Assign each POI to the nearest day with available time budget,
+  // with type-diversity bonus so no single day is overloaded with one category.
   for (const { poi, dists } of poisWithDist) {
-    // Sort days by distance to this POI (nearest first)
-    const daysByDist = dists
-      .map((dist, d) => ({ d, dist }))
-      .sort((a, b) => a.dist - b.dist)
+    // Compute type-diversity penalty for each day
+    const typePenalty = (dayIdx: number) => {
+      const dayPois = poisPerDay[dayIdx]
+      const sameTypeCount = dayPois.filter(p => p.type === poi.type).length
+      // Penalty grows quadratically: 1 same-type → 10min, 2 → 40min, 3 → 90min...
+      return sameTypeCount * sameTypeCount * 10
+    }
 
-    let assigned = false
-    for (const { d } of daysByDist) {
+    let bestDay = -1
+    let bestScore = Infinity
+
+    for (let d = 0; d < numDays; d++) {
       if (dayTimeBudgets[d] + poi.duration <= maxDayMinutes) {
-        poisPerDay[d].push(poi)
-        dayTimeBudgets[d] += poi.duration + 30
-        assigned = true
-        break
+        // Score = distance (km) + type-diversity penalty (min equivalent)
+        const score = dists[d] + typePenalty(d)
+        if (score < bestScore) {
+          bestScore = score
+          bestDay = d
+        }
       }
     }
-    if (!assigned) {
+
+    if (bestDay !== -1) {
+      poisPerDay[bestDay].push(poi)
+      dayTimeBudgets[bestDay] += poi.duration + 30
+    } else {
       // All days are full, assign to the day with least time used
       const minDay = dayTimeBudgets.indexOf(Math.min(...dayTimeBudgets))
       poisPerDay[minDay].push(poi)
@@ -922,7 +959,8 @@ export function generateItinerary(
           ? (bfRefLng + firstNonFood.attraction.lng) / 2
           : bfRefLng
 
-        const bfPOI = findAutoFillMeal('breakfast', refLat, refLng, cityId, usedIds)
+        // Breakfast: restrict to 3km from hotel to avoid long detours for morning meal
+        const bfPOI = findAutoFillMeal('breakfast', refLat, refLng, cityId, usedIds, 3)
         if (bfPOI) {
           usedIds.add(bfPOI.id)
           schedule = insertMealIntoSchedule(
@@ -961,7 +999,11 @@ export function generateItinerary(
           ? lastPOI.attraction.lng
           : endLng ?? startLng
 
-        const dinnerPOI = findAutoFillMeal('dinner', refLat, refLng, cityId, usedIds)
+        let dinnerPOI = findAutoFillMeal('dinner', refLat, refLng, cityId, usedIds)
+        // If no dinner found nearby, try searching near the hotel as fallback
+        if (!dinnerPOI) {
+          dinnerPOI = findAutoFillMeal('dinner', endLat ?? startLat, endLng ?? startLng, cityId, usedIds)
+        }
         if (dinnerPOI) {
           usedIds.add(dinnerPOI.id)
           schedule = insertMealIntoSchedule(
@@ -1046,7 +1088,11 @@ export function generateItinerary(
     dayItems.push(items)
   }
 
-  return { dayItems }
+  // Determine which user-selected POIs could not be scheduled
+  const usedAttractionIds = new Set(dayItems.flatMap(items => items.map(i => i.attractionId)))
+  const skippedPOIs = selectedAttractions.filter(a => !usedAttractionIds.has(a.id))
+
+  return { dayItems, skippedPOIs }
 }
 
 /* ─────────────────── One-click day optimization ─────────────────── */

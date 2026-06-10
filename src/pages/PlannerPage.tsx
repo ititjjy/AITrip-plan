@@ -145,6 +145,29 @@ export default function PlannerPage() {
         </div>
       </header>
 
+      {/* Skipped POIs warning banner */}
+      {state.skippedPOIs && state.skippedPOIs.length > 0 && (
+        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 sm:px-4">
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0 rounded-full bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold">
+              提示
+            </span>
+            <div className="flex-1">
+              <span className="font-medium">以下地点因时间排期限制未加入行程：</span>
+              <span className="ml-1 text-amber-700">
+                {state.skippedPOIs.map(a => a.name).join('、')}
+              </span>
+              <button
+                onClick={() => dispatch({ type: 'SET_VIEW', payload: 'place-selection' })}
+                className="ml-2 font-semibold underline hover:text-amber-900"
+              >
+                返回调整
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         {/* Day Selector - horizontal on mobile, vertical on desktop */}
         {/* Mobile: horizontal day strip */}
