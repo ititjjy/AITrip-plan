@@ -107,7 +107,7 @@ export function getSourceAvailability(): SourceAvailability[] {
       reason: API_KEYS.amap ? undefined : 'AMAP_API_KEY not configured',
     },
     {
-      name: 'ai',
+      name: 'qwen',
       available: !!API_KEYS.dashscope,
       reason: API_KEYS.dashscope ? undefined : 'VITE_DASHSCOPE_API_KEY not configured',
     },

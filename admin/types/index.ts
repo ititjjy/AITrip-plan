@@ -276,3 +276,68 @@ export interface PendingUpdateDetail extends PendingUpdate {
   removedPOIs: ReviewPOI[]
   unchangedPOIs: ReviewPOI[]
 }
+
+/* ── Collection Status Types ── */
+
+export interface CollectionSourceInfo {
+  source: string
+  items_count: number
+  collected_at: number
+}
+
+export interface CollectionCitySummary {
+  cityId: string
+  cityName: string
+  cityNameEn: string
+  sources: CollectionSourceInfo[]
+  sourceCount: number
+  totalItems: number
+  firstCollectionAt: number | null
+  lastCollectionAt: number | null
+  collectionCount: number
+}
+
+export interface CollectionCitiesOverview {
+  summary: {
+    totalCities: number
+    totalSources: number
+    lastCollectionAt: number | null
+  }
+  cities: CollectionCitySummary[]
+}
+
+export interface CollectionLogEntry {
+  id: number
+  source: string
+  status: string
+  items_collected: number
+  items_accepted: number
+  error_message: string
+  duration_ms: number
+  created_at: number
+  by_category: Record<string, number>
+}
+
+export interface CollectionBatchInfo {
+  id: number
+  batchType: string
+  status: string
+  startedAt: number
+  completedAt: number | null
+  citiesCount: number
+  config: Record<string, any>
+  results: Record<string, any>
+}
+
+export interface CollectionCityDetail {
+  cityId: string
+  cityName: string
+  cityNameEn: string
+  totalRawItems: number
+  collectionCount: number
+  firstCollectionAt: number | null
+  lastCollectionAt: number | null
+  rawSources: CollectionSourceInfo[]
+  logs: CollectionLogEntry[]
+  batches: CollectionBatchInfo[]
+}

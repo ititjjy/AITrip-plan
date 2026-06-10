@@ -30,6 +30,7 @@ import {
   saveRawPOIs, loadRawPOIs, getRawPOIsSummary,
   upsertPendingUpdate, getPendingUpdates, getPendingUpdate,
   getPendingUpdateCount, deletePendingUpdate, applyPendingUpdate,
+  insertCollectionBatch, updateCollectionBatch,
 } from './db.js'
 import { runWithConcurrency } from './utils.js'
 import { type L1Category, type CityInfo as SourceCityInfo, type RawPOI, type SourceCollector } from './sources/base.js'
@@ -161,6 +162,13 @@ async function collectCity(
         saveRawPOIs(city.id, collector.name, rawPOIs)
       }
 
+      // 按 categoryL1 统计各类目数量
+      const byCategory: Record<string, number> = {}
+      for (const poi of rawPOIs) {
+        const cat = poi.categoryL1
+        byCategory[cat] = (byCategory[cat] || 0) + 1
+      }
+
       logCollection({
         city_id: city.id,
         source: collector.name,
@@ -168,6 +176,7 @@ async function collectCity(
         items_collected: rawPOIs.length,
         items_accepted: 0,
         duration_ms: duration,
+        byCategory,
       })
 
       if (rawPOIs.length > 0) {
@@ -339,6 +348,19 @@ async function cmdCollect(args: CLIArgs): Promise<void> {
   const concurrency = args.concurrency || AGENT_CONFIG.concurrentCities
   console.log(`\nCollecting ${targetCities.length} cities (concurrency: ${concurrency})...`)
 
+  // 创建采集批次记录
+  const batchId = insertCollectionBatch({
+    batch_type: args.city ? 'incremental' : 'init',
+    status: 'running',
+    cities_count: targetCities.length,
+    config: {
+      cities: targetCities.map(c => c.id),
+      sources: availableCollectors.map(c => c.name),
+      force: args.force || false,
+      concurrency,
+    },
+  })
+
   const tasks = targetCities.map(city => () => collectCity(city, availableCollectors, args.force))
   const results = await runWithConcurrency(tasks, concurrency)
 
@@ -353,6 +375,18 @@ async function cmdCollect(args: CLIArgs): Promise<void> {
     .filter((r): r is PromiseFulfilledResult<{ pois: number; success: boolean }> =>
       r.status === 'fulfilled')
     .reduce((sum, r) => sum + r.value.pois, 0)
+
+  // 更新采集批次状态
+  const batchStatus = failed === 0 ? 'completed' : (succeeded > 0 ? 'partial' : 'failed')
+  updateCollectionBatch(batchId, {
+    status: batchStatus,
+    results: {
+      succeeded,
+      failed,
+      totalPOIs,
+      pendingCount,
+    },
+  })
 
   console.log(`\n${'='.repeat(50)}`)
   console.log(`Collection complete:`)
@@ -1009,7 +1043,7 @@ Commands:
     --city <id>         指定城市 (如: sanya, tokyo)
     --batch <N>         采集 N 个城市 (默认: 3)
     --all               全量采集所有城市
-    --sources <names>   指定数据源 (逗号分隔: osm,ai)
+    --sources <names>   指定数据源 (逗号分隔: osm,qwen)
     --concurrency <N>   并发城市数 (默认: 3)
     --skip-collect      跳过 API 采集，直接用已存储的 raw data 重处理
     --force             强制覆盖已有数据 (跳过 pending 确认)
@@ -1051,7 +1085,7 @@ Commands:
 
 Examples:
   npx tsx agent/index.ts collect --city sanya
-  npx tsx agent/index.ts collect --batch 5 --sources osm,ai
+  npx tsx agent/index.ts collect --batch 5 --sources osm,qwen
   npx tsx agent/index.ts collect --all --concurrency 5
   npx tsx agent/index.ts collect --city sanya --force
   npx tsx agent/index.ts reprocess --city sanya

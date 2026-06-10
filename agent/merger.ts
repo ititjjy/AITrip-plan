@@ -33,7 +33,14 @@ const CROSS_CATEGORY_ENABLED = true
 const MAX_TAGS = 6
 
 const SOURCE_RELIABILITY: Record<string, number> = {
-  osm: 3, google: 2, foursquare: 2, amap: 2, ai: 1, spark: 1, doubao: 1,
+  ai: 3,
+  spark: 3,
+  doubao: 3,
+  foursquare: 2,
+  amap: 2,
+  siliconflow: 2,
+  osm: 1,
+  google: 1,
 }
 
 /* ═══════════════════════ Tag 双语化 ═══════════════════════ */
@@ -755,7 +762,7 @@ function mergeGroup(group: RawPOI[]): MergedEntry {
   // 月度指数: 优先非 AI, 然后平均
   const withIndex = group.filter(p => p.monthlyIndex && p.monthlyIndex.length === 12)
   if (withIndex.length > 0) {
-    const nonAI = withIndex.find(p => p.source !== 'ai')
+    const nonAI = withIndex.find(p => p.source !== 'qwen')
     if (nonAI && nonAI.monthlyIndex) {
       base.monthlyIndex = nonAI.monthlyIndex
     } else {
@@ -954,7 +961,7 @@ export function mergeAndDeduplicate(
 
     // AI 来源: 降低阈值到 0.65，分类器置信度超过此值时覆盖 AI 的批次分类
     // 非 AI 来源 (osm/google 等): 保持更高阈值 0.90，尊重可靠数据源的分类
-    const threshold = poi.source === 'ai' ? 0.65 : 0.90
+    const threshold = poi.source === 'qwen' ? 0.65 : 0.90
 
     if (classification.confidence > threshold && classification.l1 !== poi.categoryL1) {
       poi.categoryL1 = classification.l1

@@ -56,7 +56,7 @@ function computeCompleteness(poi: any): number {
 function computeConfidence(poi: any): number {
   // 已存储的 POI 都是合并后的单源数据
   const source = poi.source || 'unknown'
-  const bonus: Record<string, number> = { osm: 15, google: 10, foursquare: 10, amap: 10, ai: 5 }
+  const bonus: Record<string, number> = { osm: 15, google: 10, foursquare: 10, amap: 10, qwen: 5 }
   return 50 + (bonus[source] || 5)
 }
 

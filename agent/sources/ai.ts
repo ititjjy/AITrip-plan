@@ -165,7 +165,7 @@ async function callDashScope(prompt: string): Promise<any[]> {
 
 /* ── Raw Response → RawPOI ── */
 
-export function transformItem(item: any, l1: L1Category, sourceName = 'ai'): RawPOI {
+export function transformItem(item: any, l1: L1Category, sourceName = 'qwen'): RawPOI {
   // 尝试从 subCategory 映射到 L3
   const subCat = String(item.subCategory || '')
   const mapped = subCat ? externalCategoryToL3('google', subCat) : null
@@ -244,7 +244,7 @@ export function normalizeName(name: string): string {
 }
 
 export class AICollector implements SourceCollector {
-  readonly name = 'ai'
+  readonly name = 'qwen'
 
   async isAvailable(): Promise<boolean> {
     return !!API_KEYS.dashscope

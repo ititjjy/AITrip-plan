@@ -137,7 +137,7 @@ export function selectIncrementalSources(
 ): SourceCollector[] {
   if (fullRefresh) return allCollectors
 
-  const priority = ['osm', 'ai', 'spark', 'doubao', 'foursquare', 'amap', 'google']
+  const priority = ['osm', 'qwen', 'spark', 'doubao', 'foursquare', 'amap', 'google']
   const sorted = [...allCollectors].sort((a, b) => {
     const ia = priority.indexOf(a.name)
     const ib = priority.indexOf(b.name)
@@ -347,7 +347,7 @@ function augmentPOI(existing: POI, newData: RawPOI): POI {
   }
 
   // 评分: 优先非 AI 来源
-  if (newData.rating && newData.source !== 'ai') {
+  if (newData.rating && newData.source !== 'qwen') {
     if (!updated.rating || updated.rating === 0) {
       updated.rating = newData.rating
     }

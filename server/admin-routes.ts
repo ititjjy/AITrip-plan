@@ -1477,4 +1477,202 @@ router.post('/pending/confirm-batch', (req: Request, res: Response) => {
   }
 })
 
+/* ── Collection Status APIs ── */
+
+/** Safe JSON parse helper */
+function tryParseJSON(str: string | null | undefined): any {
+  if (!str) return {}
+  try { return JSON.parse(str) }
+  catch { return {} }
+}
+
+// GET /api/admin/collection/cities — 城市采集情况总览
+router.get('/collection/cities', (_req: Request, res: Response) => {
+  try {
+    const db = getAgentDB()
+    const registry = loadCityRegistry()
+
+    // 1. raw_pois 按 city_id 分组
+    const rawRows = db.prepare(`
+      SELECT city_id, source, items_count, collected_at
+      FROM raw_pois
+      ORDER BY collected_at DESC
+    `).all() as { city_id: string; source: string; items_count: number; collected_at: number }[]
+
+    // 2. collection_logs 聚合
+    const logAgg = db.prepare(`
+      SELECT
+        city_id,
+        COUNT(*) as log_count,
+        MIN(created_at) as first_collection_at,
+        MAX(created_at) as last_collection_at
+      FROM collection_logs
+      GROUP BY city_id
+    `).all() as { city_id: string; log_count: number; first_collection_at: number; last_collection_at: number }[]
+
+    const logMap = new Map(logAgg.map(r => [r.city_id, r]))
+
+    // 3. 按 city_id 聚合 raw_pois
+    const cityRawMap = new Map<string, { sources: { source: string; items_count: number; collected_at: number }[] }>()
+    for (const row of rawRows) {
+      if (!cityRawMap.has(row.city_id)) {
+        cityRawMap.set(row.city_id, { sources: [] })
+      }
+      cityRawMap.get(row.city_id)!.sources.push({
+        source: row.source,
+        items_count: row.items_count,
+        collected_at: row.collected_at,
+      })
+    }
+
+    // 4. 合并所有城市
+    const allCityIds = new Set<string>([
+      ...cityRawMap.keys(),
+      ...logMap.keys(),
+    ])
+
+    const cities = Array.from(allCityIds).map(cityId => {
+      const record = registry.find(c => c.id === cityId)
+      const raw = cityRawMap.get(cityId)
+      const log = logMap.get(cityId)
+
+      return {
+        cityId,
+        cityName: record?.name || cityId,
+        cityNameEn: record?.nameEn || '',
+        sources: raw?.sources || [],
+        sourceCount: raw?.sources.length || 0,
+        totalItems: raw?.sources.reduce((sum, s) => sum + s.items_count, 0) || 0,
+        firstCollectionAt: log?.first_collection_at || null,
+        lastCollectionAt: log?.last_collection_at || null,
+        collectionCount: log?.log_count || 0,
+      }
+    })
+
+    // 按最近采集时间降序排列
+    cities.sort((a, b) => (b.lastCollectionAt || 0) - (a.lastCollectionAt || 0))
+
+    // 统计概要
+    const summary = {
+      totalCities: cities.length,
+      totalSources: new Set(rawRows.map(r => r.source)).size,
+      lastCollectionAt: cities.length > 0 ? cities[0].lastCollectionAt : null,
+    }
+
+    res.json({ success: true, data: { summary, cities } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+// GET /api/admin/collection/city/:cityId — 单城市采集日志详情
+router.get('/collection/city/:cityId', (req: Request, res: Response) => {
+  try {
+    const cityId = req.params.cityId as string
+    const db = getAgentDB()
+    const registry = loadCityRegistry()
+    const record = registry.find(c => c.id === cityId)
+
+    // 1. collection_logs 按时间降序
+    const logs = db.prepare(`
+      SELECT id, source, status, items_collected, items_accepted, error_message, duration_ms, created_at, by_category
+      FROM collection_logs
+      WHERE city_id = ?
+      ORDER BY created_at DESC
+    `).all(cityId) as any[]
+
+    const parsedLogs = logs.map(log => ({
+      ...log,
+      by_category: tryParseJSON(log.by_category),
+    }))
+
+    // 2. raw_pois 当前状态
+    const rawSources = db.prepare(`
+      SELECT source, items_count, collected_at
+      FROM raw_pois
+      WHERE city_id = ?
+      ORDER BY collected_at DESC
+    `).all(cityId) as { source: string; items_count: number; collected_at: number }[]
+
+    // 3. collection_batches 中涉及该城市的批次
+    const allBatches = db.prepare(`
+      SELECT id, batch_type, status, started_at, completed_at, cities_count, config, results
+      FROM collection_batches
+      ORDER BY id DESC
+      LIMIT 50
+    `).all() as any[]
+
+    const relatedBatches = allBatches.filter(batch => {
+      try {
+        const config = JSON.parse(batch.config || '{}')
+        return config.cities && Array.isArray(config.cities) && config.cities.includes(cityId)
+      } catch {
+        return false
+      }
+    }).map(batch => ({
+      id: batch.id,
+      batchType: batch.batch_type,
+      status: batch.status,
+      startedAt: batch.started_at,
+      completedAt: batch.completed_at,
+      citiesCount: batch.cities_count,
+      config: tryParseJSON(batch.config),
+      results: tryParseJSON(batch.results),
+    }))
+
+    // 4. 汇总统计
+    const totalRawItems = rawSources.reduce((sum, s) => sum + s.items_count, 0)
+    const firstLog = logs.length > 0 ? logs[logs.length - 1] : null
+    const lastLog = logs.length > 0 ? logs[0] : null
+
+    res.json({
+      success: true,
+      data: {
+        cityId,
+        cityName: record?.name || cityId,
+        cityNameEn: record?.nameEn || '',
+        totalRawItems,
+        collectionCount: logs.length,
+        firstCollectionAt: firstLog?.created_at || null,
+        lastCollectionAt: lastLog?.created_at || null,
+        rawSources,
+        logs: parsedLogs,
+        batches: relatedBatches,
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+// GET /api/admin/collection/batches — 采集批次历史
+router.get('/collection/batches', (req: Request, res: Response) => {
+  try {
+    const db = getAgentDB()
+    const limit = Math.min(100, Number(req.query.limit) || 20)
+
+    const batches = db.prepare(`
+      SELECT id, batch_type, status, started_at, completed_at, cities_count, config, results
+      FROM collection_batches
+      ORDER BY id DESC
+      LIMIT ?
+    `).all(limit) as any[]
+
+    const parsedBatches = batches.map(batch => ({
+      id: batch.id,
+      batchType: batch.batch_type,
+      status: batch.status,
+      startedAt: batch.started_at,
+      completedAt: batch.completed_at,
+      citiesCount: batch.cities_count,
+      config: tryParseJSON(batch.config),
+      results: tryParseJSON(batch.results),
+    }))
+
+    res.json({ success: true, data: parsedBatches })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
 export default router

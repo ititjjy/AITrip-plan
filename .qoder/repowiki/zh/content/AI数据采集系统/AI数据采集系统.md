@@ -11,6 +11,9 @@
 - [agent/sources/base.ts](file://agent/sources/base.ts)
 - [agent/sources/ai.ts](file://agent/sources/ai.ts)
 - [agent/sources/google.ts](file://agent/sources/google.ts)
+- [agent/sources/spark.ts](file://agent/sources/spark.ts)
+- [agent/sources/doubao.ts](file://agent/sources/doubao.ts)
+- [agent/translate.ts](file://agent/translate.ts)
 - [agent/db.ts](file://agent/db.ts)
 - [agent/config.ts](file://agent/config.ts)
 - [agent/incremental.ts](file://agent/incremental.ts)
@@ -36,9 +39,11 @@
 
 ## 项目概述
 
-AI数据采集系统是一个基于人工智能的大规模POI（兴趣点）数据采集平台，支持多源数据集成、智能数据清洗和质量评估。系统采用插件化架构设计，能够灵活集成多种AI和地图服务，包括Qwen、高德、Google等。
+AI数据采集系统是一个基于人工智能的大规模POI（兴趣点）数据采集平台，支持多源数据集成、智能数据清洗和质量评估。系统采用插件化架构设计，能够灵活集成多种AI和地图服务，包括Qwen、高德、Google、Spark和Doubao等。
 
 该系统的核心目标是为旅行规划应用提供高质量的POI数据，涵盖六大类目：景点、餐饮、购物、娱乐、体验和酒店。通过智能化的数据处理流程，确保采集到的数据具有高准确性、完整性和实用性。
+
+**更新** 新增Spark和Doubao AI提供程序支持，增强分类系统排除规则，新增翻译服务功能
 
 ## 系统架构
 
@@ -54,9 +59,12 @@ Collector[数据采集器]
 Merger[数据合并器]
 Classifier[分类器]
 Quality[质量评估]
+Translate[翻译服务]
 end
 subgraph "数据源层"
 AI[AI服务(Qwen)]
+Spark[Spark AI]
+Doubao[Doubao AI]
 Google[Google Places]
 Amap[高德地图]
 OSM[OpenStreetMap]
@@ -74,7 +82,8 @@ Scheduler --> Collector
 Collector --> Merger
 Merger --> Classifier
 Classifier --> Quality
-Quality --> DB
+Quality --> Translate
+Translate --> DB
 Collector --> DB
 DB --> Export
 Export --> Web
@@ -246,6 +255,20 @@ class AICollector {
 +buildPrompt() string
 +transformItem() RawPOI
 }
+class SparkCollector {
++string name = "spark"
++isAvailable() Promise~boolean~
++collect(city, categories) Promise~RawPOI[]~
++buildPrompt() string
++transformItem() RawPOI
+}
+class DoubaoCollector {
++string name = "doubao"
++isAvailable() Promise~boolean~
++collect(city, categories) Promise~RawPOI[]~
++buildPrompt() string
++transformItem() RawPOI
+}
 class GoogleCollector {
 +string name = "google"
 +isAvailable() Promise~boolean~
@@ -264,6 +287,8 @@ class OSMCollector {
 +collect(city, categories) Promise~RawPOI[]~
 }
 SourceCollector <|.. AICollector
+SourceCollector <|.. SparkCollector
+SourceCollector <|.. DoubaoCollector
 SourceCollector <|.. GoogleCollector
 SourceCollector <|.. AmapCollector
 SourceCollector <|.. OSMCollector
@@ -272,14 +297,18 @@ SourceCollector <|.. OSMCollector
 **图表来源**
 - [agent/sources/ai.ts:246-341](file://agent/sources/ai.ts#L246-L341)
 - [agent/sources/google.ts:167-202](file://agent/sources/google.ts#L167-L202)
+- [agent/sources/spark.ts:83-150](file://agent/sources/spark.ts#L83-L150)
+- [agent/sources/doubao.ts:81-148](file://agent/sources/doubao.ts#L81-L148)
 
 ### AI服务集成
 
-系统支持多种AI服务，其中Qwen作为主要的AI数据生成器：
+系统支持多种AI服务，包括Qwen、Spark和Doubao作为主要的AI数据生成器：
 
 **章节来源**
 - [agent/sources/ai.ts:1-342](file://agent/sources/ai.ts#L1-L342)
 - [agent/sources/google.ts:1-203](file://agent/sources/google.ts#L1-L203)
+- [agent/sources/spark.ts:1-150](file://agent/sources/spark.ts#L1-L150)
+- [agent/sources/doubao.ts:1-148](file://agent/sources/doubao.ts#L1-L148)
 
 ## 数据采集流程
 
@@ -464,6 +493,8 @@ Merge->>DB : 记录更新统计
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | VITE_DASHSCOPE_API_KEY | '' | Qwen API密钥 |
+| VITE_SPARK_APP_ID | '' | Spark API密钥 |
+| VITE_DOUBAO_API_KEY | '' | Doubao API密钥 |
 | FOURSQUARE_API_KEY | '' | Foursquare API密钥 |
 | GOOGLE_PLACES_API_KEY | '' | Google Places API密钥 |
 | AMAP_API_KEY | '' | 高德地图API密钥 |
@@ -511,14 +542,47 @@ Merge->>DB : 记录更新统计
 - [agent/index.ts:178-191](file://agent/index.ts#L178-L191)
 - [agent/utils.ts:127-129](file://agent/utils.ts#L127-L129)
 
+## 翻译服务功能
+
+### 多语言支持
+
+系统新增了翻译服务功能，支持POI数据的多语言处理：
+
+```mermaid
+flowchart TD
+Input[原始POI数据] --> Detect[语言检测]
+Detect --> Translate[翻译处理]
+Translate --> En[英文翻译]
+Translate --> Zh[中文翻译]
+En --> Output[多语言POI数据]
+Zh --> Output
+```
+
+**图表来源**
+- [agent/translate.ts:1-200](file://agent/translate.ts#L1-L200)
+
+### 翻译服务集成
+
+系统集成了多种翻译服务，包括但不限于：
+- 支持中英双语翻译
+- 智能语言检测
+- 批量翻译处理
+- 翻译质量评估
+
+**章节来源**
+- [agent/translate.ts:1-200](file://agent/translate.ts#L1-L200)
+
 ## 总结
 
 AI数据采集系统是一个功能完整、架构清晰的大规模POI数据处理平台。系统的主要特点包括：
 
-1. **插件化架构**：支持灵活扩展新的数据源和服务
-2. **智能算法**：采用先进的相似度计算和分类算法
+1. **插件化架构**：支持灵活扩展新的数据源和服务，现已支持Qwen、Spark、Doubao等多种AI提供程序
+2. **智能算法**：采用先进的相似度计算和分类算法，增强分类系统排除规则
 3. **质量保障**：多维度质量评估和自动修复机制
 4. **性能优化**：高效的并发处理和缓存策略
-5. **易用性**：提供完整的命令行工具和管理界面
+5. **多语言支持**：新增翻译服务功能，支持POI数据的多语言处理
+6. **易用性**：提供完整的命令行工具和管理界面
+
+**更新** 新增Spark和Doubao AI提供程序支持，增强分类系统排除规则，新增翻译服务功能
 
 该系统为旅行规划应用提供了高质量的POI数据支撑，能够满足大规模数据采集和处理的需求。通过持续的算法优化和架构改进，系统将继续提升数据质量和处理效率。

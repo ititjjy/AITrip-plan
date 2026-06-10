@@ -7,6 +7,8 @@ import POIDetail from './pages/POIDetail'
 import Updates from './pages/Updates'
 import PendingUpdates from './pages/PendingUpdates'
 import ReviewQueue from './pages/ReviewQueue'
+import CollectionDashboard from './pages/CollectionDashboard'
+import CollectionDetail from './pages/CollectionDetail'
 
 export default function App() {
   return (
@@ -16,6 +18,8 @@ export default function App() {
         <Route path="cities" element={<Cities />} />
         <Route path="pois" element={<POIBrowser />} />
         <Route path="pois/:id" element={<POIDetail />} />
+        <Route path="collection" element={<CollectionDashboard />} />
+        <Route path="collection/:cityId" element={<CollectionDetail />} />
         <Route path="updates" element={<Updates />} />
         <Route path="pending" element={<PendingUpdates />} />
         <Route path="review" element={<ReviewQueue />} />

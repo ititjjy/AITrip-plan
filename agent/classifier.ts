@@ -409,7 +409,7 @@ const SOURCE_RELIABILITY: Record<string, number> = {
   google: 2,
   foursquare: 2,
   amap: 2,
-  ai: 1,
+  qwen: 1,
 }
 
 function getSourceWeight(source: string): number {

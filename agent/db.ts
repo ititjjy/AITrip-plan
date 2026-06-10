@@ -84,6 +84,26 @@ function initTables() {
     db.exec('ALTER TABLE city_pois ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
   }
 
+  // collection_logs by_category 列 (安全 ALTER)
+  const logCols = db.prepare("PRAGMA table_info('collection_logs')").all() as any[]
+  if (!logCols.some(c => c.name === 'by_category')) {
+    db.exec("ALTER TABLE collection_logs ADD COLUMN by_category TEXT NOT NULL DEFAULT '{}'")
+  }
+
+  // 采集批次记录
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS collection_batches (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_type   TEXT NOT NULL,
+      status       TEXT NOT NULL,
+      started_at   INTEGER NOT NULL,
+      completed_at INTEGER,
+      cities_count INTEGER NOT NULL DEFAULT 0,
+      config       TEXT NOT NULL DEFAULT '{}',
+      results      TEXT NOT NULL DEFAULT '{}'
+    )
+  `)
+
   // 原始采集数据 (城市 × 来源，只保留最新一次)
   db.exec(`
     CREATE TABLE IF NOT EXISTS raw_pois (
@@ -164,13 +184,14 @@ export function logCollection(entry: {
   items_accepted: number
   error_message?: string
   duration_ms: number
+  byCategory?: Record<string, number>
 }): void {
   const d = getDB()
   d.prepare(`
-    INSERT INTO collection_logs (city_id, source, status, items_collected, items_accepted, error_message, duration_ms)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO collection_logs (city_id, source, status, items_collected, items_accepted, error_message, duration_ms, by_category)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(entry.city_id, entry.source, entry.status, entry.items_collected, entry.items_accepted,
-    entry.error_message || '', entry.duration_ms)
+    entry.error_message || '', entry.duration_ms, JSON.stringify(entry.byCategory || {}))
 }
 
 /* ── 城市统计 ── */
@@ -447,6 +468,78 @@ export function applyPendingUpdate(cityId: string): number {
   return pois.length
 }
 
+
+/* ── Collection Batches ── */
+
+export interface CollectionBatch {
+  batch_type: 'init' | 'incremental'
+  status: 'running' | 'completed' | 'partial' | 'failed'
+  cities_count?: number
+  config?: Record<string, any>
+  results?: Record<string, any>
+}
+
+export function insertCollectionBatch(batch: CollectionBatch): number {
+  const d = getDB()
+  const result = d.prepare(`
+    INSERT INTO collection_batches (batch_type, status, started_at, cities_count, config, results)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    batch.batch_type,
+    batch.status,
+    Date.now(),
+    batch.cities_count ?? 0,
+    JSON.stringify(batch.config || {}),
+    JSON.stringify(batch.results || {}),
+  )
+  return Number(result.lastInsertRowid)
+}
+
+export function updateCollectionBatch(id: number, updates: {
+  status?: string
+  cities_count?: number
+  config?: Record<string, any>
+  results?: Record<string, any>
+}): void {
+  const d = getDB()
+  const sets: string[] = []
+  const params: any[] = []
+
+  if (updates.status) {
+    sets.push('status = ?')
+    params.push(updates.status)
+    if (updates.status === 'completed' || updates.status === 'partial' || updates.status === 'failed') {
+      sets.push('completed_at = ?')
+      params.push(Date.now())
+    }
+  }
+  if (updates.cities_count !== undefined) {
+    sets.push('cities_count = ?')
+    params.push(updates.cities_count)
+  }
+  if (updates.config) {
+    sets.push('config = ?')
+    params.push(JSON.stringify(updates.config))
+  }
+  if (updates.results) {
+    sets.push('results = ?')
+    params.push(JSON.stringify(updates.results))
+  }
+
+  if (sets.length === 0) return
+  params.push(id)
+  d.prepare(`UPDATE collection_batches SET ${sets.join(', ')} WHERE id = ?`).run(...params)
+}
+
+export function getCollectionBatches(limit: number = 20): any[] {
+  const d = getDB()
+  return d.prepare('SELECT * FROM collection_batches ORDER BY id DESC LIMIT ?').all(limit)
+}
+
+export function getCollectionBatch(id: number): any | null {
+  const d = getDB()
+  return d.prepare('SELECT * FROM collection_batches WHERE id = ?').get(id) || null
+}
 
 /* ── Close ── */
 

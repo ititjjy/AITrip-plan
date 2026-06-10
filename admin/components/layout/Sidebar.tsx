@@ -9,12 +9,14 @@ import {
   ClipboardCheck,
   ChevronLeft,
   ChevronRight,
+  Activity,
 } from 'lucide-react'
 
 const navItems = [
   { to: '', icon: LayoutDashboard, label: '仪表盘', end: true },
   { to: 'cities', icon: MapPin, label: '城市管理' },
   { to: 'pois', icon: Database, label: 'POI 浏览' },
+  { to: 'collection', icon: Activity, label: '采集情况' },
   { to: 'updates', icon: RefreshCw, label: '数据更新' },
   { to: 'pending', icon: Clock, label: '待确认更新' },
   { to: 'review', icon: ClipboardCheck, label: '审核发布' },
