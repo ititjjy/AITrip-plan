@@ -274,8 +274,8 @@ export default function POIOverflowPage() {
             </div>
           </div>
 
-          {/* Remove button / confirm dialog */}
-          {!isConfirming ? (
+          {/* Remove button / confirm dialog — 必打卡POI不允许剔除，只能取消必打卡标记 */}
+          {!isMustVisit && !isConfirming && (
             <button
               onClick={() => handleRemovePOI(a.id)}
               className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-400 shadow-sm transition-all hover:bg-red-100 hover:text-red-600"
@@ -283,7 +283,8 @@ export default function POIOverflowPage() {
             >
               <X className="h-3 w-3" />
             </button>
-          ) : (
+          )}
+          {!isMustVisit && isConfirming && (
             <div className="absolute -top-3 -right-2 flex items-center gap-1 rounded-full border border-red-400 bg-white px-2 py-1 shadow-lg z-10">
               <button
                 onClick={handleConfirmRemove}
@@ -418,7 +419,7 @@ export default function POIOverflowPage() {
               </div>
             )}
 
-            {/* 必打卡仍排不下的极端情况 */}
+            {/* 必打卡仍排不下：必须延长天数 */}
             {mustVisitSkipped.length > 0 && (
               <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
                 <div className="flex items-start gap-3">
@@ -427,10 +428,10 @@ export default function POIOverflowPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-1 text-sm font-bold text-red-800">
-                      必打卡地点仍无法安排
+                      必打卡地点无法安排
                     </h3>
                     <p className="text-xs leading-relaxed text-red-700">
-                      以下必打卡地点因时间冲突，在当前 {originalDays} 天行程内仍无法排入：
+                      以下必打卡地点在当前 {originalDays} 天行程内无法排入：
                     </p>
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {mustVisitSkipped.map(a => (
@@ -440,16 +441,16 @@ export default function POIOverflowPage() {
                         </span>
                       ))}
                     </div>
-                    <p className="mt-2 text-xs text-red-600">
-                      建议延长行程天数，或取消部分必打卡标记。
+                    <p className="mt-2 text-xs font-semibold text-red-700">
+                      必打卡地点为行程刚需，必须延长行程天数才能安排。如果不延长，只能取消必打卡标记。
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 需要剔除的POI提示 */}
-            {sacrificePOIs.length > 0 && scheduledMustVisit.length > 0 && (
+            {/* 需要剔除的POI提示：只有必打卡全部能排入时才显示剔除建议 */}
+            {sacrificePOIs.length > 0 && mustVisitSkipped.length === 0 && scheduledMustVisit.length > 0 && (
               <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100">
@@ -526,8 +527,10 @@ export default function POIOverflowPage() {
                   建议延长行程天数
                 </h3>
                 <p className="mb-3 text-xs leading-relaxed text-blue-700">
-                  按照您选择的地点，建议至少增加 <span className="font-bold text-blue-900">{minExtraDays}</span> 天，
-                  即可容纳所有地点。
+                  {mustVisitSkipped.length > 0
+                    ? <>必打卡地点 <span className="font-bold text-red-700">{mustVisitSkipped.map(a => a.nameZh || a.name).join('、')}</span> 必须延长天数才能安排，建议至少增加 <span className="font-bold text-blue-900">{minExtraDays}</span> 天。</>
+                    : <>按照您选择的地点，建议至少增加 <span className="font-bold text-blue-900">{minExtraDays}</span> 天，即可容纳所有地点。</>
+                  }
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
@@ -538,14 +541,17 @@ export default function POIOverflowPage() {
                     <Plus className="h-3.5 w-3.5" />
                     延长 {minExtraDays} 天
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRejectExtend}
-                    className="gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50"
-                  >
-                    不延长，我来调整
-                  </Button>
+                  {/* 有必打卡排不下时，不提供"不延长"选项——必须延长或取消必打卡 */}
+                  {mustVisitSkipped.length === 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRejectExtend}
+                      className="gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50"
+                    >
+                      不延长，我来调整
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

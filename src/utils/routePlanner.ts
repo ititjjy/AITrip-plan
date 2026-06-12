@@ -979,6 +979,14 @@ export function generateItinerary(
       nonFoodPOIs, startLat, startLng, endLat, endLng,
     )
 
+    // 4a+. 必打卡POI优先排入：将必打卡POI移到路由序列前面
+    // 这样在构建时间表时，必打卡POI先占位，非必打卡POI围绕它们填充
+    if (mustVisitSet.size > 0) {
+      const mustVisit = routedPOIs.filter(p => mustVisitSet.has(p.id))
+      const others = routedPOIs.filter(p => !mustVisitSet.has(p.id))
+      routedPOIs = [...mustVisit, ...others]
+    }
+
     // 4b. 2-opt improvement (with end hotel as destination)
     routedPOIs = twoOptImprove(routedPOIs, startLat, startLng, endLat, endLng)
 
