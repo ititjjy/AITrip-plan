@@ -673,61 +673,35 @@ function autoFillGaps(
 
 function resolveOverlaps(
   schedule: ScheduledPOI[],
-  mustVisitIds?: Set<string>,
 ): ScheduledPOI[] {
   if (schedule.length <= 1) return schedule
+  const sorted = [...schedule].sort((a, b) => a.startMin - b.startMin)
+  const resolved: ScheduledPOI[] = [sorted[0]]
 
-  // Sort by start time, must-visit POIs first for equal times
-  const sorted = [...schedule].sort((a, b) => {
-    const aMust = mustVisitIds?.has(a.attraction.id) ? 0 : 1
-    const bMust = mustVisitIds?.has(b.attraction.id) ? 0 : 1
-    if (aMust !== bMust) return aMust - bMust
-    return a.startMin - b.startMin
-  })
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = resolved[resolved.length - 1]
+    const cur = sorted[i]
+    const dist = haversine(
+      prev.attraction.lat, prev.attraction.lng,
+      cur.attraction.lat, cur.attraction.lng,
+    )
+    const travel = travelMinutes(dist)
+    const earliestStart = prev.endMin + travel
 
-  const resolved: ScheduledPOI[] = []
-
-  for (const cur of sorted) {
-    // Find the latest resolved item that this could follow
-    let earliestStart = DAY_START
-    let bestPrevIdx = -1
-    for (let j = resolved.length - 1; j >= 0; j--) {
-      const prev = resolved[j]
-      const dist = haversine(prev.attraction.lat, prev.attraction.lng, cur.attraction.lat, cur.attraction.lng)
-      const travel = travelMinutes(dist)
-      const candidateStart = prev.endMin + travel
-      if (candidateStart <= cur.startMin + 30) { // 30min tolerance
-        bestPrevIdx = j
-        earliestStart = candidateStart
-        break
+    if (cur.startMin < earliestStart) {
+      const newStart = findEarliestOpenSlot(cur.attraction, earliestStart)
+      if (newStart !== -1 && newStart + cur.attraction.duration <= DAY_END) {
+        resolved.push({
+          ...cur,
+          startMin: newStart,
+          endMin: newStart + cur.attraction.duration,
+        })
       }
-    }
-
-    if (bestPrevIdx === -1 && resolved.length > 0) {
-      // Must come after all resolved items
-      const last = resolved[resolved.length - 1]
-      const dist = haversine(last.attraction.lat, last.attraction.lng, cur.attraction.lat, cur.attraction.lng)
-      const travel = travelMinutes(dist)
-      earliestStart = last.endMin + travel
-    }
-
-    const actualStart = findEarliestOpenSlot(cur.attraction, Math.max(cur.startMin, earliestStart))
-
-    if (actualStart !== -1 && actualStart + cur.attraction.duration <= DAY_END) {
-      resolved.push({
-        ...cur,
-        startMin: actualStart,
-        endMin: actualStart + cur.attraction.duration,
-      })
-    } else if (mustVisitIds?.has(cur.attraction.id)) {
-      // 必打卡POI即使超出时间窗口也要保留，最终排序会把它放到正确位置
+      // else skip – can't fit
+    } else {
       resolved.push(cur)
     }
-    // else: 非必打卡排不下就跳过
   }
-
-  // Final sort by start time
-  resolved.sort((a, b) => a.startMin - b.startMin)
   return resolved
 }
 
@@ -1019,100 +993,60 @@ export function generateItinerary(
       routedPOIs = [...mustVisit, ...others]
     }
 
-    // 4c. Build time schedule — 两阶段排程：必打卡优先占位，非必打卡填充
+    // 4c. Build time schedule — 单阶段顺序排程
+    // 严格按时间先后排入每个POI，绝不重叠
+    // 必打卡POI在路由中排在前面优先排入；排不下时缩短时长至75%
     let schedule: ScheduledPOI[] = []
-
-    // Pass 1: 必打卡POI — 强制排入，如果按顺序排不下就从DAY_START强制安排
     let curTime = DAY_START
     let curLat = startLat
     let curLng = startLng
 
     for (const poi of routedPOIs) {
-      if (!mustVisitSet.has(poi.id)) continue
+      const isMustVisit = mustVisitSet.has(poi.id)
       const dist = haversine(curLat, curLng, poi.lat, poi.lng)
       const travel = travelMinutes(dist)
       const arriveAt = curTime + travel
       let startTime = findEarliestOpenSlot(poi, arriveAt)
+      let effectiveDuration = poi.duration
 
-      // 如果按路线排不下，尝试从DAY_START或营业时间开始强制安排
       if (startTime === -1) {
-        const openMin = isValidTimeStr(poi.openTime) ? timeToMin(poi.openTime!) : DAY_START
-        startTime = findEarliestOpenSlot(poi, Math.max(openMin, DAY_START))
-      }
-      // 仍然排不下，尝试从DAY_START
-      if (startTime === -1) {
-        startTime = findEarliestOpenSlot(poi, DAY_START)
+        // 非必打卡POI排不下就跳过
+        if (!isMustVisit) continue
+        // 必打卡POI排不下：尝试缩短游玩时长（最低75%）
+        const minDuration = Math.floor(poi.duration * 0.75)
+        // 从当前时间的最大可用时间开始缩短
+        for (let tryDur = poi.duration - 1; tryDur >= minDuration; tryDur -= 15) {
+          // 创建缩短时长后的临时POI来检查时间窗口
+          const tempPoi = { ...poi, duration: tryDur }
+          const tryStart = findEarliestOpenSlot(tempPoi, arriveAt)
+          if (tryStart !== -1) {
+            startTime = tryStart
+            effectiveDuration = tryDur
+            break
+          }
+        }
+        // 如果当前时间之后仍排不下，尝试从DAY_START重新开始
+        if (startTime === -1) {
+          const openMin = isValidTimeStr(poi.openTime) ? timeToMin(poi.openTime!) : DAY_START
+          for (let tryDur = poi.duration; tryDur >= minDuration; tryDur -= 15) {
+            const tempPoi = { ...poi, duration: tryDur }
+            const tryStart = findEarliestOpenSlot(tempPoi, Math.max(openMin, DAY_START))
+            if (tryStart !== -1) {
+              startTime = tryStart
+              effectiveDuration = tryDur
+              break
+            }
+          }
+        }
       }
 
       if (startTime !== -1) {
-        schedule.push({ attraction: poi, startMin: startTime, endMin: startTime + poi.duration })
-        curTime = startTime + poi.duration
+        schedule.push({ attraction: poi, startMin: startTime, endMin: startTime + effectiveDuration })
+        curTime = startTime + effectiveDuration
         curLat = poi.lat
         curLng = poi.lng
       }
-    }
-
-    // Pass 2: 非必打卡POI — 在必打卡占位后的间隙中填充
-    // 逐个非必打卡POI，在必打卡已占位的间隙中寻找可插入的位置
-    const mustVisitSlots = schedule.map(s => ({
-      start: s.startMin, end: s.endMin, lat: s.attraction.lat, lng: s.attraction.lng,
-    }))
-
-    for (const poi of routedPOIs) {
-      if (mustVisitSet.has(poi.id)) continue // 已在Pass 1中处理
-
-      // 在必打卡间隙中寻找最佳插入位置
-      const candidates: { insertAfter: number; start: number }[] = []
-
-      // 选项1: 在第一个必打卡之前（如果有时闲）
-      if (mustVisitSlots.length > 0) {
-        const firstSlot = mustVisitSlots[0]
-        let d1 = haversine(startLat, startLng, poi.lat, poi.lng)
-        let t1 = travelMinutes(d1)
-        let a1 = DAY_START + t1
-        let s1 = findEarliestOpenSlot(poi, a1)
-        if (s1 !== -1 && s1 + poi.duration <= firstSlot.start - 10) {
-          candidates.push({ insertAfter: -1, start: s1 })
-        }
-
-        // 选项2: 在必打卡之间的间隙
-        for (let i = 0; i < mustVisitSlots.length - 1; i++) {
-          const gapStart = mustVisitSlots[i].end
-          const gapEnd = mustVisitSlots[i + 1].start
-          let d2 = haversine(mustVisitSlots[i].lat, mustVisitSlots[i].lng, poi.lat, poi.lng)
-          let t2 = travelMinutes(d2)
-          let a2 = gapStart + t2
-          let s2 = findEarliestOpenSlot(poi, a2)
-          if (s2 !== -1 && s2 + poi.duration <= gapEnd - 10) {
-            candidates.push({ insertAfter: i, start: s2 })
-          }
-        }
-
-        // 选项3: 在最后一个必打卡之后
-        const lastSlot = mustVisitSlots[mustVisitSlots.length - 1]
-        let d3 = haversine(lastSlot.lat, lastSlot.lng, poi.lat, poi.lng)
-        let t3 = travelMinutes(d3)
-        let a3 = lastSlot.end + t3
-        let s3 = findEarliestOpenSlot(poi, a3)
-        if (s3 !== -1 && s3 + poi.duration <= DAY_END) {
-          candidates.push({ insertAfter: mustVisitSlots.length - 1, start: s3 })
-        }
-      } else {
-        // 没有必打卡POI，正常排程
-        let d0 = haversine(startLat, startLng, poi.lat, poi.lng)
-        let t0 = travelMinutes(d0)
-        let a0 = DAY_START + t0
-        let s0 = findEarliestOpenSlot(poi, a0)
-        if (s0 !== -1 && s0 + poi.duration <= DAY_END) {
-          candidates.push({ insertAfter: -1, start: s0 })
-        }
-      }
-
-      // 选择最早开始时间的候选位置
-      if (candidates.length > 0) {
-        candidates.sort((a, b) => a.start - b.start)
-        schedule.push({ attraction: poi, startMin: candidates[0].start, endMin: candidates[0].start + poi.duration })
-      }
+      // 必打卡POI如果仍排不下（缩短时长后也不行），就跳过，最终出现在skippedPOIs中
     }
 
     // 4d. Insert user-selected meals at appropriate time slots
@@ -1263,9 +1197,9 @@ export function generateItinerary(
       schedule = autoFillGaps(schedule, cityId, usedIds, startLat, startLng)
     }
 
-    // 4g. Re-sort and resolve overlaps (pass mustVisitSet to preserve must-visit POIs)
+    // 4g. Re-sort and resolve overlaps
     schedule.sort((a, b) => a.startMin - b.startMin)
-    schedule = resolveOverlaps(schedule, mustVisitSet)
+    schedule = resolveOverlaps(schedule)
 
     // 4g. Convert to ItineraryItem[]
     const items: ItineraryItem[] = schedule.map((sp, idx) => ({
@@ -1366,7 +1300,7 @@ export function optimizeDayRoute(
 
   // Re-sort and resolve overlaps
   schedule.sort((a, b) => a.startMin - b.startMin)
-  schedule = resolveOverlaps(schedule, mustVisitSet)
+  schedule = resolveOverlaps(schedule)
 
   return schedule.map((sp, idx) => ({
     id: `opt-${Date.now()}-${idx}-${sp.attraction.id}`,
