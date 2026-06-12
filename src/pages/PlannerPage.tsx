@@ -155,7 +155,7 @@ export default function PlannerPage() {
             <div className="flex-1">
               <span className="font-medium">以下地点因时间排期限制未加入行程：</span>
               <span className="ml-1 text-amber-700">
-                {state.skippedPOIs.map(a => a.name).join('、')}
+                {state.skippedPOIs.map(a => a.nameZh || a.name).join('、')}
               </span>
               <button
                 onClick={() => dispatch({ type: 'SET_VIEW', payload: 'place-selection' })}

@@ -770,13 +770,13 @@ function enrichSeasonalIndex(attractions: Attraction[]): Attraction[] {
 }
 
 /**
- * Unified getter – returns TOP 20 per category for display.
+ * Unified getter – returns TOP 50 per category for display.
  * AI data takes priority; falls back to mock data.
  */
 export function getAttractions(cityId: string): Attraction[] {
   const all = _aiAttractions[cityId]
   if (all && all.length > 0) {
-    // Return top 20 per category
+    // Return top 50 per category
     const buckets: Record<string, Attraction[]> = {}
     for (const a of all) {
       if (!buckets[a.type]) buckets[a.type] = []
@@ -784,7 +784,7 @@ export function getAttractions(cityId: string): Attraction[] {
     }
     const result: Attraction[] = []
     for (const items of Object.values(buckets)) {
-      result.push(...items.slice(0, 20))
+      result.push(...items.slice(0, 50))
     }
     return result
   }
