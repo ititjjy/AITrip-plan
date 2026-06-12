@@ -517,12 +517,16 @@ function findAutoFillAttraction(
   gapStartMin: number,
   cityId: string,
   usedIds: Set<string>,
+  excludeTypes?: Attraction['type'][],
 ): Attraction | null {
   const allPOIs = getAllAttractions(cityId)
-  const validTypes = ['scenic', 'activity', 'shopping']
+  // 填充空白时段只考虑景点和娱乐，不选购物
+  const validTypes = ['scenic', 'activity']
+  const excludeSet = new Set(excludeTypes || [])
 
   const candidates = allPOIs.filter(a => {
     if (!validTypes.includes(a.type)) return false
+    if (excludeSet.has(a.type)) return false
     if (usedIds.has(a.id)) return false
     // Duration must fit in the gap (with some travel buffer)
     if (a.duration > availableMinutes - 15) return false
@@ -801,6 +805,7 @@ export function generateItinerary(
   // Assign each POI to the nearest day with available time budget,
   // with type-diversity bonus so no single day is overloaded with one category.
   // Must-visit POIs get priority: they bypass time budget constraint if needed.
+  // 购物类POI每天最多安排1个
   for (const { poi, dists, isMustVisit } of poisWithDist) {
     // Compute type-diversity penalty for each day
     const typePenalty = (dayIdx: number) => {
@@ -814,6 +819,12 @@ export function generateItinerary(
     let bestScore = Infinity
 
     for (let d = 0; d < numDays; d++) {
+      // 购物类POI：每天最多1个（必打卡除外，但也会被typePenalty严重惩罚）
+      if (poi.type === 'shopping') {
+        const shoppingCount = poisPerDay[d].filter(p => p.type === 'shopping').length
+        if (shoppingCount >= 1 && !isMustVisit) continue
+        if (shoppingCount >= 2) continue // 即使必打卡，也绝对不允许第3个购物
+      }
       const fitsBudget = dayTimeBudgets[d] + poi.duration <= maxDayMinutes
       // 必打卡 POI 无视时间预算限制，优先排入
       if (fitsBudget || isMustVisit) {
