@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   ArrowLeft, ArrowRight, Star, Clock, MapPin,
   AlertTriangle, Plus, Minus, Calendar, X, Loader2,
-  Heart, Check,
+  Heart, Check, Trash2,
 } from 'lucide-react'
 
 /* ── Format helpers ── */
@@ -40,6 +40,7 @@ export default function POIOverflowPage() {
   const [extendAccepted, setExtendAccepted] = useState(false)
   const [extendRejected, setExtendRejected] = useState(false)
   const [isProceeding, setIsProceeding] = useState(false)
+  const [confirmBatchRemove, setConfirmBatchRemove] = useState(false)
 
   // All user-selected attractions (reactive to removals)
   const selectedAttractions = useMemo(() => {
@@ -103,6 +104,24 @@ export default function POIOverflowPage() {
   const currentSkipped = planResult.skipped
   const canProceed = currentSkipped.length === 0
 
+  // 必打卡仍排不下的POI（极端情况：时间冲突即使必打卡也无法安排）
+  const mustVisitSkipped = useMemo(
+    () => currentSkipped.filter(a => state.mustVisitIds.includes(a.id)),
+    [currentSkipped, state.mustVisitIds]
+  )
+
+  // 非必打卡但被排下的POI（需要剔除以腾出时间给必打卡）
+  const sacrificePOIs = useMemo(
+    () => currentSkipped.filter(a => !state.mustVisitIds.includes(a.id)),
+    [currentSkipped, state.mustVisitIds]
+  )
+
+  // 已安排的必打卡POI
+  const scheduledMustVisit = useMemo(
+    () => scheduledPOIs.filter(a => state.mustVisitIds.includes(a.id)),
+    [scheduledPOIs, state.mustVisitIds]
+  )
+
   // Current skipped POI names
   const skippedNames = useMemo(
     () => currentSkipped.map(a => a.nameZh || a.name),
@@ -155,6 +174,20 @@ export default function POIOverflowPage() {
 
   const handleCancelRemove = () => {
     setConfirmRemoveId(null)
+  }
+
+  const handleBatchRemoveSacrifices = () => {
+    setConfirmBatchRemove(true)
+  }
+
+  const handleConfirmBatchRemove = () => {
+    const sacrificeIds = sacrificePOIs.map(a => a.id)
+    dispatch({ type: 'REMOVE_PLACES', payload: sacrificeIds })
+    setConfirmBatchRemove(false)
+  }
+
+  const handleCancelBatchRemove = () => {
+    setConfirmBatchRemove(false)
   }
 
   const handleNext = useCallback(() => {
@@ -362,6 +395,122 @@ export default function POIOverflowPage() {
             <div className="flex flex-wrap gap-1.5">
               {scheduledPOIs.map(renderScheduledBadge)}
             </div>
+          </div>
+        )}
+
+        {/* ── 必打卡引导交互 ── */}
+        {state.mustVisitIds.length > 0 && !canProceed && (
+          <div className="mb-6 space-y-3">
+            {/* 已成功安排的必打卡 */}
+            {scheduledMustVisit.length > 0 && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-3">
+                <p className="mb-1.5 text-xs font-semibold text-rose-700">
+                  💗 必打卡已安排（{scheduledMustVisit.length}个）
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {scheduledMustVisit.map(a => (
+                    <span key={a.id} className="inline-flex items-center gap-0.5 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-600 border border-rose-200">
+                      <Heart className="h-2.5 w-2.5 fill-current" />
+                      {a.nameZh || a.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 必打卡仍排不下的极端情况 */}
+            {mustVisitSkipped.length > 0 && (
+              <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-1 text-sm font-bold text-red-800">
+                      必打卡地点仍无法安排
+                    </h3>
+                    <p className="text-xs leading-relaxed text-red-700">
+                      以下必打卡地点因时间冲突，在当前 {originalDays} 天行程内仍无法排入：
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {mustVisitSkipped.map(a => (
+                        <span key={a.id} className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 border border-red-300">
+                          <Heart className="h-2.5 w-2.5 fill-current" />
+                          {a.nameZh || a.name}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-red-600">
+                      建议延长行程天数，或取消部分必打卡标记。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 需要剔除的POI提示 */}
+            {sacrificePOIs.length > 0 && scheduledMustVisit.length > 0 && (
+              <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-1 text-sm font-bold text-amber-800">
+                      为了安排必打卡地点，需要剔除以下地点
+                    </h3>
+                    <p className="mb-2 text-xs leading-relaxed text-amber-700">
+                      为优先安排必打卡
+                      <span className="font-semibold">
+                        {scheduledMustVisit.map(a => a.nameZh || a.name).join('、')}
+                      </span>
+                      ，以下 {sacrificePOIs.length} 个地点需要被剔除：
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {sacrificePOIs.map(a => (
+                        <span key={a.id} className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 border border-amber-200">
+                          {a.nameZh || a.name}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* 一键剔除按钮 */}
+                    {!confirmBatchRemove ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBatchRemoveSacrifices}
+                        className="mt-3 gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-100"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        一键剔除以上 {sacrificePOIs.length} 个地点
+                      </Button>
+                    ) : (
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-300 bg-white p-2">
+                        <p className="text-xs text-red-700">
+                          确认剔除 <span className="font-bold">{sacrificePOIs.length}</span> 个地点？
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={handleConfirmBatchRemove}
+                          className="h-7 bg-red-600 hover:bg-red-700 text-white text-xs px-2"
+                        >
+                          确认剔除
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleCancelBatchRemove}
+                          className="h-7 text-xs px-2"
+                        >
+                          取消
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
