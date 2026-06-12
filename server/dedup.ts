@@ -47,6 +47,47 @@ interface POI {
   seasonScore?: number
 }
 
+/**
+ * 将新格式 POI 归一化为旧格式（dedup 内部统一使用旧字段名）
+ *
+ * 新格式来自 spark 采集管道：
+ *   namePrimary → name, categoryL1 → type, visitDuration → duration,
+ *   operatingHours → openTime/closeTime
+ */
+function normalizePOI(poi: any): POI {
+  // 已经是旧格式（有 name 和 type）则直接返回
+  if (poi.name && poi.type) return poi as POI
+
+  // 从 operatingHours 解析 openTime / closeTime
+  let openTime = poi.openTime || ''
+  let closeTime = poi.closeTime || ''
+  if (!openTime && poi.operatingHours) {
+    const match = String(poi.operatingHours).match(/(\d{1,2}:\d{2})\s*[-~]\s*(\d{1,2}:\d{2})/)
+    if (match) { openTime = match[1]; closeTime = match[2] }
+  }
+
+  return {
+    id: poi.id || '',
+    name: poi.namePrimary || poi.name || '',
+    nameZh: poi.nameZh || '',
+    type: poi.categoryL1 || poi.type || 'scenic',
+    image: poi.image || '',
+    rating: poi.rating || 0,
+    duration: poi.visitDuration || poi.duration || 0,
+    cost: poi.cost || 0,
+    description: poi.description || '',
+    address: poi.address || '',
+    lat: poi.lat || 0,
+    lng: poi.lng || 0,
+    tags: poi.tags || [],
+    openTime,
+    closeTime,
+    recommendReason: poi.recommendReason || '',
+    mealType: poi.mealType,
+    seasonScore: poi.seasonScore,
+  }
+}
+
 /* ═══════════════════════ 1. 字符串相似度 ═══════════════════════ */
 
 /**
@@ -585,10 +626,13 @@ function isInvalidPOI(poi: POI): boolean {
  *   7. 与 food 类型合并返回
  */
 export function deduplicatePOIs(
-  pois: POI[],
+  rawPois: POI[],
   threshold = 0.9,
 ): { pois: POI[]; stats: DedupStats } {
-  // 0. 过滤无效 POI
+  // 0. 归一化 POI 格式（兼容新旧数据）
+  const pois = rawPois.map(normalizePOI)
+
+  // 1. 过滤无效 POI
   const validPOIs: POI[] = []
   let invalidCount = 0
   for (const poi of pois) {
