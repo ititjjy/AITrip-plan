@@ -104,6 +104,18 @@ export default function POIOverflowPage() {
   const currentSkipped = planResult.skipped
   const canProceed = currentSkipped.length === 0
 
+  // Current skipped POI names
+  const skippedNames = useMemo(
+    () => currentSkipped.map(a => a.nameZh || a.name),
+    [currentSkipped]
+  )
+
+  // Already-scheduled POIs
+  const scheduledPOIs = useMemo(
+    () => selectedAttractions.filter(a => !currentSkipped.some(s => s.id === a.id)),
+    [selectedAttractions, currentSkipped]
+  )
+
   // 必打卡仍排不下的POI（极端情况：时间冲突即使必打卡也无法安排）
   const mustVisitSkipped = useMemo(
     () => currentSkipped.filter(a => state.mustVisitIds.includes(a.id)),
@@ -120,18 +132,6 @@ export default function POIOverflowPage() {
   const scheduledMustVisit = useMemo(
     () => scheduledPOIs.filter(a => state.mustVisitIds.includes(a.id)),
     [scheduledPOIs, state.mustVisitIds]
-  )
-
-  // Current skipped POI names
-  const skippedNames = useMemo(
-    () => currentSkipped.map(a => a.nameZh || a.name),
-    [currentSkipped]
-  )
-
-  // Already-scheduled POIs
-  const scheduledPOIs = useMemo(
-    () => selectedAttractions.filter(a => !currentSkipped.some(s => s.id === a.id)),
-    [selectedAttractions, currentSkipped]
   )
 
   if (!trip || !city) return null
