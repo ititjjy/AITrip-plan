@@ -6,6 +6,7 @@ import CreateTripPage from '@/pages/CreateTripPage'
 import HotelStepPage from '@/pages/HotelStepPage'
 import HotelDetailPage from '@/pages/HotelDetailPage'
 import PlaceSelectionPage from '@/pages/PlaceSelectionPage'
+import POIOverflowPage from '@/pages/POIOverflowPage'
 import PlannerPage from '@/pages/PlannerPage'
 import OverviewPage from '@/pages/OverviewPage'
 import AttractionDetailPage from '@/pages/AttractionDetailPage'
@@ -28,6 +29,8 @@ function AppContent() {
       return <HotelDetailPage />
     case 'place-selection':
       return <PlaceSelectionPage />
+    case 'poi-overflow':
+      return <POIOverflowPage />
     case 'planner':
       return <PlannerPage />
     case 'overview':

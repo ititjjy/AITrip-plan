@@ -19,6 +19,8 @@ interface AppState {
   savedTripId: string | null
   /** POIs selected by user but not scheduled in the itinerary */
   skippedPOIs: Attraction[]
+  /** IDs of POIs marked as must-visit by user (优先安排) */
+  mustVisitIds: string[]
 }
 
 type Action =
@@ -33,6 +35,7 @@ type Action =
   | { type: 'SET_DAY_HOTEL'; payload: { dayIndex: number; hotel: HotelPOI | null } }
   | { type: 'SET_DAYS_HOTEL'; payload: { dayIndices: number[]; hotel: HotelPOI | null } }
   | { type: 'TOGGLE_PLACE'; payload: string }
+  | { type: 'REMOVE_PLACES'; payload: string[] }
   | { type: 'SET_ALL_DAYS_ITEMS'; payload: { dayItems: ItineraryItem[][]; skippedPOIs?: Attraction[] } }
   | { type: 'VIEW_DETAIL'; payload: string }
   | { type: 'VIEW_HOTEL_DETAIL'; payload: string }
@@ -40,6 +43,8 @@ type Action =
   | { type: 'TOGGLE_ATTRACTION_PANEL' }
   | { type: 'PRE_SELECT_CITY'; payload: string | null }
   | { type: 'SET_SAVED_TRIP_ID'; payload: string | null }
+  | { type: 'TOGGLE_MUST_VISIT'; payload: string }
+  | { type: 'EXTEND_TRIP_DAYS'; payload: number }
   | { type: 'RESET' }
 
 const initialState: AppState = {
@@ -54,6 +59,7 @@ const initialState: AppState = {
   detailHotelData: null,
   savedTripId: null,
   skippedPOIs: [],
+  mustVisitIds: [],
 }
 
 function generateDays(startDate: string, endDate: string): DayPlan[] {
@@ -94,7 +100,7 @@ function appReducer(state: AppState, action: Action): AppState {
       if (!hasExistingDays) {
         trip.days = generateDays(trip.startDate, trip.endDate)
       }
-      return { ...state, currentTrip: trip, currentView: hasExistingDays ? state.currentView : 'hotel-step', selectedDayIndex: 0, selectedPlaceIds: [], skippedPOIs: [] }
+      return { ...state, currentTrip: trip, currentView: hasExistingDays ? state.currentView : 'hotel-step', selectedDayIndex: 0, selectedPlaceIds: [], skippedPOIs: [], mustVisitIds: [] }
     }
 
     case 'SELECT_DAY':
@@ -169,9 +175,20 @@ function appReducer(state: AppState, action: Action): AppState {
     case 'TOGGLE_PLACE': {
       const id = action.payload
       const ids = state.selectedPlaceIds
+      const newIds = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
       return {
         ...state,
-        selectedPlaceIds: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+        selectedPlaceIds: newIds,
+        mustVisitIds: state.mustVisitIds.filter(mid => newIds.includes(mid)),
+      }
+    }
+
+    case 'REMOVE_PLACES': {
+      const removeIds = new Set(action.payload)
+      return {
+        ...state,
+        selectedPlaceIds: state.selectedPlaceIds.filter(id => !removeIds.has(id)),
+        mustVisitIds: state.mustVisitIds.filter(id => !removeIds.has(id)),
       }
     }
 
@@ -186,6 +203,50 @@ function appReducer(state: AppState, action: Action): AppState {
         ...state,
         currentTrip: { ...state.currentTrip, days: newDaysAll, totalBudget: recalcBudget(newDaysAll) },
         skippedPOIs: skippedPOIs || [],
+      }
+    }
+
+    case 'TOGGLE_MUST_VISIT': {
+      const id = action.payload
+      return {
+        ...state,
+        mustVisitIds: state.mustVisitIds.includes(id)
+          ? state.mustVisitIds.filter(x => x !== id)
+          : [...state.mustVisitIds, id],
+      }
+    }
+
+    case 'EXTEND_TRIP_DAYS': {
+      if (!state.currentTrip) return state
+      const extraDays = action.payload
+      const trip = state.currentTrip
+      const lastDay = trip.days[trip.days.length - 1]
+      const newEndDate = new Date(lastDay.date)
+      newEndDate.setDate(newEndDate.getDate() + extraDays)
+      const newDays = [...trip.days]
+      let dayNum = newDays.length + 1
+      const current = new Date(lastDay.date)
+      current.setDate(current.getDate() + 1)
+      const end = newEndDate
+      while (current <= end) {
+        newDays.push({
+          id: `day-${dayNum}`,
+          date: current.toISOString().split('T')[0],
+          dayNumber: dayNum,
+          items: [],
+          notes: '',
+          hotel: lastDay.hotel || null,
+        })
+        dayNum++
+        current.setDate(current.getDate() + 1)
+      }
+      return {
+        ...state,
+        currentTrip: {
+          ...trip,
+          days: newDays,
+          endDate: newEndDate.toISOString().split('T')[0],
+        },
       }
     }
 

@@ -245,9 +245,15 @@ export default function PlaceSelectionPage() {
         try {
           const result = generateItinerary(selectedAttractions, trip.days, city.id)
           dispatch({ type: 'SET_ALL_DAYS_ITEMS', payload: { dayItems: result.dayItems, skippedPOIs: result.skippedPOIs } })
+          setIsPlanning(false)
+          // If POIs were skipped, go to overflow page for guided adjustment
+          if (result.skippedPOIs && result.skippedPOIs.length > 0) {
+            dispatch({ type: 'SET_VIEW', payload: 'poi-overflow' })
+          } else {
+            dispatch({ type: 'SET_VIEW', payload: 'planner' })
+          }
         } catch (e) { console.error('Route planning failed:', e) }
         setIsPlanning(false)
-        dispatch({ type: 'SET_VIEW', payload: 'planner' })
       }, 100)
     } else {
       dispatch({ type: 'SET_VIEW', payload: 'planner' })

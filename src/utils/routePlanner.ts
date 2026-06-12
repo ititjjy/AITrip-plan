@@ -724,6 +724,7 @@ export function generateItinerary(
   selectedAttractions: Attraction[],
   days: DayPlan[],
   cityId?: string,
+  mustVisitIds?: string[],
 ): PlanResult {
   const numDays = days.length
   if (numDays === 0 || selectedAttractions.length === 0) {
@@ -784,16 +785,23 @@ export function generateItinerary(
   // 用户主动选择的POI尽量不丢弃：时间预算放宽到85%（约11.9小时/14小时）
   const maxDayMinutes = (DAY_END - DAY_START) * 0.85
 
-  // Sort regularPOIs by distance to nearest centroid (assign close ones first)
+  // Sort regularPOIs: must-visit POIs first, then by distance to nearest centroid
+  const mustVisitSet = new Set(mustVisitIds || [])
   const poisWithDist = regularPOIs.map(poi => ({
     poi,
+    isMustVisit: mustVisitSet.has(poi.id),
     dists: centroids.map(c => haversine(poi.lat, poi.lng, c.lat, c.lng)),
   }))
-  poisWithDist.sort((a, b) => Math.min(...a.dists) - Math.min(...b.dists))
+  // 必打卡优先分配，保证不被丢弃
+  poisWithDist.sort((a, b) => {
+    if (a.isMustVisit !== b.isMustVisit) return a.isMustVisit ? -1 : 1
+    return Math.min(...a.dists) - Math.min(...b.dists)
+  })
 
   // Assign each POI to the nearest day with available time budget,
   // with type-diversity bonus so no single day is overloaded with one category.
-  for (const { poi, dists } of poisWithDist) {
+  // Must-visit POIs get priority: they bypass time budget constraint if needed.
+  for (const { poi, dists, isMustVisit } of poisWithDist) {
     // Compute type-diversity penalty for each day
     const typePenalty = (dayIdx: number) => {
       const dayPois = poisPerDay[dayIdx]
@@ -806,7 +814,9 @@ export function generateItinerary(
     let bestScore = Infinity
 
     for (let d = 0; d < numDays; d++) {
-      if (dayTimeBudgets[d] + poi.duration <= maxDayMinutes) {
+      const fitsBudget = dayTimeBudgets[d] + poi.duration <= maxDayMinutes
+      // 必打卡 POI 无视时间预算限制，优先排入
+      if (fitsBudget || isMustVisit) {
         // Score = distance (km) + type-diversity penalty (min equivalent)
         const score = dists[d] + typePenalty(d)
         if (score < bestScore) {

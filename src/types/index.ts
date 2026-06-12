@@ -139,6 +139,7 @@ export type AppView =
   | 'hotel-step'
   | 'hotel-detail'
   | 'place-selection'
+  | 'poi-overflow'
   | 'planner'
   | 'overview'
   | 'detail'
