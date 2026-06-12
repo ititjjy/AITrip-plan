@@ -69,13 +69,13 @@ interface MealSlot {
 const MEAL_SLOTS: MealSlot[] = [
   { type: 'breakfast', earliest: 7 * 60, ideal: 8 * 60, latest: 9 * 60 + 30, label: '早餐' },
   { type: 'lunch', earliest: 11 * 60, ideal: 12 * 60, latest: 13 * 60 + 30, label: '午餐' },
-  { type: 'dinner', earliest: 17 * 60 + 30, ideal: 18 * 60 + 30, latest: 20 * 60, label: '晚餐' },
+  { type: 'dinner', earliest: 18 * 60, ideal: 18 * 60 + 30, latest: 20 * 60, label: '晚餐' },
 ]
 
 /* ─────────────────── Core constants ─────────────────── */
 
 const DAY_START = 8 * 60  // 08:00
-const DAY_END = 21 * 60   // 21:00
+const DAY_END = 22 * 60   // 22:00 – 支持灯光秀等夜间活动
 
 /* ─────────────────── Opening hour checks ─────────────────── */
 
@@ -187,6 +187,7 @@ function greedyRouteWithDirection(
   let curLat = startLat
   let curLng = startLng
   let curTime = DAY_START
+  let stepIdx = 0 // 当前是第几个选中的POI
 
   while (remaining.length > 0) {
     let bestIdx = -1
@@ -211,14 +212,25 @@ function greedyRouteWithDirection(
         backtrackPenalty = Math.max(0, distToEndAfterVisit - distToEndNow) * 1.5
       }
 
-      // Time-of-day preference: scenic → day-time, shopping → noon/evening
+      // Time-of-day preference: scenic → day-time, shopping → afternoon/evening
       let timePrefPenalty = 0
       if (a.type === 'scenic' && slot > 17 * 60) {
-        timePrefPenalty = (slot - 17 * 60) * 0.4 // avoid evening for scenic
+        timePrefPenalty = (slot - 17 * 60) * 0.4 // 避免傍晚安排景点
       } else if (a.type === 'shopping') {
-        if (slot < 11 * 60) timePrefPenalty = (11 * 60 - slot) * 0.2 // avoid early morning
-      } else if (a.type === 'activity' && slot > 18 * 60) {
-        timePrefPenalty = (slot - 18 * 60) * 0.4 // avoid evening for activities
+        if (slot < 11 * 60) timePrefPenalty = (11 * 60 - slot) * 0.3 // 避免上午购物
+        // 额外惩罚：购物作为行程首个POI（stepIdx===0），大幅惩罚
+        if (stepIdx === 0) timePrefPenalty += 60 // +60分钟惩罚，优先安排景点
+      } else if (a.type === 'activity') {
+        // 灯光秀等夜间活动：不惩罚晚间，仅在上午时才惩罚
+        const name = (a.nameZh || a.name).toLowerCase()
+        const isNightActivity = name.includes('灯光') || name.includes('夜景') ||
+          name.includes('show') || name.includes('灯光秀') ||
+          a.tags.some(t => t.includes('夜间') || t.includes('灯光'))
+        if (isNightActivity) {
+          if (slot < 17 * 60) timePrefPenalty = (17 * 60 - slot) * 0.3 // 夜间活动不提前
+        } else if (slot > 19 * 60) {
+          timePrefPenalty = (slot - 19 * 60) * 0.3 // 普通活动避免太晚
+        }
       }
 
       const score = travel + waitTime * 0.3 + backtrackPenalty + timePrefPenalty
@@ -240,6 +252,7 @@ function greedyRouteWithDirection(
     curTime = slot + chosen.duration
     curLat = chosen.lat
     curLng = chosen.lng
+    stepIdx++
   }
 
   return ordered
@@ -482,6 +495,9 @@ function findAutoFillMeal(
 /** Minimum gap (minutes) worth filling with a recommended POI */
 const MIN_GAP_TO_FILL = 60
 
+/** Minimum gap after lunch before dinner that triggers auto-fill */
+const MIN_AFTERNOON_GAP = 90
+
 /** Target amount of scheduled time per day (minutes) before we stop filling */
 const TARGET_DAY_FILL = 8 * 60 // 8 hours of activities is a healthy day
 
@@ -548,26 +564,21 @@ function autoFillGaps(
   startLat: number,
   startLng: number,
 ): ScheduledPOI[] {
-  // Calculate total scheduled activity time
-  const totalScheduled = schedule.reduce((sum, s) => sum + (s.endMin - s.startMin), 0)
-  if (totalScheduled >= TARGET_DAY_FILL) return schedule // Day is full enough
-
   let result = [...schedule]
-  let filled = totalScheduled
   const maxAttempts = 6 // Safety: don't add more than 6 POIs per day
 
-  for (let attempt = 0; attempt < maxAttempts && filled < TARGET_DAY_FILL; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Re-sort to find gaps
     result.sort((a, b) => a.startMin - b.startMin)
 
-    // Collect all gaps
-    const gaps: { start: number; end: number; refLat: number; refLng: number }[] = []
+    // Collect all gaps that are worth filling
+    const gaps: { start: number; end: number; refLat: number; refLng: number; priority: number }[] = []
 
-    // Gap before first item
     if (result.length === 0) {
       gaps.push({
         start: DAY_START, end: DAY_END,
         refLat: startLat, refLng: startLng,
+        priority: 1,
       })
     } else {
       if (result[0].startMin - DAY_START >= MIN_GAP_TO_FILL) {
@@ -576,37 +587,53 @@ function autoFillGaps(
           end: result[0].startMin,
           refLat: result[0].attraction.lat,
           refLng: result[0].attraction.lng,
+          priority: 1,
         })
       }
-      // Gaps between items
+      // Gaps between items – 午餐后到晚饭前的大段空白优先级最高
       for (let i = 0; i < result.length - 1; i++) {
         const gapStart = result[i].endMin
         const gapEnd = result[i + 1].startMin
-        if (gapEnd - gapStart >= MIN_GAP_TO_FILL) {
-          gaps.push({
-            start: gapStart,
-            end: gapEnd,
-            refLat: result[i].attraction.lat,
-            refLng: result[i].attraction.lng,
-          })
+        const gapLen = gapEnd - gapStart
+        if (gapLen < MIN_GAP_TO_FILL) continue
+
+        // 判断是否为午餐到晚饭之间的下午空档
+        const isAfterLunch = result[i].mealSlot === 'lunch' ||
+          (result[i].attraction.type === 'food' && result[i].endMin <= 14 * 60)
+        const isBeforeDinner = result[i + 1].mealSlot === 'dinner' ||
+          (result[i + 1].attraction.type === 'food' && result[i + 1].startMin >= 17 * 60)
+        const isAfternoonGap = gapStart >= 12 * 60 && gapEnd <= 20 * 60
+
+        let priority = 1
+        if ((isAfterLunch || isAfternoonGap) && gapLen >= MIN_AFTERNOON_GAP) {
+          priority = 3 // 下午空白最高优先级
+        } else if (isAfternoonGap && gapLen >= MIN_GAP_TO_FILL) {
+          priority = 2
         }
+
+        gaps.push({
+          start: gapStart, end: gapEnd,
+          refLat: result[i].attraction.lat,
+          refLng: result[i].attraction.lng,
+          priority,
+        })
       }
       // Gap after last item
       const lastEnd = result[result.length - 1].endMin
       if (DAY_END - lastEnd >= MIN_GAP_TO_FILL) {
         gaps.push({
-          start: lastEnd,
-          end: DAY_END,
+          start: lastEnd, end: DAY_END,
           refLat: result[result.length - 1].attraction.lat,
           refLng: result[result.length - 1].attraction.lng,
+          priority: 1,
         })
       }
     }
 
     if (gaps.length === 0) break
 
-    // Pick the largest gap first
-    gaps.sort((a, b) => (b.end - b.start) - (a.end - a.start))
+    // Sort by priority (desc), then gap size (desc)
+    gaps.sort((a, b) => b.priority - a.priority || (b.end - b.start) - (a.end - a.start))
     const gap = gaps[0]
     const gapDuration = gap.end - gap.start
 
@@ -632,7 +659,6 @@ function autoFillGaps(
       endMin: actualStart + poi.duration,
       isAutoFilled: true,
     })
-    filled += poi.duration
   }
 
   result.sort((a, b) => a.startMin - b.startMin)
@@ -755,7 +781,8 @@ export function generateItinerary(
   const dayTimeBudgets = poisPerDay.map(dayPois =>
     dayPois.reduce((sum, p) => sum + p.duration, 0)
   )
-  const maxDayMinutes = (DAY_END - DAY_START) * 0.7
+  // 用户主动选择的POI尽量不丢弃：时间预算放宽到85%（约11.9小时/14小时）
+  const maxDayMinutes = (DAY_END - DAY_START) * 0.85
 
   // Sort regularPOIs by distance to nearest centroid (assign close ones first)
   const poisWithDist = regularPOIs.map(poi => ({
@@ -811,6 +838,7 @@ export function generateItinerary(
   }
 
   // ───── 3. Distribute user-selected meals across days ─────
+  // 改进：按地理位置智能分配餐饮，而非简单轮询
   const mealsByDay: {
     breakfast: Attraction | null
     lunch: Attraction | null
@@ -820,30 +848,66 @@ export function generateItinerary(
     breakfast: null, lunch: null, dinner: null, snacks: [],
   }))
 
-  const distributeMeals = (meals: Attraction[], key: 'breakfast' | 'lunch' | 'dinner') => {
-    let dayIdx = 0
-    for (const meal of meals) {
-      let attempts = 0
-      while (mealsByDay[dayIdx][key] !== null && attempts < numDays) {
-        dayIdx = (dayIdx + 1) % numDays
-        attempts++
+  /**
+   * 计算餐厅到某天路线的最短距离（到该天所有POI + 酒店的最小距离）
+   */
+  const mealDistToDay = (meal: Attraction, dayIdx: number): number => {
+    const dayPois = poisPerDay[dayIdx]
+    const hotel = days[dayIdx].hotel
+    let minDist = Infinity
+    for (const p of dayPois) {
+      minDist = Math.min(minDist, haversine(meal.lat, meal.lng, p.lat, p.lng))
+    }
+    if (hotel?.lat && hotel?.lng) {
+      minDist = Math.min(minDist, haversine(meal.lat, meal.lng, hotel.lat, hotel.lng))
+    }
+    return minDist
+  }
+
+  /**
+   * 智能分配餐饮：按地理位置把餐厅分配到最近的、有空位的日期
+   * - 早餐优先分配到离酒店最近的日期
+   * - 午餐优先分配到离上午活动最近的日期
+   * - 晚餐优先分配到离下午活动/当晚酒店最近的日期
+   */
+  const distributeMealsGeo = (meals: Attraction[], key: 'breakfast' | 'lunch' | 'dinner') => {
+    // 按距离排序：先分配最明显属于某一天的餐厅
+    const mealsWithAffinity = meals.map(meal => {
+      const dists = Array.from({ length: numDays }, (_, d) => mealDistToDay(meal, d))
+      const bestDay = dists.indexOf(Math.min(...dists))
+      return { meal, bestDay, bestDist: Math.min(...dists), dists }
+    })
+    // 亲和度高的先分配（距离差越大的越明确属于某天）
+    mealsWithAffinity.sort((a, b) => {
+      const aGap = a.dists.sort((x, y) => x - y)
+      const bGap = b.dists.sort((x, y) => x - y)
+      // 距离差大的优先（更明确属于某天）
+      const aDiff = aGap.length > 1 ? aGap[1] - aGap[0] : 0
+      const bDiff = bGap.length > 1 ? bGap[1] - bGap[0] : 0
+      return bDiff - aDiff
+    })
+
+    for (const { meal, dists } of mealsWithAffinity) {
+      // 按距离从小到大尝试分配
+      const dayOrder = Array.from({ length: numDays }, (_, i) => i)
+        .sort((a, b) => dists[a] - dists[b])
+      let placed = false
+      for (const d of dayOrder) {
+        if (mealsByDay[d][key] === null) {
+          mealsByDay[d][key] = meal
+          placed = true
+          break
+        }
       }
-      if (mealsByDay[dayIdx][key] === null) {
-        mealsByDay[dayIdx][key] = meal
-      } else {
-        // All days already have this meal type — skip the extra.
-        // Previously this pushed the overflow meal into poisPerDay,
-        // which caused it to appear as a regular POI AND a duplicate
-        // meal on the same day (e.g. two lunches).
+      if (!placed) {
         console.warn(`[routePlanner] All ${numDays} days already have ${key}, skipping: ${meal.name}`)
       }
-      dayIdx = (dayIdx + 1) % numDays
     }
   }
 
-  distributeMeals(classified.breakfast, 'breakfast')
-  distributeMeals(classified.lunch, 'lunch')
-  distributeMeals(classified.dinner, 'dinner')
+  distributeMealsGeo(classified.breakfast, 'breakfast')
+  distributeMealsGeo(classified.lunch, 'lunch')
+  distributeMealsGeo(classified.dinner, 'dinner')
 
   // Distribute snacks with time gap constraint: no snack within 2 hours of a main meal
   for (let i = 0; i < classified.snack.length; i++) {
@@ -921,9 +985,14 @@ export function generateItinerary(
     }
 
     // 4d. Insert user-selected meals at appropriate time slots
-    // New v3 signature: pass both start and end hotel coordinates for geo-aware placement
+    // 按时间顺序插入：早餐→午餐→晚餐
     const meals = mealsByDay[d]
 
+    if (meals.breakfast) {
+      schedule = insertMealIntoSchedule(
+        schedule, meals.breakfast, MEAL_SLOTS[0], startLat, startLng, endLat, endLng, false,
+      )
+    }
     if (meals.lunch) {
       schedule = insertMealIntoSchedule(
         schedule, meals.lunch, MEAL_SLOTS[1], startLat, startLng, endLat, endLng, false,
@@ -932,11 +1001,6 @@ export function generateItinerary(
     if (meals.dinner) {
       schedule = insertMealIntoSchedule(
         schedule, meals.dinner, MEAL_SLOTS[2], startLat, startLng, endLat, endLng, false,
-      )
-    }
-    if (meals.breakfast) {
-      schedule = insertMealIntoSchedule(
-        schedule, meals.breakfast, MEAL_SLOTS[0], startLat, startLng, endLat, endLng, false,
       )
     }
 
