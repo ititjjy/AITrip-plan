@@ -94,98 +94,77 @@ export default function PlaceSelectionPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [isPlanning, setIsPlanning] = useState(false)
 
-  // AI recommendation state
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiRefreshing, setAiRefreshing] = useState(false)
-  const [aiGenerating, setAiGenerating] = useState(false) // 首次无缓存生成中
-  const [aiError, setAiError] = useState<string | null>(null)
-  const [isAIPowered, setIsAIPowered] = useState(false)
+  // POI data loading state
+  const [poiLoading, setPoiLoading] = useState(false)
+  const [poiLoaded, setPoiLoaded] = useState(false)
 
   const selectedIds = state.selectedPlaceIds
   const seasonLabel = getCurrentSeasonLabel()
 
-  /* ── Load AI recommendations on mount ── */
+  /* ── Load POIs from server database on mount ── */
   useEffect(() => {
     if (!city) return
-    // Already have AI data in memory for this city
-    if (hasAIAttractions(city.id)) {
-      setIsAIPowered(true)
+    // Already have data in memory for this city
+    if (hasCityAttractions(city.id)) {
+      setPoiLoaded(true)
       return
     }
-    // Auto-fetch from server (server manages API key)
-    fetchAIRecommendations()
+    fetchPOIsFromDB()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city?.id])
 
-  const fetchAIRecommendations = useCallback(async () => {
+  const fetchPOIsFromDB = useCallback(async () => {
     if (!city) return
-    setAiLoading(true)
-    setAiError(null)
-    setAiGenerating(false)
-
+    setPoiLoading(true)
     try {
-      const result = await loadPOIRecommendations(
-        city.name, city.nameEn, city.id,
-        // Background refresh callback (stale-while-revalidate 或首次生成完成)
-        (freshAttractions) => {
-          setAIAttractions(city.id, freshAttractions)
-          setAiRefreshing(false)
-          setAiGenerating(false)
-          setIsAIPowered(true)
-          // Force re-render by toggling state
-          setIsAIPowered(false)
-          setTimeout(() => setIsAIPowered(true), 0)
-        },
-      )
-
-      if (result.error) {
-        setAiError(`AI 推荐加载失败：${result.error}`)
-      } else if (result.generating) {
-        // 首次无缓存：服务端正在后台生成，前端显示等待状态
-        setAiGenerating(true)
-        setIsAIPowered(false)
-      } else if (result.attractions.length > 0) {
-        setAIAttractions(city.id, result.attractions)
-        setIsAIPowered(true)
-        if (result.refreshing) {
-          setAiRefreshing(true)
-        }
+      const response = await fetch(`/api/pois/${encodeURIComponent(city.id)}`)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const result = await response.json()
+      if (result.success && result.data?.length > 0) {
+        const attractions = castPOIs(result.data)
+        setCityAttractions(city.id, attractions)
+        setPoiLoaded(true)
       }
     } catch (err) {
-      setAiError('网络错误，请检查网络连接后重试')
-      console.error(err)
+      console.error('[PlaceSelection] Failed to load POIs:', err)
     } finally {
-      setAiLoading(false)
+      setPoiLoading(false)
     }
   }, [city])
 
-  const handleRefreshAI = useCallback(async () => {
-    if (!city) return
-    setAiRefreshing(true)
-    setAiError(null)
-    try {
-      const result = await forceRefreshPOIs(city.name, city.nameEn, city.id)
-      if (result.error) {
-        setAiError(`刷新失败：${result.error}`)
-      } else if (result.attractions.length > 0) {
-        setAIAttractions(city.id, result.attractions)
-        setIsAIPowered(false)
-        setTimeout(() => setIsAIPowered(true), 0)
-      }
-    } catch (err) {
-      setAiError('刷新失败，请稍后再试')
-      console.error(err)
-    } finally {
-      setAiRefreshing(false)
-    }
-  }, [city])
+  const castPOIs = (raw: unknown[]): Attraction[] => {
+    if (!Array.isArray(raw)) return []
+    return raw.map((item) => {
+      const r = item as Record<string, unknown>
+      return {
+        id: String(r.id || ''),
+        name: String(r.name || ''),
+        nameZh: String(r.nameZh || r.name || ''),
+        type: String(r.type || 'scenic') as Attraction['type'],
+        image: String(r.image || ''),
+        rating: Number(r.rating) || 4.0,
+        duration: Number(r.duration) || 60,
+        cost: Number(r.cost) || 0,
+        description: String(r.description || ''),
+        address: String(r.address || ''),
+        lat: Number(r.lat) || 0,
+        lng: Number(r.lng) || 0,
+        tags: Array.isArray(r.tags) ? r.tags.map(String) : [],
+        openTime: String(r.openTime || '09:00'),
+        closeTime: String(r.closeTime || '22:00'),
+        recommendReason: String(r.recommendReason || ''),
+        ...(r.mealType ? { mealType: String(r.mealType) as Attraction['mealType'] } : {}),
+        ...(r.seasonScore != null ? { seasonalIndex: Math.round((Number(r.seasonScore) / 2) * 10) / 10 } : {}),
+      } satisfies Attraction
+    })
+  }
 
   /* ── Attractions data ── */
   const allAttractions = useMemo(() => {
     if (!city) return []
     const attractions = getAttractions(city.id)
     return attractions.filter((a) => a.type !== 'hotel' && a.type !== 'transport')
-  }, [city, isAIPowered]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [city, poiLoaded])
 
   const filteredAttractions = useMemo(() => {
     let list = allAttractions
@@ -306,7 +285,7 @@ export default function PlaceSelectionPage() {
               </div>
             </div>
 
-            {/* Recommend reason (AI-powered) */}
+            {/* Recommend reason */}
             {!compact && a.recommendReason && (
               <div className="mb-1.5 flex items-start gap-1">
                 <Sparkles className="h-3 w-3 text-primary shrink-0 mt-0.5" />
@@ -378,7 +357,7 @@ export default function PlaceSelectionPage() {
             <span className="text-sm">{icon}</span>
             <span className="text-sm font-semibold text-foreground">{label}</span>
             <span className="text-[10px] text-muted-foreground">
-              {isAIPowered ? `TOP ${attractions.length}` : `${attractions.length}个推荐`}
+              {poiLoaded ? `TOP ${attractions.length}` : `${attractions.length}个推荐`}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -435,45 +414,16 @@ export default function PlaceSelectionPage() {
                     <MapPin className="h-3 w-3" />
                     第三步 · 选择想去的地点
                   </span>
-                  {isAIPowered && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500/10 to-blue-500/10 border border-violet-500/20 px-2 py-0.5 text-[9px] font-semibold text-violet-600">
-                      <Sparkles className="h-2.5 w-2.5" />
-                      AI 推荐
-                    </span>
-                  )}
                 </div>
                 <h2 className="text-lg font-bold text-foreground">
-                  {city.name} · {isAIPowered ? `${seasonLabel}精选` : '热门推荐'}
+                  {city.name} · {seasonLabel}精选
                 </h2>
-                {isAIPowered && (
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    AI 为您精选了 {allAttractions.length} 个{seasonLabel}最值得去的地点
-                  </p>
-                )}
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  共 {allAttractions.length} 个{seasonLabel}推荐地点
+                </p>
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* AI refresh button */}
-                {isAIPowered && (
-                  <button
-                    onClick={handleRefreshAI}
-                    disabled={aiLoading || aiRefreshing}
-                    className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-[10px] font-medium text-muted-foreground shadow-card transition-smooth hover:bg-secondary disabled:opacity-50"
-                    title="重新生成AI推荐"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${aiLoading || aiRefreshing ? 'animate-spin' : ''}`} />
-                  </button>
-                )}
-                {/* API key button (if no AI data yet) */}
-                {!isAIPowered && !aiLoading && (
-                  <button
-                    onClick={() => fetchAIRecommendations()}
-                    className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-2.5 py-1.5 text-[10px] font-medium text-white shadow-elegant transition-smooth hover:opacity-90"
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    AI 推荐
-                  </button>
-                )}
                 {/* View mode toggle - mobile */}
                 <button
                   onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
@@ -484,17 +434,6 @@ export default function PlaceSelectionPage() {
                 </button>
               </div>
             </div>
-
-            {/* AI error banner */}
-            {aiError && (
-              <div className="mb-3 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-700">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                <span className="flex-1">{aiError}</span>
-                <button onClick={() => setAiError(null)} className="shrink-0 text-amber-500 hover:text-amber-700">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            )}
 
             {/* Search */}
             <div className="relative mb-3">
@@ -553,61 +492,36 @@ export default function PlaceSelectionPage() {
 
           {/* List area */}
           <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4">
-            {/* AI Loading state */}
-            {aiLoading && (
+            {/* Loading state */}
+            {poiLoading && (
               <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
                 <div className="relative mb-4">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-r from-violet-500/10 to-blue-500/10 flex items-center justify-center">
-                    <Sparkles className="h-7 w-7 text-violet-500 animate-pulse" />
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-r from-coral/10 to-sunset/10 flex items-center justify-center">
+                    <Loader2 className="h-7 w-7 text-coral animate-spin" />
                   </div>
-                  <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
                 </div>
-                <h3 className="text-sm font-bold text-foreground mb-1">AI 正在生成推荐</h3>
+                <h3 className="text-sm font-bold text-foreground mb-1">正在加载地点数据</h3>
                 <p className="text-[11px] text-muted-foreground text-center max-w-[240px]">
-                  正在分析 {city.name} {seasonLabel}的热门旅游资源，为您精选每个类别 TOP 20...
+                  正在加载 {city.name} {seasonLabel}的推荐地点...
                 </p>
               </div>
             )}
 
-            {/* No data, show loading/retry prompt */}
-            {!aiLoading && allAttractions.length === 0 && !isAIPowered && (
+            {/* No data */}
+            {!poiLoading && allAttractions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
-                <div className="h-14 w-14 rounded-full bg-gradient-to-r from-violet-500/10 to-blue-500/10 flex items-center justify-center mb-4 relative">
-                  {aiGenerating ? (
-                    <>
-                      <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin" />
-                      <Sparkles className="h-6 w-6 text-violet-500" />
-                    </>
-                  ) : (
-                    <Sparkles className="h-6 w-6 text-violet-500" />
-                  )}
+                <div className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center mb-4">
+                  <MapPin className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-base font-bold text-foreground mb-1">
-                  {aiGenerating ? 'AI 首次生成数据' : 'AI 智能推荐'}
-                </h3>
-                <p className="text-[11px] text-muted-foreground text-center max-w-[260px] mb-4">
-                  {aiGenerating
-                    ? `AI 正在为 ${city.name} 首次生成推荐数据，通常需要 1-3 分钟，请稍候...`
-                    : aiError
-                      ? '加载失败，请点击重试'
-                      : `正在从服务器加载 ${city.name} ${seasonLabel}推荐数据...`}
+                <h3 className="text-base font-bold text-foreground mb-1">暂无地点数据</h3>
+                <p className="text-[11px] text-muted-foreground text-center max-w-[260px]">
+                  {city.name} 暂无推荐地点数据
                 </p>
-                {aiError && !aiGenerating && (
-                  <Button
-                    variant="coral"
-                    size="sm"
-                    onClick={() => fetchAIRecommendations()}
-                    className="gap-1.5"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    重新加载
-                  </Button>
-                )}
               </div>
             )}
 
             {/* Attractions list */}
-            {!aiLoading && allAttractions.length > 0 && (
+            {!poiLoading && allAttractions.length > 0 && (
               <>
                 {searchQuery.trim() && (
                   <p className="mb-2 text-xs text-muted-foreground">

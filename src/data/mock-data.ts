@@ -741,14 +741,19 @@ export function getAttractionTypeIcon(type: Attraction['type']): string {
   return icons[type]
 }
 
-/* ── AI-generated attractions store ── */
+/* ── Server-sourced attractions store (from database) ── */
 
-/** Full dataset (up to 50 per category, 200 total) */
-const _aiAttractions: Record<string, Attraction[]> = {}
+/** Server-sourced dataset (from database, not AI-generated) */
+const _serverAttractions: Record<string, Attraction[]> = {}
 
-/** Store AI-generated attractions for a city (full dataset) */
-export function setAIAttractions(cityId: string, attractions: Attraction[]) {
-  _aiAttractions[cityId] = attractions
+/** Store server-sourced attractions for a city (from database) */
+export function setCityAttractions(cityId: string, attractions: Attraction[]) {
+  _serverAttractions[cityId] = attractions
+}
+
+/** Check if a city has server-sourced data */
+export function hasCityAttractions(cityId: string): boolean {
+  return !!_serverAttractions[cityId] && _serverAttractions[cityId].length > 0
 }
 
 /**
@@ -771,10 +776,10 @@ function enrichSeasonalIndex(attractions: Attraction[]): Attraction[] {
 
 /**
  * Unified getter – returns TOP 50 per category for display.
- * AI data takes priority; falls back to mock data.
+ * Server data takes priority; falls back to mock data.
  */
 export function getAttractions(cityId: string): Attraction[] {
-  const all = _aiAttractions[cityId]
+  const all = _serverAttractions[cityId]
   if (all && all.length > 0) {
     // Return top 50 per category
     const buckets: Record<string, Attraction[]> = {}
@@ -792,18 +797,14 @@ export function getAttractions(cityId: string): Attraction[] {
 }
 
 /**
- * Get the full AI dataset (up to 50 per category) – used by route planner
- * when user has selected from the top-20 display list.
+ * Get the full server-sourced dataset – used by route planner
+ * when filling gaps in itinerary.
  */
 export function getAllAttractions(cityId: string): Attraction[] {
-  const ai = _aiAttractions[cityId]
-  if (ai && ai.length > 0) return ai
+  const server = _serverAttractions[cityId]
+  if (server && server.length > 0) return server
   return enrichSeasonalIndex(cityAttractions[cityId] || [])
 }
 
-/** Check if a city has AI-generated data */
-export function hasAIAttractions(cityId: string): boolean {
-  return !!_aiAttractions[cityId] && _aiAttractions[cityId].length > 0
-}
 
 

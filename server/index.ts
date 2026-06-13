@@ -117,59 +117,24 @@ app.get('/api/cities', (_req, res) => {
   }
 })
 
-/* ═══════════════════════ POI Routes (existing) ═══════════════════════ */
+/* ═══════════════════════ POI Routes ═══════════════════════ */
 
 app.get('/api/pois/:cityId', async (req, res) => {
   const { cityId } = req.params
-  const cityName = (req.query.cityName as string) || cityId
-  const cityNameEn = (req.query.cityNameEn as string) || cityId
-  const season = getCurrentSeason()
   try {
-    const cached = getCachedPOIs(cityId)
-    const ageMs = getCacheAge(cityId)
-    if (cached && ageMs !== null) {
-      const isStale = ageMs >= STALE_TTL_MS
-      const needsRefresh = ageMs >= FRESH_TTL_MS
-      // 即使缓存过期也先返回旧数据，后台异步刷新
-      if (needsRefresh) backgroundRefresh(cityId, cityName, cityNameEn)
-      // 对缓存数据也执行去重（兼容旧缓存中存在的重复）
-      const { pois: dedupedCached, stats } = deduplicatePOIs(cached as any[])
-      if (stats.removedCount > 0) {
-        console.log(`[Dedup/Cache] ${cityName}: 缓存去重移除 ${stats.removedCount} 个重复POI`)
-      }
-      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: needsRefresh, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), dedupStats: stats.removedCount > 0 ? stats : undefined, stale: isStale, currentSeason: season })
-    }
-    const apiKey = getApiKey()
-    if (!apiKey) {
-      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
-    }
-    // 无缓存时：立即返回 generating 状态，后台异步调用豆包 API，避免 Nginx 504 超时
-    console.log(`[API] No cache for ${cityName}, triggering async generation...`)
-    backgroundRefresh(cityId, cityName, cityNameEn)
-    return res.json({ success: true, data: [], fromCache: false, refreshing: true, generating: true, currentSeason: season })
-  } catch (err) {
     const cached = getCachedPOIs(cityId)
     if (cached) {
-      const { pois: dedupedCached } = deduplicatePOIs(cached as any[])
-      return res.json({ success: true, data: dedupedCached, fromCache: true, refreshing: false, warning: 'API failed, cached data', currentSeason: season })
+      // 对缓存数据执行去重
+      const { pois: dedupedCached, stats } = deduplicatePOIs(cached as any[])
+      if (stats.removedCount > 0) {
+        console.log(`[Dedup] ${cityId}: 去重移除 ${stats.removedCount} 个重复POI`)
+      }
+      return res.json({ success: true, data: dedupedCached, fromCache: true })
     }
-    return res.status(500).json({ success: false, error: 'API_ERROR', message: (err as Error).message })
-  }
-})
-
-app.post('/api/pois/:cityId/refresh', async (req, res) => {
-  const { cityId } = req.params
-  const cityName = (req.query.cityName as string) || (req.body?.cityName as string) || cityId
-  const cityNameEn = (req.query.cityNameEn as string) || (req.body?.cityNameEn as string) || cityId
-  const season = getCurrentSeason()
-  const apiKey = getApiKey()
-  if (!apiKey) return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 API Key' })
-  try {
-    const pois = await fetchPOIsFromQwen(cityName, cityNameEn, cityId, season, apiKey)
-    if (pois.length > 0) upsertPOIs(cityId, pois)
-    return res.json({ success: true, data: pois, fromCache: false, refreshing: false, currentSeason: season })
+    // 数据库中无数据
+    return res.json({ success: true, data: [], fromCache: false })
   } catch (err) {
-    return res.status(500).json({ success: false, error: 'API_ERROR', message: (err as Error).message })
+    return res.status(500).json({ success: false, error: 'DB_ERROR', message: (err as Error).message })
   }
 })
 
