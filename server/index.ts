@@ -787,6 +787,47 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const distPath = path.join(__dirname, '..', 'dist')
 
+/* ═══════════════════════ 国内代理路由（解决 GFW 屏蔽外部CDN）═══════════════════════ */
+
+/** GET /api/tiles/:z/:x/:y – CARTO 地图瓦片代理 */
+app.get('/api/tiles/:z/:x/:y', async (req, res) => {
+  const { z, x, y } = req.params
+  try {
+    const tileUrl = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`
+    const response = await fetch(tileUrl, { headers: { 'User-Agent': 'AITrip-TileProxy/1.0' } })
+    if (!response.ok) return res.status(response.status).end()
+    const buffer = await response.arrayBuffer()
+    res.set('Content-Type', 'image/png')
+    res.set('Cache-Control', 'public, max-age=86400') // 瓦片缓存 1 天
+    return res.send(Buffer.from(buffer))
+  } catch {
+    return res.status(502).end()
+  }
+})
+
+/** GET /api/img?url=... – 外部图片代理（Unsplash 等被封 CDN）*/
+app.get('/api/img', async (req, res) => {
+  const url = req.query.url as string
+  if (!url || !/^https?:\/\//.test(url)) return res.status(400).end()
+  // 只允许白名单域名，防止被滥用为通用代理
+  const allowed = ['images.unsplash.com', 'picsum.photos', 'fastly.picsum.photos', 'images.pexels.com']
+  try {
+    const host = new URL(url).hostname
+    if (!allowed.some((d) => host === d || host.endsWith('.' + d))) {
+      return res.status(403).end()
+    }
+    const response = await fetch(url, { headers: { 'User-Agent': 'AITrip-ImgProxy/1.0' } })
+    if (!response.ok) return res.status(response.status).end()
+    const contentType = response.headers.get('content-type') || 'image/jpeg'
+    const buffer = await response.arrayBuffer()
+    res.set('Content-Type', contentType)
+    res.set('Cache-Control', 'public, max-age=604800') // 图片缓存 7 天
+    return res.send(Buffer.from(buffer))
+  } catch {
+    return res.status(502).end()
+  }
+})
+
 // Serve Vite build output
 app.use(express.static(distPath))
 

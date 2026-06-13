@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { handleImgError } from '@/utils/imageProxy'
 import {
   ArrowLeft, Star, Clock, MapPin, Coins, Tag, Sparkles,
   Calendar, ExternalLink, Flame
@@ -205,8 +206,8 @@ export default function AttractionDetailPage() {
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  subdomains="abcd"
+                  url="/api/tiles/{z}/{x}/{y}"
+                  subdomains=""
                   maxZoom={20}
                 />
                 <Marker position={[attraction.lat, attraction.lng]} icon={markerIcon}>

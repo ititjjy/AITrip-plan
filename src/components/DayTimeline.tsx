@@ -1,4 +1,5 @@
 import { displayName, displayNameShort } from '@/utils/poiName'
+import { handleImgError } from '@/utils/imageProxy'
 /**
  * DayTimeline v3 – Full daily schedule with editing capabilities
  *
@@ -763,7 +764,7 @@ export default function DayTimeline() {
                               alt={displayName(attraction)}
                               className="h-full w-full object-cover"
                               loading="lazy"
-                              onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(attraction.id)}/200/200` }}
+                              onError={handleImgError}
                             />
                           </div>
                         )}

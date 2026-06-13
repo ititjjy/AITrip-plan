@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useApp } from '@/context/AppContext'
 import { popularCities, getAttractions } from '@/data/mock-data'
 import { displayName } from '@/utils/poiName'
+import { handleImgError } from '@/utils/imageProxy'
 import { Attraction } from '@/types'
 import { generateItinerary } from '@/utils/routePlanner'
 import { Button } from '@/components/ui/button'
@@ -233,7 +234,7 @@ export default function POIOverflowPage() {
               alt={displayName(a)}
               className="h-full w-full object-cover"
               loading="lazy"
-              onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(a.id)}/200/200` }}
+              onError={handleImgError}
             />
           </div>
 

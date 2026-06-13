@@ -11,6 +11,7 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { handleImgError } from '@/utils/imageProxy'
 
 /* ── Custom map marker icons ── */
 function createIcon(color: string, isSelected = false) {
@@ -621,8 +622,8 @@ export default function HotelStepPage() {
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  subdomains="abcd"
+                  url="/api/tiles/{z}/{x}/{y}"
+                  subdomains=""
                   maxZoom={20}
                 />
                 <MapResizeFix />
@@ -798,6 +799,7 @@ function HotelListItem({ hotel, isSelected, onSelect, onLocate, onViewDetail }: 
             src={hotel.images[0]}
             alt={hotel.name}
             className="h-20 w-24 shrink-0 rounded-lg object-cover"
+            onError={handleImgError}
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-1">

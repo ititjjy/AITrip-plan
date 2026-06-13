@@ -2,19 +2,16 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useApp } from '@/context/AppContext'
 import { displayName, displayNameShort } from '@/utils/poiName'
 import {
-  popularCities, getAttractions, setAIAttractions, hasAIAttractions,
+  popularCities, getAttractions, setCityAttractions, hasCityAttractions,
   getAttractionTypeLabel, getAttractionTypeIcon
 } from '@/data/mock-data'
 import { Attraction } from '@/types'
 import { generateItinerary } from '@/utils/routePlanner'
-import {
-  loadPOIRecommendations, forceRefreshPOIs
-} from '@/utils/aiRecommend'
+import { handleImgError } from '@/utils/imageProxy'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft, ArrowRight, Check, MapPin, Star, Clock, Coins,
   Search, X, Map as MapIcon, List, ChevronDown, Loader2,
-  Sparkles, RefreshCw, AlertTriangle
 } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -289,7 +286,7 @@ export default function PlaceSelectionPage() {
               alt={displayName(a)}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
               loading="lazy"
-              onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(a.id)}/400/300` }}
+              onError={handleImgError}
             />
             <div className="absolute left-1 top-1 rounded-md bg-black/50 px-1.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">
               {getAttractionTypeIcon(a.type)} {getAttractionTypeLabel(a.type)}
@@ -655,8 +652,8 @@ export default function PlaceSelectionPage() {
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-              subdomains="abcd"
+              url="/api/tiles/{z}/{x}/{y}"
+              subdomains=""
               maxZoom={20}
             />
             <MapResizeFix />
@@ -674,7 +671,7 @@ export default function PlaceSelectionPage() {
                   <Popup>
                     <div className="min-w-[200px] max-w-[260px]">
                       <div className="flex gap-2 mb-1.5">
-                        <img src={a.image} alt={displayName(a)} className="h-12 w-12 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(a.id)}/100/100` }} />
+                        <img src={a.image} alt={displayName(a)} className="h-12 w-12 rounded-lg object-cover shrink-0" onError={handleImgError} />
                         <div className="min-w-0">
                           <p className="font-semibold text-sm leading-tight">{displayName(a)}</p>
                           <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5">
@@ -777,7 +774,7 @@ export default function PlaceSelectionPage() {
                 <img
                   key={a.id} src={a.image} alt={displayName(a)}
                   className="h-8 w-8 rounded-full border-2 border-white object-cover shadow-sm"
-                  onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${encodeURIComponent(a.id)}/100/100` }}
+                  onError={handleImgError}
                 />
               ))}
               {selectedAttractions.length > 4 && (
