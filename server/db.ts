@@ -435,6 +435,45 @@ export function getCachedHotels(cityId: string): unknown[] | null {
   try { return JSON.parse(row.data) } catch { return null }
 }
 
+/**
+ * 从 city_pois 表中提取 categoryL1=hotel 的 POI，转换为 HotelPOI 格式。
+ * 当 hotels 表无缓存时作为兜底，避免用户看到空酒店列表。
+ */
+export function getHotelFallbackFromPOIs(cityId: string): unknown[] | null {
+  const row = db.prepare(
+    'SELECT data FROM city_pois WHERE city_id = ?'
+  ).get(cityId) as { data: string } | undefined
+  if (!row) return null
+  let allPOIs: any[]
+  try { allPOIs = JSON.parse(row.data) } catch { return null }
+
+  // 解析星级：hotel.comfort.fourstar → 4, hotel.luxury.fivestar → 5 …
+  function parseStars(cat3: string | undefined): number | undefined {
+    if (!cat3) return undefined
+    const m = cat3.match(/(one|two|three|four|five)star/)
+    if (!m) return undefined
+    return { one: 1, two: 2, three: 3, four: 4, five: 5 }[m[1]]
+  }
+
+  const hotels = allPOIs
+    .filter((p) => p.categoryL1 === 'hotel')
+    .map((p) => ({
+      id: p.id || '',
+      name: p.namePrimary || p.name || '',
+      address: p.address || '',
+      lat: p.lat || 0,
+      lng: p.lng || 0,
+      rating: p.rating || undefined,
+      stars: parseStars(p.categoryL3),
+      priceRange: p.cost ? [p.cost, Math.round(p.cost * 1.6)] : undefined,
+      description: p.description || '',
+      images: p.image ? [p.image] : [],
+      tags: Array.isArray(p.tags) ? p.tags.map((t: string) => t.split('|')[0]) : [],
+    }))
+
+  return hotels.length > 0 ? hotels : null
+}
+
 export function getHotelCacheAge(cityId: string): number | null {
   const row = db.prepare(
     'SELECT updated_at FROM hotels WHERE city_id = ?'

@@ -34,7 +34,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import {
   initDB, getCachedPOIs, upsertPOIs, getCacheAge,
-  getCachedHotels, upsertHotels, getHotelCacheAge,
+  getCachedHotels, upsertHotels, getHotelCacheAge, getHotelFallbackFromPOIs,
   createUser, getUserByEmail, getUserById, updateUserPassword, updateUserNickname,
   saveTrip, getUserTrips, getTripById, getPublishedNotes, getPublishedNotesCount,
   publishTrip, unpublishTrip, deleteTrip, toggleComments,
@@ -212,11 +212,22 @@ app.get('/api/hotels/:cityId', async (req, res) => {
     }
     const apiKey = getApiKey()
     if (!apiKey) {
+      // 无 API key：尝试从 POI 缓存中提取酒店作为兜底
+      const fallback = getHotelFallbackFromPOIs(cityId)
+      if (fallback) {
+        return res.json({ success: true, data: fallback, fromCache: false, fromPOIs: true, refreshing: false })
+      }
       return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
     }
-    // 无缓存时：立即返回 generating 状态，后台异步调用豆包 API，避免 Nginx 504 超时
-    console.log(`[API] No cache for hotels ${cityName}, triggering async generation...`)
+    // 无缓存时：先尝试从 POI 缓存中提取酒店（立即可用），同时后台触发 AI 生成更丰富的数据
+    const poiFallback = getHotelFallbackFromPOIs(cityId)
+    console.log(`[API] No hotel cache for ${cityName}, poi fallback: ${poiFallback?.length ?? 0} hotels`)
     backgroundRefreshHotels(cityId, cityName, cityNameEn)
+    if (poiFallback && poiFallback.length > 0) {
+      // 有 POI 兜底数据：立即返回，后台刷新完成后下次请求会拿到更丰富的 AI 数据
+      return res.json({ success: true, data: poiFallback, fromCache: false, fromPOIs: true, refreshing: true })
+    }
+    // POI 里也没有酒店数据：返回 generating 状态让前端轮询
     return res.json({ success: true, data: [], fromCache: false, refreshing: true, generating: true })
   } catch (err) {
     const cached = getCachedHotels(cityId)
