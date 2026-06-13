@@ -123,10 +123,14 @@ export default function PlaceSelectionPage() {
       if (result.success && result.data?.length > 0) {
         const attractions = castPOIs(result.data)
         setCityAttractions(city.id, attractions)
-        setPoiLoaded(true)
       }
+      // 无论数据库是否有数据，都标记加载完成
+      // 让 allAttractions 的 useMemo 重新计算（可能 fallback 到硬编码数据）
+      setPoiLoaded(true)
     } catch (err) {
       console.error('[PlaceSelection] Failed to load POIs:', err)
+      // 即使请求失败也标记加载完成，让 fallback 数据展示
+      setPoiLoaded(true)
     } finally {
       setPoiLoading(false)
     }
