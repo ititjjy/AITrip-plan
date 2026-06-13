@@ -436,8 +436,9 @@ export function getCachedHotels(cityId: string): unknown[] | null {
 }
 
 /**
- * 从 city_pois 表中提取 categoryL1=hotel 的 POI，转换为 HotelPOI 格式。
- * 当 hotels 表无缓存时作为兜底，避免用户看到空酒店列表。
+ * 从 city_pois 表中提取酒店 POI，转换为 HotelPOI 格式。
+ * 当 hotels 表无缓存时作为兖底，避免用户看到空酒店列表。
+ * 支持 categoryL1=hotel（采集数据）和 type=hotel（旧AI数据）两种格式。
  */
 export function getHotelFallbackFromPOIs(cityId: string): unknown[] | null {
   const row = db.prepare(
@@ -456,7 +457,7 @@ export function getHotelFallbackFromPOIs(cityId: string): unknown[] | null {
   }
 
   const hotels = allPOIs
-    .filter((p) => p.categoryL1 === 'hotel')
+    .filter((p) => p.categoryL1 === 'hotel' || p.type === 'hotel')
     .map((p) => ({
       id: p.id || '',
       name: p.namePrimary || p.name || '',

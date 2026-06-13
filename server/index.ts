@@ -161,43 +161,24 @@ async function backgroundRefreshHotels(cityId: string, cityName: string, cityNam
   }
 }
 
-/** GET /api/hotels/:cityId – Get hotels for a city (with 3-tier cache) */
+/** GET /api/hotels/:cityId – Get hotels for a city (read-only from database) */
 app.get('/api/hotels/:cityId', async (req, res) => {
   const { cityId } = req.params
-  const cityName = (req.query.cityName as string) || cityId
-  const cityNameEn = (req.query.cityNameEn as string) || cityId
   try {
+    // 1. 优先从 hotels 表读取
     const cached = getCachedHotels(cityId)
-    const ageMs = getHotelCacheAge(cityId)
-    if (cached && ageMs !== null) {
-      const needsRefresh = ageMs >= FRESH_TTL_MS
-      const isStale = ageMs >= STALE_TTL_MS
-      if (needsRefresh) backgroundRefreshHotels(cityId, cityName, cityNameEn)
-      return res.json({ success: true, data: cached, fromCache: true, refreshing: needsRefresh, cacheAgeHours: Math.round(ageMs / (1000 * 60 * 60)), stale: isStale })
+    if (cached && cached.length > 0) {
+      return res.json({ success: true, data: cached, fromCache: true })
     }
-    const apiKey = getApiKey()
-    if (!apiKey) {
-      // 无 API key：尝试从 POI 缓存中提取酒店作为兜底
-      const fallback = getHotelFallbackFromPOIs(cityId)
-      if (fallback) {
-        return res.json({ success: true, data: fallback, fromCache: false, fromPOIs: true, refreshing: false })
-      }
-      return res.status(503).json({ success: false, error: 'NO_API_KEY', message: '服务端未配置 ARK API Key，且无缓存数据' })
-    }
-    // 无缓存时：先尝试从 POI 缓存中提取酒店（立即可用），同时后台触发 AI 生成更丰富的数据
+    // 2. hotels 表无数据：从 city_pois 表提取酒店作为 fallback
     const poiFallback = getHotelFallbackFromPOIs(cityId)
-    console.log(`[API] No hotel cache for ${cityName}, poi fallback: ${poiFallback?.length ?? 0} hotels`)
-    backgroundRefreshHotels(cityId, cityName, cityNameEn)
     if (poiFallback && poiFallback.length > 0) {
-      // 有 POI 兜底数据：立即返回，后台刷新完成后下次请求会拿到更丰富的 AI 数据
-      return res.json({ success: true, data: poiFallback, fromCache: false, fromPOIs: true, refreshing: true })
+      return res.json({ success: true, data: poiFallback, fromCache: false, fromPOIs: true })
     }
-    // POI 里也没有酒店数据：返回 generating 状态让前端轮询
-    return res.json({ success: true, data: [], fromCache: false, refreshing: true, generating: true })
+    // 数据库中无酒店数据
+    return res.json({ success: true, data: [], fromCache: false })
   } catch (err) {
-    const cached = getCachedHotels(cityId)
-    if (cached) return res.json({ success: true, data: cached, fromCache: true, refreshing: false, warning: 'API failed, cached data' })
-    return res.status(500).json({ success: false, error: 'API_ERROR', message: (err as Error).message })
+    return res.status(500).json({ success: false, error: 'DB_ERROR', message: (err as Error).message })
   }
 })
 

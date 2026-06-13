@@ -94,47 +94,21 @@ function useHotelSearch(cityLat: number, cityLng: number) {
   return { results, loading, search, clearResults: () => setResults([]) }
 }
 
-/* ── Hook to fetch AI-generated hotels from server ── */
-function useServerHotels(cityId: string, cityName: string, cityNameEn: string) {
+/* ── Hook to fetch hotels from server database ── */
+function useServerHotels(cityId: string, _cityName: string, _cityNameEn: string) {
   const [hotels, setHotels] = useState<HotelPOI[]>([])
   const [loading, setLoading] = useState(false)
-  const [generating, setGenerating] = useState(false) // 首次无缓存，后台生成中
   const [error, setError] = useState('')
   const fetchedRef = useRef(false)
-  const pollTimerRef = useRef<ReturnType<typeof setInterval>>()
-  const pollCountRef = useRef(0)
 
-  const fetchHotels = useCallback((isPoll = false) => {
-    if (!isPoll) setLoading(true)
-    fetch(`/api/hotels/${cityId}?cityName=${encodeURIComponent(cityName)}&cityNameEn=${encodeURIComponent(cityNameEn)}`)
+  const fetchHotels = useCallback(() => {
+    setLoading(true)
+    fetch(`/api/hotels/${cityId}`)
       .then(r => r.json())
       .then(data => {
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        if (data.success && Array.isArray(data.data)) {
           setHotels(data.data as HotelPOI[])
-          setGenerating(false)
           setError('')
-          // 数据已就绪，停止轮询
-          if (pollTimerRef.current) {
-            clearInterval(pollTimerRef.current)
-            pollTimerRef.current = undefined
-          }
-        } else if (data.generating) {
-          // 首次无缓存，后台生成中，开始轮询
-          setGenerating(true)
-          if (!pollTimerRef.current) {
-            pollCountRef.current = 0
-            pollTimerRef.current = setInterval(() => {
-              pollCountRef.current++
-              if (pollCountRef.current > 24) { // 最多等 2 分钟 (24 × 5s)
-                clearInterval(pollTimerRef.current)
-                pollTimerRef.current = undefined
-                setGenerating(false)
-                setError('AI 生成超时，请稍后重试')
-                return
-              }
-              fetchHotels(true)
-            }, 5000)
-          }
         } else if (!data.success) {
           setError(data.message || '加载失败')
         }
@@ -142,19 +116,16 @@ function useServerHotels(cityId: string, cityName: string, cityNameEn: string) {
       .catch((err) => {
         if ((err as Error).name !== 'AbortError') setError('网络错误')
       })
-      .finally(() => { if (!isPoll) setLoading(false) })
-  }, [cityId, cityName, cityNameEn])
+      .finally(() => setLoading(false))
+  }, [cityId])
 
   useEffect(() => {
     if (!cityId || fetchedRef.current) return
     fetchedRef.current = true
     fetchHotels()
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
-    }
   }, [cityId, fetchHotels])
 
-  return { hotels, loading, generating, error }
+  return { hotels, loading, generating: false, error }
 }
 
 /* ── Reverse geocode ── */
@@ -927,15 +898,6 @@ function MobileSearchOverlay({ searchQuery, setSearchQuery, search, clearResults
               <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 <span>加载推荐酒店中...</span>
-              </div>
-            )}
-            {serverGenerating && !serverLoading && (
-              <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
-                <div className="relative h-7 w-7">
-                  <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-                </div>
-                <span className="font-medium text-foreground text-xs">AI 首次生成酒店数据中...</span>
-                <span className="text-[10px] text-center max-w-[180px]">通常需要 1-2 分钟，请稍候</span>
               </div>
             )}
             {!serverLoading && (
