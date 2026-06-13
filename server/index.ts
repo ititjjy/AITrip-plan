@@ -31,6 +31,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import fs from 'fs'
 import {
   initDB, getCachedPOIs, upsertPOIs, getCacheAge,
   getCachedHotels, upsertHotels, getHotelCacheAge,
@@ -102,6 +103,19 @@ async function backgroundRefresh(cityId: string, cityName: string, cityNameEn: s
 /* ═══════════════════════ Admin Routes ═══════════════════════ */
 
 app.use('/api/admin', adminRoutes)
+
+/* ═══════════════════════ Cities Route ═══════════════════════ */
+
+app.get('/api/cities', (_req, res) => {
+  try {
+    const registryPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'city-registry.json')
+    const raw = fs.readFileSync(registryPath, 'utf-8')
+    const cities = JSON.parse(raw)
+    return res.json({ success: true, data: cities })
+  } catch {
+    return res.status(500).json({ success: false, error: 'CITY_REGISTRY_ERROR', message: '无法读取城市注册表' })
+  }
+})
 
 /* ═══════════════════════ POI Routes (existing) ═══════════════════════ */
 
