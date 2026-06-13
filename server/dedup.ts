@@ -66,11 +66,15 @@ function normalizePOI(poi: any): POI {
     if (match) { openTime = match[1]; closeTime = match[2] }
   }
 
+  // 类目映射：spark 的 entertainment/experience → activity（前端标准类目）
+  const rawCat = poi.categoryL1 || poi.type || 'scenic'
+  const mappedType = (rawCat === 'entertainment' || rawCat === 'experience') ? 'activity' : rawCat
+
   return {
     id: poi.id || '',
     name: poi.namePrimary || poi.name || '',
     nameZh: poi.nameZh || '',
-    type: poi.categoryL1 || poi.type || 'scenic',
+    type: mappedType,
     image: poi.image || '',
     rating: poi.rating || 0,
     duration: poi.visitDuration || poi.duration || 0,
