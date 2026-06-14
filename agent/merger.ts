@@ -896,12 +896,12 @@ function mergeGroup(group: RawPOI[]): MergedEntry {
 
 /* ═══════════════════════ 6. RawPOI → POI ═══════════════════════ */
 
-function rawToPOI(raw: RawPOI, cityId: string, index: number, score?: POIScore): POI {
+function rawToPOI(raw: RawPOI, city: CityInfo, index: number, score?: POIScore): POI {
   const l1 = raw.categoryL1
   const path = resolveCategoryPath(raw.categoryL3)
 
-  return {
-    id: `${raw.source || 'agent'}-${cityId}-${index}`,
+  const poi: POI = {
+    id: `${raw.source || 'agent'}-${city.id}-${index}`,
     namePrimary: raw.namePrimary,
     nameZh: raw.nameZh || '',
     nameEn: raw.nameEn || '',
@@ -925,6 +925,44 @@ function rawToPOI(raw: RawPOI, cityId: string, index: number, score?: POIScore):
     source: raw.source || 'unknown',
     score,
   }
+
+  // Hotel-only fields: distance from city center + district
+  if (l1 === 'hotel') {
+    poi.distanceFromCenter = Math.round(haversineDistance(raw.lat, raw.lng, city.lat, city.lng) * 10) / 10
+    poi.district = extractDistrict(raw.address, raw.addressEn, city.isDomestic)
+  }
+
+  return poi
+}
+
+/** 从地址中解析行政区/县名 */
+function extractDistrict(address: string | unknown, addressEn: string | unknown, isDomestic: boolean): string {
+  const addrStr = String(address || '')
+  const addrEnStr = String(addressEn || '')
+  if (isDomestic && addrStr) {
+    // 国内地址: 匹配 "XX区" 或 "XX县" (排除省、市)
+    const m = addrStr.match(/([^省市]+(?:区|县))/)
+    if (m) return m[1]
+  }
+  if (addrEnStr) {
+    // 国外英文地址: 提取常见的 district/area 名称
+    // 优先匹配 "Xxx District", "Xxx Regency", "Xxx County" 等
+    const enPatterns = [
+      /([A-Z][a-zA-Z\s]+(?:District|Regency|County|Borough)),/,
+      /,\s*([A-Z][a-zA-Z\s]+(?:District|Regency|County|Borough)),/,
+    ]
+    for (const p of enPatterns) {
+      const m = addrEnStr.match(p)
+      if (m) return m[1].trim()
+    }
+    // 回退: 尝试匹配逗号分隔的倒数第二个字段 (通常是区/县)
+    const parts = addrEnStr.split(',').map(s => s.trim()).filter(Boolean)
+    if (parts.length >= 3) {
+      const candidate = parts[parts.length - 2]
+      if (candidate && !/\d/.test(candidate)) return candidate
+    }
+  }
+  return ''
 }
 
 function getDefaultL2(l1: L1Category): string {
@@ -1105,7 +1143,7 @@ export function mergeAndDeduplicate(
       const score = computePOIScore(entry.raw, entry.conflictReport)
       const grade = scoreGrade(score.total)
       scoreDistribution[grade as 'A' | 'B' | 'C' | 'D']++
-      finalPOIs.push(rawToPOI(entry.raw, city.id, globalIdx, score))
+      finalPOIs.push(rawToPOI(entry.raw, city, globalIdx, score))
     }
   }
 

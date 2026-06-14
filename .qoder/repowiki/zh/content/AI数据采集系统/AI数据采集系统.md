@@ -17,6 +17,9 @@
 - [agent/utils.ts](file://agent/utils.ts)
 - [agent/categories.ts](file://agent/categories.ts)
 - [agent/exporter.ts](file://agent/exporter.ts)
+- [agent/model-fallback.ts](file://agent/model-fallback.ts)
+- [agent/data/model-fallback-state.json](file://agent/data/model-fallback-state.json)
+- [miniprogram/src/data/destinations.ts](file://miniprogram/src/data/destinations.ts)
 - [admin/types/index.ts](file://admin/types/index.ts)
 - [admin/pages/CollectionDetail.tsx](file://admin/pages/CollectionDetail.tsx)
 - [server/admin-routes.ts](file://server/admin-routes.ts)
@@ -33,29 +36,29 @@
 
 ## 更新摘要
 **所做更改**
-- 完全移除了AI推荐系统的数据库直连架构
-- 删除了PlaceSelectionPage.tsx中的AI相关代码(160+行)
-- 移除了mock-data.ts中的AI函数
-- 删除了后端AI生成端点和Qwen API集成代码
-- 更新了前端组件以使用数据库直连架构
-- 简化了服务器端API路由，移除了AI相关端点
-- 新增了小程序前端的数据库直连实现
+- 新增AI模型回退系统，支持预算制降级和有效期轮转
+- 增强POI合并算法，优化名称重排和跨类目去重策略
+- 改进翻译服务，集成模型回退机制和批量翻译优化
+- 新增目的地数据支持，提供完整的国内外城市数据集
+- 更新数据合并流程，增强语言检测和标签双语化处理
 
 ## 目录
 1. [项目概述](#项目概述)
 2. [系统架构](#系统架构)
 3. [核心组件](#核心组件)
 4. [数据采集流程](#数据采集流程)
-5. [数据合并与去重算法](#数据合并与去重算法)
-6. [质量评估系统](#质量评估系统)
-7. [分类器工作原理](#分类器工作原理)
-8. [数据处理管道](#数据处理管道)
-9. [数据库直连架构](#数据库直连架构)
-10. [配置管理](#配置管理)
-11. [性能优化](#性能优化)
-12. [故障排查](#故障排查)
-13. [翻译服务功能](#翻译服务功能)
-14. [总结](#总结)
+5. [AI模型回退系统](#ai模型回退系统)
+6. [数据合并与去重算法](#数据合并与去重算法)
+7. [质量评估系统](#质量评估系统)
+8. [分类器工作原理](#分类器工作原理)
+9. [数据处理管道](#数据处理管道)
+10. [数据库直连架构](#数据库直连架构)
+11. [配置管理](#配置管理)
+12. [性能优化](#性能优化)
+13. [故障排查](#故障排查)
+14. [翻译服务功能](#翻译服务功能)
+15. [目的地数据支持](#目的地数据支持)
+16. [总结](#总结)
 
 ## 项目概述
 
@@ -77,6 +80,8 @@ Server[服务器API]
 Database[SQLite数据库]
 Cache[缓存系统]
 Exporter[数据导出器]
+ModelFallback[模型回退系统]
+Destinations[目的地数据]
 end
 subgraph "数据源层"
 Google[Google Places]
@@ -84,6 +89,8 @@ Amap[高德地图]
 OSM[OpenStreetMap]
 Foursquare[Foursquare]
 Manual[人工录入]
+AI[AI数据源]
+Doubao[豆包数据源]
 end
 subgraph "数据存储层"
 CityPOIs[城市POI缓存]
@@ -91,6 +98,7 @@ Users[用户数据]
 Trips[行程数据]
 Comments[评论数据]
 Bookings[预订数据]
+ModelState[模型状态]
 end
 Admin --> Server
 Web --> Server
@@ -105,11 +113,16 @@ Server --> Cache
 Cache --> CityPOIs
 Server --> Exporter
 Exporter --> CityPOIs
+Server --> ModelFallback
+ModelFallback --> ModelState
+Server --> Destinations
+Destinations --> CityPOIs
 ```
 
 **图表来源**
 - [server/index.ts:1-821](file://server/index.ts#L1-L821)
 - [server/db.ts:1-552](file://server/db.ts#L1-L552)
+- [agent/model-fallback.ts:1-354](file://agent/model-fallback.ts#L1-L354)
 
 ## 核心组件
 
@@ -181,9 +194,17 @@ class CollectionBatch {
 +string results
 +string by_category
 }
+class ModelFallbackState {
++currentIndex : Record<string, number>
++exhaustedModels : Record<string, string[]>
++tokenUsage : Record<string, Record<string, number>>
++updatedAt : string
++lastFullResetMonth : Record<string, number>
+}
 RawPOI --> POI : "转换"
 SourceCollector --> RawPOI : "生成"
 CollectionBatch --> CollectionBatchInfo : "映射"
+ModelFallbackState --> ModelFallback : "状态管理"
 ```
 
 **图表来源**
@@ -191,6 +212,7 @@ CollectionBatch --> CollectionBatchInfo : "映射"
 - [agent/sources/base.ts:121-177](file://agent/sources/base.ts#L121-L177)
 - [agent/sources/base.ts:91-100](file://agent/sources/base.ts#L91-L100)
 - [agent/db.ts:470-540](file://agent/db.ts#L470-L540)
+- [agent/data/model-fallback-state.json:1-52](file://agent/data/model-fallback-state.json#L1-L52)
 
 **章节来源**
 - [agent/sources/base.ts:1-252](file://agent/sources/base.ts#L1-L252)
@@ -273,11 +295,19 @@ string mood
 integer created_at
 integer updated_at
 }
+MODEL_FALLBACK_STATE {
+string updatedAt
+object currentIndex
+object exhaustedModels
+object tokenUsage
+object lastFullResetMonth
+}
 ```
 
 **图表来源**
 - [server/db.ts:46-147](file://server/db.ts#L46-L147)
 - [server/db.ts:151-200](file://server/db.ts#L151-L200)
+- [agent/data/model-fallback-state.json:1-52](file://agent/data/model-fallback-state.json#L1-L52)
 
 **章节来源**
 - [server/db.ts:1-552](file://server/db.ts#L1-L552)
@@ -293,11 +323,14 @@ sequenceDiagram
 participant Scheduler as 调度器
 participant City as 城市
 participant Collector as 数据采集器
+participant ModelFallback as 模型回退系统
 participant DB as 数据库
 Scheduler->>Scheduler : calculatePriorities()
 Scheduler->>City : 评估热度、新鲜度、质量缺口
 Scheduler->>Scheduler : 生成优先级分数
 Scheduler->>Collector : 选择高优先级城市
+Collector->>ModelFallback : 检查模型状态
+ModelFallback->>Collector : 返回可用模型
 Collector->>Collector : 并行调用多个数据源
 Collector->>DB : 保存原始数据
 Collector->>Collector : 处理原始数据
@@ -308,6 +341,7 @@ Collector->>DB : 保存处理结果
 **图表来源**
 - [agent/scheduler.ts:18-87](file://agent/scheduler.ts#L18-L87)
 - [agent/index.ts:134-208](file://agent/index.ts#L134-L208)
+- [agent/model-fallback.ts:1-354](file://agent/model-fallback.ts#L1-L354)
 
 ### 并发控制策略
 
@@ -316,6 +350,45 @@ Collector->>DB : 保存处理结果
 **章节来源**
 - [agent/index.ts:339-343](file://agent/index.ts#L339-L343)
 - [agent/utils.ts:79-106](file://agent/utils.ts#L79-L106)
+
+## AI模型回退系统
+
+### 预算制降级策略
+
+系统实现了智能的AI模型回退机制，支持预算制降级和有效期轮转：
+
+```mermaid
+flowchart TD
+Start([开始API调用]) --> CheckState[检查模型状态]
+CheckState --> Available{模型可用?}
+Available --> |是| UseModel[使用当前模型]
+Available --> |否| CheckExhausted{检查是否耗尽}
+CheckExhausted --> |否| SelectNext[选择下一个模型]
+CheckExhausted --> |是| ResetState[重置状态]
+SelectNext --> UpdateState[更新状态]
+UpdateState --> UseModel
+ResetState --> FullReset[完全重置]
+FullReset --> UseModel
+UseModel --> ProcessResponse[处理响应]
+ProcessResponse --> ReportUsage[报告Token使用]
+ReportUsage --> CheckBudget{检查预算阈值}
+CheckBudget --> |未达阈值| End([完成])
+CheckBudget --> |已达阈值| AutoDowngrade[自动降级]
+AutoDowngrade --> UpdateState
+End --> End
+```
+
+**图表来源**
+- [agent/model-fallback.ts:1-354](file://agent/model-fallback.ts#L1-L354)
+- [agent/data/model-fallback-state.json:1-52](file://agent/data/model-fallback-state.json#L1-L52)
+
+### 模型状态管理
+
+系统维护详细的模型状态信息，包括当前索引、耗尽模型列表和Token使用统计：
+
+**章节来源**
+- [agent/model-fallback.ts:354-354](file://agent/model-fallback.ts#L354-L354)
+- [agent/data/model-fallback-state.json:1-52](file://agent/data/model-fallback-state.json#L1-L52)
 
 ## 数据合并与去重算法
 
@@ -326,14 +399,17 @@ Collector->>DB : 保存处理结果
 ```mermaid
 flowchart TD
 Start([开始合并]) --> Filter[预过滤无效POI]
-Filter --> Bucket[地理预分桶优化]
+Filter --> NameDetection[名称语言检测]
+NameDetection --> Bucket[地理预分桶优化]
 Bucket --> Compare[两两相似度比较]
 Compare --> Threshold{是否满足合并阈值}
 Threshold --> |是| Union[Union-Find去重]
 Threshold --> |否| Next[继续比较]
 Union --> CrossCategory[跨类目去重]
 CrossCategory --> Merge[数据合并]
-Merge --> Score[计算综合评分]
+Merge --> NameReorder[名称重排]
+NameReorder --> TagBilingualize[标签双语化]
+TagBilingualize --> Score[计算综合评分]
 Score --> Clean[质量清洗]
 Clean --> End([完成])
 Next --> Compare
@@ -343,13 +419,13 @@ Next --> Compare
 - [agent/merger.ts:546-596](file://agent/merger.ts#L546-L596)
 - [agent/similarity.ts:331-400](file://agent/similarity.ts#L331-L400)
 
-### 综合相似度计算
+### 增强的名称重排策略
 
-系统实现了五路径决策树算法：
+系统实现了更精确的名称重排算法，确保多语言名称的正确处理：
 
 **章节来源**
-- [agent/similarity.ts:321-400](file://agent/similarity.ts#L321-L400)
-- [agent/merger.ts:546-596](file://agent/merger.ts#L546-L596)
+- [agent/merger.ts:68-86](file://agent/merger.ts#L68-L86)
+- [agent/merger.ts:736-837](file://agent/merger.ts#L736-L837)
 
 ## 质量评估系统
 
@@ -432,6 +508,7 @@ participant Decision as 决策模块
 participant Cities as 城市选择
 participant Sources as 数据源选择
 participant Merge as 增量合并
+participant ModelFallback as 模型回退
 participant DB as 数据库
 System->>Decision : shouldRunIncremental()
 Decision->>System : 返回更新模式
@@ -439,6 +516,8 @@ System->>Cities : selectIncrementalCities()
 Cities->>System : 返回目标城市列表
 System->>Sources : selectIncrementalSources()
 Sources->>System : 返回可用数据源
+System->>ModelFallback : 检查模型状态
+ModelFallback->>System : 返回可用模型
 System->>Merge : mergeIncremental()
 Merge->>DB : 更新数据库
 Merge->>DB : 记录更新统计
@@ -542,6 +621,7 @@ MiniProgram->>MiniProgram : 解析并渲染POI列表
 3. **速率限制器**：防止API限流
 4. **批量处理**：优化数据库操作性能
 5. **缓存策略**：减少数据库查询次数
+6. **模型回退优化**：智能选择最优模型组合
 
 ### 内存管理
 
@@ -558,6 +638,7 @@ MiniProgram->>MiniProgram : 解析并渲染POI列表
 3. **并发冲突**：使用Promise.race机制处理并发竞争
 4. **数据库锁定**：采用WAL模式避免数据库锁定
 5. **缓存失效**：支持手动刷新和自动过期机制
+6. **模型降级**：自动检测API错误并执行降级策略
 
 ### 调试工具
 
@@ -584,7 +665,7 @@ Zh --> Output
 ```
 
 **图表来源**
-- [agent/translate.ts:1-200](file://agent/translate.ts#L1-L200)
+- [agent/translate.ts:1-220](file://agent/translate.ts#L1-L220)
 
 ### 翻译服务集成
 
@@ -593,20 +674,59 @@ Zh --> Output
 - 智能语言检测
 - 批量翻译处理
 - 翻译质量评估
+- 模型回退机制集成
 
 **章节来源**
-- [agent/translate.ts:1-200](file://agent/translate.ts#L1-L200)
+- [agent/translate.ts:1-220](file://agent/translate.ts#L1-L220)
+
+## 目的地数据支持
+
+### 完整的城市数据集
+
+系统提供了完整的国内外城市数据集，支持目的地选择和行程规划：
+
+```mermaid
+flowchart TD
+Destinations[目的地数据] --> Domestic[国内Top 100]
+Destinations --> International[国际Top 100]
+Domestic --> Hotness[旅游热度]
+Domestic --> Metadata[元数据]
+International --> Continent[大洲分组]
+International --> Country[国家分组]
+Metadata --> Pinyin[拼音索引]
+Metadata --> Tags[标签系统]
+Hotness --> Selection[智能选择]
+Country --> Selection
+```
+
+**图表来源**
+- [miniprogram/src/data/destinations.ts:1-800](file://miniprogram/src/data/destinations.ts#L1-L800)
+
+### 城市元数据管理
+
+系统维护详细的城市元数据，包括：
+- 基础信息：名称、经纬度、时区、货币
+- 旅游信息：平均日预算、标签、描述
+- 地理信息：省份、国家、大洲、国旗
+- 热度指标：当季热度排名
+
+**章节来源**
+- [miniprogram/src/data/destinations.ts:1-800](file://miniprogram/src/data/destinations.ts#L1-L800)
 
 ## 总结
 
 AI数据采集系统经过重大重构，已完全移除AI推荐功能，转为基于数据库直连的架构。系统的主要特点包括：
 
-1. **简化架构**：移除了复杂的AI生成和去重流程，采用直接数据库访问
-2. **高性能**：通过缓存策略和数据库优化提升数据访问速度
-3. **稳定可靠**：减少了外部API依赖，提高了系统的稳定性
-4. **易于维护**：代码结构更加简洁，便于后续开发和维护
-5. **数据质量**：专注于提供高质量的POI数据，支持多语言处理
+1. **智能化模型管理**：新增AI模型回退系统，支持预算制降级和有效期轮转
+2. **增强的数据处理**：改进POI合并算法，优化名称重排和跨类目去重策略
+3. **完善的翻译服务**：集成模型回退机制，提供高质量的多语言处理
+4. **丰富的目的地数据**：提供完整的国内外城市数据集
+5. **简化架构**：移除了复杂的AI生成和去重流程，采用直接数据库访问
+6. **高性能**：通过缓存策略和数据库优化提升数据访问速度
+7. **稳定可靠**：减少了外部API依赖，提高了系统的稳定性
+8. **易于维护**：代码结构更加简洁，便于后续开发和维护
+9. **数据质量**：专注于提供高质量的POI数据，支持多语言处理
 
-**更新** 系统已完全移除AI推荐功能，前端组件直接从数据库获取POI数据，服务器端API提供简洁的数据库直连接口，简化了整体架构并提升了性能。
+**更新** 系统已完全移除AI推荐功能，前端组件直接从数据库获取POI数据，服务器端API提供简洁的数据库直连接口，简化了整体架构并提升了性能。新增的AI模型回退系统确保了数据采集过程的稳定性和可靠性，而增强的POI合并算法和翻译服务进一步提升了数据质量和用户体验。
 
 该系统为旅行规划应用提供了稳定可靠的POI数据支撑，能够满足大规模数据访问和处理的需求。通过持续的优化和改进，系统将继续提升数据质量和用户体验。

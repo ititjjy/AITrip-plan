@@ -456,6 +456,34 @@ export function getHotelFallbackFromPOIs(cityId: string): unknown[] | null {
     return { one: 1, two: 2, three: 3, four: 4, five: 5 }[m[1]]
   }
 
+  // 根据星级/分类/标签推断设施列表
+  function inferAmenities(p: any): string[] {
+    const amenities: string[] = []
+    const stars = parseStars(p.categoryL3)
+    const cat2: string = p.categoryL2 || ''
+    const tags: string[] = Array.isArray(p.tags) ? p.tags.map((t: string) => t.split('|')[0].toLowerCase()) : []
+    const desc: string = (p.description || '').toLowerCase()
+    const allText = [...tags, desc].join(' ')
+
+    // Wi-Fi：几乎所有酒店都有
+    amenities.push('Wi-Fi')
+
+    // 停车场：舒适型以上
+    if (stars && stars >= 3) amenities.push('停车场')
+
+    // 泳池：高档酒店或描述/标签含相关词
+    if ((stars && stars >= 4) || allText.includes('泳池') || allText.includes('游泳') || allText.includes('pool') || cat2.includes('luxury')) {
+      amenities.push('泳池')
+    }
+
+    // 健身房：4星以上
+    if ((stars && stars >= 4) || allText.includes('健身') || allText.includes('fitness') || allText.includes('gym')) {
+      amenities.push('健身房')
+    }
+
+    return amenities
+  }
+
   const hotels = allPOIs
     .filter((p) => p.categoryL1 === 'hotel' || p.type === 'hotel')
     .map((p) => ({
@@ -470,6 +498,7 @@ export function getHotelFallbackFromPOIs(cityId: string): unknown[] | null {
       description: p.description || '',
       images: p.image ? [p.image] : [],
       tags: Array.isArray(p.tags) ? p.tags.map((t: string) => t.split('|')[0]) : [],
+      amenities: inferAmenities(p),
     }))
 
   return hotels.length > 0 ? hotels : null

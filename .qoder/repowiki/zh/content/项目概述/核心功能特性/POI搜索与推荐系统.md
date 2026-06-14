@@ -27,6 +27,7 @@
 - [src/types/index.ts](file://src/types/index.ts)
 - [src/data/mock-data.ts](file://src/data/mock-data.ts)
 - [src/utils/aiRecommend.ts](file://src/utils/aiRecommend.ts)
+- [server/admin-routes.ts](file://server/admin-routes.ts)
 </cite>
 
 ## 更新摘要
@@ -36,6 +37,7 @@
 - 更新了类型过滤功能的实现，支持从数据库直接过滤POI类型
 - 扩展了POI选择容量，从20个扩展到50个
 - 改进了POI命名显示逻辑，优先显示中文名称
+- 移除了AI推荐相关的API调用和数据结构
 
 ## 目录
 1. [简介](#简介)

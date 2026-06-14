@@ -174,6 +174,11 @@ export interface POI {
 
   /** 数据质量评分 (合并时计算) */
   score?: POIScore
+
+  /** 距离市中心直线距离 (km, 仅 hotel 类目) */
+  distanceFromCenter?: number
+  /** 行政区/县名 (从地址解析, 仅 hotel 类目) */
+  district?: string
 }
 
 /* ── Unsplash 图片 URL (6 大类目) ── */

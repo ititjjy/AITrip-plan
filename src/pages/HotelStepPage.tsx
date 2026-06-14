@@ -7,8 +7,12 @@ import {
   ArrowLeft, ArrowRight, Check, Hotel, SkipForward,
   Search, X, MapPin, Navigation, Copy, Star, SlidersHorizontal,
   Loader2, Wifi, Car, Waves, Dumbbell, ChevronDown, Eye,
+  ChevronLeft, ChevronRight, Phone, Clock,
+  Briefcase, Sparkles, Plane, ShirtIcon, Package, BadgeCheck,
+  UtensilsCrossed, BedDouble, Users, Maximize2, Coffee,
 } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
+import type { Marker as LeafletMarker } from 'leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { handleImgError } from '@/utils/imageProxy'
@@ -59,6 +63,37 @@ function MapResizeFix() {
     return () => clearTimeout(timer)
   }, [map])
   return null
+}
+
+/* ── Marker that auto-opens its Popup when activeId matches ── */
+function MarkerWithAutoPopup({
+  id, activeId, position, icon, onMarkerClick, children,
+}: {
+  id: string
+  activeId: string | null
+  position: [number, number]
+  icon: L.Icon | L.DivIcon
+  onMarkerClick: () => void
+  children: React.ReactNode
+}) {
+  const markerRef = useRef<LeafletMarker | null>(null)
+  useEffect(() => {
+    if (activeId === id && markerRef.current) {
+      // Small delay to let flyTo finish animating first
+      const t = setTimeout(() => { markerRef.current?.openPopup() }, 600)
+      return () => clearTimeout(t)
+    }
+  }, [activeId, id])
+  return (
+    <Marker
+      ref={markerRef}
+      position={position}
+      icon={icon}
+      eventHandlers={{ click: onMarkerClick }}
+    >
+      {children}
+    </Marker>
+  )
 }
 
 /* ── Nominatim search hook ── */
@@ -148,6 +183,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<{ name: string;
 /* ── Sort + Filter types ── */
 type SortKey = 'recommend' | 'price-asc' | 'price-desc' | 'rating' | 'distance'
 type StarFilter = 0 | 2 | 3 | 4 | 5  // 0 means all
+type PriceRange = 'all' | '0-500' | '500-1000' | '1000-2000' | '2000+'
 
 const SORT_LABELS: Record<SortKey, string> = {
   recommend: '推荐排序',
@@ -155,6 +191,35 @@ const SORT_LABELS: Record<SortKey, string> = {
   'price-desc': '价格高到低',
   rating: '评分最高',
   distance: '距离最近',
+}
+
+const PRICE_RANGE_LABELS: Record<PriceRange, string> = {
+  all: '不限',
+  '0-500': '¥500以下',
+  '500-1000': '¥500-1000',
+  '1000-2000': '¥1000-2000',
+  '2000+': '¥2000以上',
+}
+
+/* ── 商圈提取：从地址/标签推断所属商圈 ── */
+function extractDistrict(hotel: HotelPOI): string {
+  const addr = hotel.address || ''
+  const tags = (hotel.tags || []).join(' ')
+  // 先尝试从 tags 中提取商圈关键词
+  const districtKeywords = [
+    '外滩', '人民广场', '南京西路', '南京东路', '陆家嘴', '新天地', '淮海路',
+    '衡山路', '徐家汇', '虹桥', '浦东', '静安', '黄浦', '徐汇', '长宁',
+    '普陀', '闵行', '宝山', '杨浦', '三里屯', '国贸', '王府井', '西单',
+    '朝阳', '海淀', '东城', '西城', '宣武', '崇文', '丰台', '石景山',
+    '新宿', '涩谷', '银座', '浅草', '上野', '六本木', '池袋', '秋叶原',
+  ]
+  for (const kw of districtKeywords) {
+    if (tags.includes(kw) || addr.includes(kw)) return kw
+  }
+  // fallback: 提取"XX区"
+  const m = addr.match(/[\u4e00-\u9fa5]{2,4}区/)
+  if (m) return m[0]
+  return '其他'
 }
 
 /* ── Amenity quick icons ── */
@@ -175,11 +240,17 @@ export default function HotelStepPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [mapClickHotel, setMapClickHotel] = useState<{ lat: number; lng: number; name: string; address: string } | null>(null)
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null)
+  const [activeMarkerId, setActiveMarkerId] = useState<string | null>(null)
 
   // Filters & sort
   const [sortKey, setSortKey] = useState<SortKey>('recommend')
   const [starFilter, setStarFilter] = useState<StarFilter>(0)
+  const [priceRange, setPriceRange] = useState<PriceRange>('all')
+  const [districtFilter, setDistrictFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+
+  // Hotel detail drawer
+  const [detailHotel, setDetailHotel] = useState<HotelPOI | null>(null)
 
   // Server hotel data
   const { hotels: serverHotels, loading: serverLoading, error: serverError } = useServerHotels(
@@ -189,6 +260,19 @@ export default function HotelStepPage() {
   // Fall back to mock data if server has no hotels
   const fallbackHotels = city ? (recommendedHotels[city.id] || []) : []
   const allCityHotels = serverHotels.length > 0 ? serverHotels : fallbackHotels
+
+  // 动态生成商圈列表（出现次数>=2才展示，其他归入"其他"）
+  const availableDistricts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    allCityHotels.forEach(h => {
+      const d = extractDistrict(h)
+      counts[d] = (counts[d] || 0) + 1
+    })
+    return Object.entries(counts)
+      .filter(([, n]) => n >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .map(([d]) => d)
+  }, [allCityHotels])
 
   // Apply filters & sort
   const filteredHotels = useMemo(() => {
@@ -205,10 +289,45 @@ export default function HotelStepPage() {
         (q.includes('星') && h.stars && `${h.stars}星`.includes(q))
       )
     }
+    // 星级筛选
     if (starFilter > 0) {
       list = list.filter(h => (h.stars || 0) >= starFilter)
     }
+    // 价格区间筛选
+    if (priceRange !== 'all') {
+      list = list.filter(h => {
+        const p = h.priceRange?.[0]
+        if (p == null) return false
+        if (priceRange === '0-500') return p < 500
+        if (priceRange === '500-1000') return p >= 500 && p < 1000
+        if (priceRange === '1000-2000') return p >= 1000 && p < 2000
+        if (priceRange === '2000+') return p >= 2000
+        return true
+      })
+    }
+    // 商圈筛选
+    if (districtFilter !== 'all') {
+      list = list.filter(h => extractDistrict(h) === districtFilter)
+    }
     switch (sortKey) {
+      case 'recommend': {
+        // 推荐排序：评分40% + 星级30% + 价格适中20% + 距离10%
+        const priceList = list.map(h => h.priceRange?.[0] || 0).filter(p => p > 0)
+        const medianPrice = priceList.length
+          ? priceList.sort((a, b) => a - b)[Math.floor(priceList.length / 2)]
+          : 500
+        const score = (h: HotelPOI) => {
+          const ratingScore = ((h.rating || 3) / 5) * 40
+          const starScore = ((h.stars || 2) / 5) * 30
+          const price = h.priceRange?.[0] || medianPrice
+          const priceDiff = Math.abs(price - medianPrice) / (medianPrice || 1)
+          const priceScore = Math.max(0, 1 - priceDiff) * 20
+          const distScore = h.distance != null ? Math.max(0, 1 - h.distance / 20) * 10 : 5
+          return ratingScore + starScore + priceScore + distScore
+        }
+        list.sort((a, b) => score(b) - score(a))
+        break
+      }
       case 'price-asc':
         list.sort((a, b) => (a.priceRange?.[0] || 9999) - (b.priceRange?.[0] || 9999))
         break
@@ -223,7 +342,7 @@ export default function HotelStepPage() {
         break
     }
     return list
-  }, [allCityHotels, starFilter, sortKey, searchQuery])
+  }, [allCityHotels, starFilter, priceRange, districtFilter, sortKey, searchQuery])
 
   const { results: searchResults, loading: searchLoading, search: nominatimSearch, clearResults } = useHotelSearch(city?.lat ?? 0, city?.lng ?? 0)
 
@@ -243,6 +362,7 @@ export default function HotelStepPage() {
   const handleSelectHotel = (hotel: HotelPOI) => {
     dispatch({ type: 'SET_DAY_HOTEL', payload: { dayIndex: activeDayIdx, hotel } })
     setFlyTarget({ lat: hotel.lat, lng: hotel.lng })
+    setActiveMarkerId(hotel.id)
   }
 
   const handleApplyToAll = () => {
@@ -279,8 +399,16 @@ export default function HotelStepPage() {
     setMapClickHotel(null)
   }
 
+  // 列表酒店点击：飞到地图并弹出 Popup（不直接选中）
+  const handleLocateHotel = (hotel: HotelPOI) => {
+    setFlyTarget({ lat: hotel.lat, lng: hotel.lng })
+    setActiveMarkerId(hotel.id)
+  }
+
   const handleViewDetail = (hotel: HotelPOI) => {
-    dispatch({ type: 'VIEW_HOTEL_DETAIL', payload: JSON.stringify(hotel) })
+    setDetailHotel(hotel)
+    setFlyTarget({ lat: hotel.lat, lng: hotel.lng })
+    setActiveMarkerId(hotel.id)
   }
 
   const handleNext = () => {
@@ -472,30 +600,92 @@ export default function HotelStepPage() {
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
                   </div>
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-smooth ${
-                      starFilter > 0 ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:bg-secondary'
-                    }`}
-                  >
-                    <SlidersHorizontal className="h-3 w-3" />
-                    筛选{starFilter > 0 ? ` ·${starFilter}星+` : ''}
-                  </button>
-                </div>
-                {showFilters && (
-                  <div className="mt-2 flex items-center gap-1 animate-fade-in">
-                    <span className="text-[10px] text-muted-foreground mr-1">星级:</span>
-                    {([0, 2, 3, 4, 5] as StarFilter[]).map((s) => (
+                  {/* 筛选按钮：显示已激活条件数 */}
+                  {(() => {
+                    const activeCount = (starFilter > 0 ? 1 : 0) + (priceRange !== 'all' ? 1 : 0) + (districtFilter !== 'all' ? 1 : 0)
+                    return (
                       <button
-                        key={s}
-                        onClick={() => setStarFilter(s)}
-                        className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition-smooth ${
-                          starFilter === s ? 'gradient-hero text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-smooth ${
+                          activeCount > 0 ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:bg-secondary'
                         }`}
                       >
-                        {s === 0 ? '全部' : `${s}星+`}
+                        <SlidersHorizontal className="h-3 w-3" />
+                        筛选{activeCount > 0 ? ` · ${activeCount}` : ''}
                       </button>
-                    ))}
+                    )
+                  })()}
+                </div>
+
+                {showFilters && (
+                  <div className="mt-2 space-y-2 animate-fade-in">
+                    {/* 星级 */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground w-8 shrink-0">星级</span>
+                      {([0, 2, 3, 4, 5] as StarFilter[]).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setStarFilter(s)}
+                          className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition-smooth ${
+                            starFilter === s ? 'gradient-hero text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                          }`}
+                        >
+                          {s === 0 ? '不限' : `${s}星+`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* 价格区间 */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground w-8 shrink-0">价格</span>
+                      {(Object.keys(PRICE_RANGE_LABELS) as PriceRange[]).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setPriceRange(p)}
+                          className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition-smooth ${
+                            priceRange === p ? 'gradient-hero text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                          }`}
+                        >
+                          {PRICE_RANGE_LABELS[p]}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* 商圈（动态，无商圈则不渲染） */}
+                    {availableDistricts.length > 0 && (
+                      <div className="flex items-start gap-1 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground w-8 shrink-0 pt-0.5">商圈</span>
+                        <button
+                          onClick={() => setDistrictFilter('all')}
+                          className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition-smooth ${
+                            districtFilter === 'all' ? 'gradient-hero text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                          }`}
+                        >
+                          不限
+                        </button>
+                        {availableDistricts.map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => setDistrictFilter(d)}
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-medium transition-smooth ${
+                              districtFilter === d ? 'gradient-hero text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 重置按钮 */}
+                    {(starFilter > 0 || priceRange !== 'all' || districtFilter !== 'all') && (
+                      <button
+                        onClick={() => { setStarFilter(0); setPriceRange('all'); setDistrictFilter('all') }}
+                        className="text-[10px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                      >
+                        清除筛选
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -517,7 +707,7 @@ export default function HotelStepPage() {
                         hotel={h}
                         isSelected={currentDayHotel?.id === h.id}
                         onSelect={() => handleSelectHotel(h)}
-                        onLocate={() => setFlyTarget({ lat: h.lat, lng: h.lng })}
+                        onLocate={() => handleLocateHotel(h)}
                         onViewDetail={() => handleViewDetail(h)}
                       />
                     ))}
@@ -555,7 +745,7 @@ export default function HotelStepPage() {
                         hotel={h}
                         isSelected={currentDayHotel?.id === h.id}
                         onSelect={() => handleSelectHotel(h)}
-                        onLocate={() => setFlyTarget({ lat: h.lat, lng: h.lng })}
+                        onLocate={() => handleLocateHotel(h)}
                         onViewDetail={() => handleViewDetail(h)}
                       />
                     ))}
@@ -606,11 +796,16 @@ export default function HotelStepPage() {
 
                 {/* Hotel markers */}
                 {allMarkers.map((m) => (
-                  <Marker
+                  <MarkerWithAutoPopup
                     key={m.hotel.id}
+                    id={m.hotel.id}
+                    activeId={activeMarkerId}
                     position={[m.hotel.lat, m.hotel.lng]}
                     icon={m.type === 'current' ? selectedIcon : m.type === 'assigned' ? assignedIcon : m.type === 'search' ? searchIcon : defaultIcon}
-                    eventHandlers={{ click: () => { if (m.type !== 'current') handleSelectHotel(m.hotel) } }}
+                    onMarkerClick={() => {
+                      setFlyTarget({ lat: m.hotel.lat, lng: m.hotel.lng })
+                      setActiveMarkerId(m.hotel.id)
+                    }}
                   >
                     <Popup>
                       <div className="min-w-[180px]">
@@ -635,18 +830,16 @@ export default function HotelStepPage() {
                               选为第{days[activeDayIdx].dayNumber}天酒店
                             </button>
                           )}
-                          {m.hotel.roomTypes && m.hotel.roomTypes.length > 0 && (
-                            <button
-                              onClick={() => handleViewDetail(m.hotel)}
-                              className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium hover:bg-gray-50"
-                            >
-                              详情
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleViewDetail(m.hotel)}
+                            className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium hover:bg-gray-50"
+                          >
+                            查看详情
+                          </button>
                         </div>
                       </div>
                     </Popup>
-                  </Marker>
+                  </MarkerWithAutoPopup>
                 ))}
 
                 {/* Map click marker */}
@@ -690,7 +883,7 @@ export default function HotelStepPage() {
                 cityHotels={filteredHotels}
                 currentDayHotel={currentDayHotel}
                 onSelectHotel={handleSelectHotel}
-                onLocate={(h) => setFlyTarget({ lat: h.lat, lng: h.lng })}
+                onLocate={(h) => handleLocateHotel(h)}
                 onViewDetail={handleViewDetail}
                 activeDayIdx={activeDayIdx}
                 days={days}
@@ -721,6 +914,17 @@ export default function HotelStepPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Hotel Detail Drawer */}
+      {detailHotel && (
+        <HotelDetailDrawer
+          hotel={detailHotel}
+          onClose={() => setDetailHotel(null)}
+          onSelect={() => { handleSelectHotel(detailHotel); setDetailHotel(null) }}
+          isSelected={currentDayHotel?.id === detailHotel.id}
+          activeDayNumber={days[activeDayIdx].dayNumber}
+        />
       )}
     </div>
   )
@@ -928,6 +1132,271 @@ function MobileSearchOverlay({ searchQuery, setSearchQuery, search, clearResults
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Hotel Detail Drawer ── */
+const drawerAmenityIcons: Record<string, ElementType> = {
+  'Wi-Fi': Wifi, 'WiFi': Wifi, 'wifi': Wifi, 'WIFI': Wifi, '无线网络': Wifi, '免费Wi-Fi': Wifi, '免费WiFi': Wifi,
+  '停车场': Car, '免费停车': Car, '收费停车': Car, '停车': Car,
+  '泳池': Waves, '游泳池': Waves, '室内泳池': Waves, '室外泳池': Waves, '恒温泳池': Waves,
+  '健身房': Dumbbell, '健身中心': Dumbbell, '健身室': Dumbbell,
+  '餐厅': UtensilsCrossed, '商务中心': Briefcase, 'SPA': Sparkles,
+  '接送机': Plane, '洗衣服务': ShirtIcon, '行李寄存': Package,
+  '24小时前台': BadgeCheck, '会议室': Briefcase,
+}
+
+function HotelDetailDrawer({
+  hotel, onClose, onSelect, isSelected, activeDayNumber,
+}: {
+  hotel: HotelPOI
+  onClose: () => void
+  onSelect: () => void
+  isSelected: boolean
+  activeDayNumber: number
+}) {
+  const [imgIdx, setImgIdx] = useState(0)
+  const images = hotel.images && hotel.images.length > 0
+    ? hotel.images
+    : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=500&fit=crop']
+  const amenities = hotel.amenities || []
+  const rooms = hotel.roomTypes || []
+  const minPrice = hotel.priceRange?.[0] || (rooms.length > 0 ? Math.min(...rooms.map(r => r.price)) : 0)
+
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-[600] flex">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+
+      {/* Drawer panel — slides in from the right */}
+      <div
+        className="relative ml-auto flex h-full w-full max-w-md flex-col overflow-hidden bg-background shadow-float"
+        style={{ animation: 'slideInRight 0.25s ease-out' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Image carousel */}
+        <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-muted">
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt={`${hotel.name} ${i + 1}`}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${i === imgIdx ? 'opacity-100' : 'opacity-0'}`}
+              onError={handleImgError}
+            />
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+
+          {/* Nav arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={() => setImgIdx((c) => (c - 1 + images.length) % images.length)}
+                className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-1.5 text-white hover:bg-black/50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setImgIdx((c) => (c + 1) % images.length)}
+                className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-1.5 text-white hover:bg-black/50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 gap-1">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setImgIdx(i)}
+                    className={`h-1.5 rounded-full transition-all ${i === imgIdx ? 'w-5 bg-white' : 'w-1.5 bg-white/50'}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute right-3 top-3 z-10 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-sm hover:bg-black/60"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          {/* Stars badge */}
+          {hotel.stars && (
+            <span className="absolute left-3 bottom-3 z-10 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white">
+              {hotel.stars}星级酒店
+            </span>
+          )}
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Header info */}
+          <div className="border-b border-border p-4">
+            <h2 className="text-lg font-bold text-foreground">{hotel.name}</h2>
+
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              {hotel.rating && (
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star key={i} className={`h-3 w-3 ${i <= Math.round(hotel.rating!) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+                  ))}
+                  <span className="ml-0.5 text-sm font-semibold">{hotel.rating.toFixed(1)}</span>
+                  {hotel.reviewCount && <span className="text-xs text-muted-foreground">({hotel.reviewCount}条评价)</span>}
+                </div>
+              )}
+              {hotel.distance && (
+                <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" /> 距市中心{hotel.distance}km
+                </span>
+              )}
+            </div>
+
+            <p className="mt-1.5 flex items-start gap-1 text-xs text-muted-foreground">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {hotel.address}
+            </p>
+
+            {/* Quick info */}
+            {(hotel.checkInTime || hotel.checkOutTime || hotel.phone) && (
+              <div className="mt-2 flex flex-wrap gap-3 rounded-lg bg-secondary/50 px-3 py-2 text-[10px] text-muted-foreground">
+                {hotel.checkInTime && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />入住 {hotel.checkInTime}</span>}
+                {hotel.checkOutTime && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />退房 {hotel.checkOutTime}</span>}
+                {hotel.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{hotel.phone}</span>}
+              </div>
+            )}
+
+            {hotel.description && (
+              <p className="mt-2 text-xs leading-relaxed text-foreground/70">{hotel.description}</p>
+            )}
+
+            {/* Tags */}
+            {hotel.tags && hotel.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {hotel.tags.slice(0, 6).map((tag) => (
+                  <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Amenities */}
+          {amenities.length > 0 && (
+            <div className="border-b border-border p-4">
+              <h3 className="mb-2.5 text-sm font-semibold text-foreground">酒店设施</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {amenities.map((a) => {
+                  const Icon = drawerAmenityIcons[a] || Check
+                  return (
+                    <div key={a} className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <span className="text-center text-[9px] font-medium text-foreground leading-tight">{a}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Room types */}
+          {rooms.length > 0 && (
+            <div className="p-4">
+              <h3 className="mb-2.5 text-sm font-semibold text-foreground">
+                房型报价
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">共{rooms.length}种</span>
+              </h3>
+              <div className="space-y-2.5">
+                {rooms.map((room) => (
+                  <div key={room.id} className="rounded-xl border border-border bg-card p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-foreground">{room.name}</p>
+                          {room.breakfast && (
+                            <span className="flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-600">
+                              <Coffee className="h-2.5 w-2.5" />含早
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className="flex items-center gap-0.5"><BedDouble className="h-3 w-3" />{room.bedType}</span>
+                          <span className="flex items-center gap-0.5"><Users className="h-3 w-3" />{room.maxGuests}人</span>
+                          <span className="flex items-center gap-0.5"><Maximize2 className="h-3 w-3" />{room.area}m²</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        {room.originalPrice && room.originalPrice > room.price && (
+                          <p className="text-[10px] text-muted-foreground line-through">¥{room.originalPrice}</p>
+                        )}
+                        <p className="text-base font-bold text-primary">¥{room.price}</p>
+                        <p className="text-[9px] text-muted-foreground">/晚</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rooms.length === 0 && amenities.length === 0 && (
+            <div className="p-4 text-center text-sm text-muted-foreground">暂无详细信息</div>
+          )}
+        </div>
+
+        {/* Bottom action bar */}
+        <div className="shrink-0 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] text-muted-foreground">最低价起</p>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-xl font-bold text-primary">{minPrice > 0 ? `¥${minPrice}` : '暂无报价'}</span>
+                {minPrice > 0 && <span className="text-[10px] text-muted-foreground">/晚</span>}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-smooth"
+              >
+                关闭
+              </button>
+              {isSelected ? (
+                <button
+                  onClick={onClose}
+                  className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white"
+                >
+                  ✓ 已选为第{activeDayNumber}天住宿
+                </button>
+              ) : (
+                <button
+                  onClick={onSelect}
+                  className="rounded-xl gradient-hero px-4 py-2 text-sm font-semibold text-primary-foreground shadow-elegant hover:shadow-float transition-all"
+                >
+                  选为第{activeDayNumber}天住宿
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }
