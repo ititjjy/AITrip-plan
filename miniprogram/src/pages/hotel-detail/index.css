@@ -1,0 +1,3 @@
+.hotel-detail {
+  padding-bottom: env(safe-area-inset-bottom);
+}

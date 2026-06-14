@@ -113,7 +113,7 @@ function getSeason() {
 /* ═══════════════════════ Qwen API 调用 ═══════════════════════ */
 
 const DASHSCOPE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const MODEL = 'qwen-plus'
+const MODEL = 'qwen-turbo'  // 降级为免费档模型
 const API_KEY = process.env.VITE_DASHSCOPE_API_KEY || process.env.DASHSCOPE_API_KEY
 
 const CATEGORY_PROMPTS = {

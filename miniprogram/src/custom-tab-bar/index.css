@@ -1,0 +1,70 @@
+/* 底部导航 - 暖珊瑚设计系统 */
+.custom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background-color: #ffffff;
+  border-top: 1rpx solid #E7E0D8;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 96rpx;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 0;
+}
+
+.tab-item:active {
+  opacity: 0.7;
+}
+
+.tab-item-img {
+  width: 52rpx;
+  height: 52rpx;
+}
+
+/* 中间创建按钮 */
+.tab-create-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tab-create-btn {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E8735A, #E8A44A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(232, 115, 90, 0.4);
+  margin-top: -24rpx;
+}
+
+.tab-create-btn:active {
+  opacity: 0.85;
+  transform: scale(0.95);
+}
+
+.tab-create-icon {
+  font-size: 52rpx;
+  color: #ffffff;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -4rpx;
+}

@@ -40,9 +40,9 @@ export interface ExperienceItem {
 /* ── 采集器返回的原始 POI 数据 ── */
 
 export interface RawPOI {
-  /** 主名称 (当地语言正式名称) */
+  /** 主名称 (中文优先，无则当地语言) */
   namePrimary: string
-  /** 中文别名 (无则空串) */
+  /** 当地语言别名 (日文/韩文等；国内城市与主名称相同时留空) */
   nameZh: string
   /** 英文别名 (无则空串) */
   nameEn: string
@@ -122,9 +122,9 @@ export interface POI {
   /** 唯一标识: {source}-{cityId}-{seq} */
   id: string
 
-  /** 主名称 (当地语言) */
+  /** 主名称 (中文优先) */
   namePrimary: string
-  /** 中文别名 */
+  /** 当地语言别名 (日文/韩文等) */
   nameZh: string
   /** 英文别名 */
   nameEn: string

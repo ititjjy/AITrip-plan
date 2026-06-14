@@ -41,7 +41,10 @@ export default function POIDetailPage() {
     if (!poi) return
     setRefreshing(true)
     try {
-      await api.post('/updates/targeted', { poiId: poi.id, cityId: poi.cityId })
+      await api.post('/reprocess/poi', { poiId: poi.id, cityId: poi.cityId })
+      // Show a brief success message, actual result visible in update logs
+      setTimeout(() => setRefreshing(false), 500)
+      return
     } catch {}
     setRefreshing(false)
   }
@@ -101,7 +104,7 @@ export default function POIDetailPage() {
             <h1 className="text-2xl font-bold">{poi.name}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
               {poi.nameZh && poi.nameZh !== poi.name && (
-                <Badge variant="secondary" className="text-xs">中: {poi.nameZh}</Badge>
+                <Badge variant="secondary" className="text-xs">当地: {poi.nameZh}</Badge>
               )}
               {poi.nameEn && poi.nameEn !== poi.name && (
                 <Badge variant="secondary" className="text-xs">英: {poi.nameEn}</Badge>
@@ -141,7 +144,7 @@ export default function POIDetailPage() {
           )}
           <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? '更新中...' : '刷新数据'}
+            {refreshing ? '提交中...' : '重新合并'}
           </Button>
         </div>
       </div>

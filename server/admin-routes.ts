@@ -28,6 +28,7 @@ import { Router, type Request, type Response } from 'express'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import { execSync } from 'child_process'
 import { spawn } from 'child_process'
 import Database from 'better-sqlite3'
 
@@ -886,7 +887,8 @@ function executeAgentCLI(job: JobRecord, args: string[]) {
   job.started_at = Date.now()
 
   const cwd = PROJECT_ROOT
-  const child = spawn('npx', ['tsx', 'agent/index.ts', ...args], {
+  const tsxBin = path.join(PROJECT_ROOT, 'node_modules', '.bin', 'tsx')
+  const child = spawn(tsxBin, ['agent/index.ts', ...args], {
     cwd,
     env: { ...process.env },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -932,22 +934,50 @@ function executeAgentCLI(job: JobRecord, args: string[]) {
   })
 }
 
-router.post('/updates/batch', (req: Request, res: Response) => {
-  const { country, city, l1 } = req.body
-  const job = createJob('batch', { country, city, l1 })
-  const args = ['collect']
-  if (city) args.push('--city', city)
+/* ── Reprocess: merge only from raw data, no API calls ── */
+
+/** POST /reprocess/all — Re-merge ALL cities from raw_pois (no --force: existing → pending, new → direct) */
+router.post('/reprocess/all', (_req: Request, res: Response) => {
+  const job = createJob('batch', { mode: 'reprocess', scope: 'all' })
+  // No --force: cities with existing data → pending_updates; cities without data → direct write
+  const args = ['reprocess', '--all']
   setTimeout(() => executeAgentCLI(job, args), 100)
   res.json({ success: true, data: { jobId: job.id } })
 })
 
-router.post('/updates/targeted', (req: Request, res: Response) => {
-  const { poiId, cityId } = req.body
+/** POST /reprocess/city — Re-merge a whole city from raw_pois */
+router.post('/reprocess/city', (req: Request, res: Response) => {
+  const { cityId } = req.body
   if (!cityId) {
     return res.status(400).json({ success: false, error: 'MISSING_CITY', message: '需要指定城市 ID' })
   }
-  const job = createJob('targeted', { poiId, cityId })
-  const args = ['collect', '--city', cityId]
+  const job = createJob('batch', { cityId, mode: 'reprocess' })
+  const args = ['reprocess', '--city', cityId, '--force']
+  setTimeout(() => executeAgentCLI(job, args), 100)
+  res.json({ success: true, data: { jobId: job.id } })
+})
+
+/** POST /reprocess/category — Re-merge a single L1 category for a city */
+router.post('/reprocess/category', (req: Request, res: Response) => {
+  const { cityId, category } = req.body
+  if (!cityId || !category) {
+    return res.status(400).json({ success: false, error: 'MISSING_PARAMS', message: '需要指定城市 ID 和类目' })
+  }
+  const job = createJob('batch', { cityId, category, mode: 'reprocess' })
+  // reprocess 命令不支持 --category，先执行全城市 reprocess（类目级别在 merger 内自动处理）
+  const args = ['reprocess', '--city', cityId, '--force']
+  setTimeout(() => executeAgentCLI(job, args), 100)
+  res.json({ success: true, data: { jobId: job.id } })
+})
+
+/** POST /reprocess/poi — Re-merge the city containing a specific POI */
+router.post('/reprocess/poi', (req: Request, res: Response) => {
+  const { cityId, poiId } = req.body
+  if (!cityId) {
+    return res.status(400).json({ success: false, error: 'MISSING_CITY', message: '需要指定城市 ID' })
+  }
+  const job = createJob('targeted', { cityId, poiId, mode: 'reprocess' })
+  const args = ['reprocess', '--city', cityId, '--force']
   setTimeout(() => executeAgentCLI(job, args), 100)
   res.json({ success: true, data: { jobId: job.id } })
 })
@@ -1056,6 +1086,48 @@ router.get('/review/city/:cityId', (req: Request, res: Response) => {
 })
 
 /** POST /publish/city — Publish all POIs for a city */
+/* ── Export cache-export.json and commit to Git ── */
+
+/**
+ * 将当前 Server DB 中所有城市数据导出为 data-sync/cache-export.json，
+ * 并自动执行 git add + git commit（不 push，由运维以 server-pull.sh 拉取）。
+ * 返回 commit 信息或错误原因。
+ */
+function exportAndCommit(cityId: string): { committed: boolean; message: string } {
+  try {
+    const exportPath = path.join(PROJECT_ROOT, 'data-sync', 'cache-export.json')
+    const syncDir = path.join(PROJECT_ROOT, 'data-sync')
+    if (!fs.existsSync(syncDir)) fs.mkdirSync(syncDir, { recursive: true })
+
+    // 从 Server DB 导出所有城市数据
+    const db = getServerDB()
+    const rows = db.prepare('SELECT city_id, data, updated_at FROM city_pois ORDER BY city_id').all() as
+      { city_id: string; data: string; updated_at: number }[]
+
+    const exportData = {
+      version: `server-export-${Date.now()}`,
+      exportedAt: Date.now(),
+      exportedFrom: 'admin-publish',
+      triggeredBy: cityId,
+      cityCount: rows.length,
+      pois: rows.map(r => ({ city_id: r.city_id, data: r.data, updated_at: r.updated_at })),
+    }
+    fs.writeFileSync(exportPath, JSON.stringify(exportData))
+
+    // git add + commit
+    execSync(`git -C "${PROJECT_ROOT}" add data-sync/cache-export.json`, { stdio: 'pipe' })
+    const msg = `data: publish ${cityId} @ ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`
+    execSync(`git -C "${PROJECT_ROOT}" commit -m "${msg}"`, { stdio: 'pipe' })
+
+    return { committed: true, message: msg }
+  } catch (err: any) {
+    // commit 失败（如无变化）不影响发布流程，只记录日志
+    const msg = (err as Error).message || String(err)
+    return { committed: false, message: msg.slice(0, 200) }
+  }
+}
+
+/** POST /publish/city — Publish all POIs for a city to Server DB, then export + git commit */
 router.post('/publish/city', (req: Request, res: Response) => {
   const { cityId } = req.body
   if (!cityId) {
@@ -1080,6 +1152,9 @@ router.post('/publish/city', (req: Request, res: Response) => {
   const { pois: serverPOIs } = loadServerPOIs(cityId)
   const validationPassed = serverPOIs.length === agentPOIs.length
 
+  // Export cache-export.json + git commit
+  const { committed, message: commitMsg } = exportAndCommit(cityId)
+
   res.json({
     success: true,
     data: {
@@ -1090,6 +1165,8 @@ router.post('/publish/city', (req: Request, res: Response) => {
       validationMessage: validationPassed
         ? `成功发布 ${agentPOIs.length} 个 POI`
         : `发布数量不匹配: 期望 ${agentPOIs.length}, 实际 ${serverPOIs.length}`,
+      gitCommitted: committed,
+      gitMessage: commitMsg,
     },
   })
 })

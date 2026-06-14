@@ -1,0 +1,70 @@
+/* 游记列表 - 暖珊瑚设计系统 */
+.notes-page {
+  min-height: 100vh;
+  background-color: #FDF9F6;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+}
+.notes-list {
+  max-height: calc(100vh - 100px);
+}
+
+/* 游记卡片 */
+.note-card {
+  margin: 24rpx 32rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(28,25,23,0.04), 0 4px 12px rgba(28,25,23,0.04);
+  border: 1rpx solid #E7E0D8;
+  overflow: hidden;
+}
+.note-card:active {
+  box-shadow: 0 8px 30px rgba(28,25,23,0.08);
+}
+.note-card-cover {
+  width: 100%;
+  height: 320rpx;
+}
+.note-card-body {
+  padding: 20rpx 24rpx;
+}
+.note-card-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1C1917;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+.note-card-author {
+  font-size: 24rpx;
+  color: #7A7068;
+}
+.note-card-dot {
+  font-size: 24rpx;
+  color: #E7E0D8;
+}
+.note-card-city {
+  font-size: 24rpx;
+  color: #7A7068;
+}
+.note-card-days {
+  font-size: 24rpx;
+  color: #7A7068;
+}
+.note-card-desc {
+  font-size: 24rpx;
+  color: #7A7068;
+  margin-top: 12rpx;
+  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}

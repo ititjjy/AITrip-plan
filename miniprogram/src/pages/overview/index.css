@@ -1,0 +1,6 @@
+.overview-page {
+  padding-bottom: 80px;
+}
+.day-list {
+  max-height: calc(100vh - 280px);
+}

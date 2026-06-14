@@ -735,20 +735,32 @@ const distPath = path.join(__dirname, '..', 'dist')
 
 /* ═══════════════════════ 国内代理路由（解决 GFW 屏蔽外部CDN）═══════════════════════ */
 
-/** GET /api/tiles/:z/:x/:y – CARTO 地图瓦片代理 */
+/** GET /api/tiles/:z/:x/:y – 地图瓦片代理（CARTO 优先，失败时 fallback 高德）*/
 app.get('/api/tiles/:z/:x/:y', async (req, res) => {
   const { z, x, y } = req.params
-  try {
-    const tileUrl = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`
-    const response = await fetch(tileUrl, { headers: { 'User-Agent': 'AITrip-TileProxy/1.0' } })
-    if (!response.ok) return res.status(response.status).end()
-    const buffer = await response.arrayBuffer()
-    res.set('Content-Type', 'image/png')
-    res.set('Cache-Control', 'public, max-age=86400') // 瓦片缓存 1 天
-    return res.send(Buffer.from(buffer))
-  } catch {
-    return res.status(502).end()
+  // 多个瓦片源，按顺序尝试
+  const tileSources = [
+    `https://a.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`,
+    `https://b.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`,
+    `https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=${x}&y=${y}&z=${z}`,
+  ]
+  for (const tileUrl of tileSources) {
+    try {
+      const response = await fetch(tileUrl, {
+        headers: { 'User-Agent': 'AITrip-TileProxy/1.0' },
+        signal: AbortSignal.timeout(4000),
+      })
+      if (!response.ok) continue
+      const buffer = await response.arrayBuffer()
+      res.set('Content-Type', 'image/png')
+      res.set('Cache-Control', 'public, max-age=86400')
+      return res.send(Buffer.from(buffer))
+    } catch {
+      // 当前源失败，尝试下一个
+      continue
+    }
   }
+  return res.status(502).end()
 })
 
 /** GET /api/img?url=... – 外部图片代理（Unsplash 等被封 CDN）*/

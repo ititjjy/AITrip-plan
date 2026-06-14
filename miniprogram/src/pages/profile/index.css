@@ -1,0 +1,6 @@
+/* 个人中心 - 暖珊瑚设计系统 */
+.profile-page {
+  min-height: 100vh;
+  background-color: #FDF9F6;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+}

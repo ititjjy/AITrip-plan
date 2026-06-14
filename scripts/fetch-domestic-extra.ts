@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const DASHSCOPE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const MODEL_NAME = 'qwen-plus'
+const MODEL_NAME = 'qwen-turbo'  // 降级为免费档模型
 
 function loadApiKey(): string {
   const envPath = path.resolve(__dirname, '..', '.env.local')

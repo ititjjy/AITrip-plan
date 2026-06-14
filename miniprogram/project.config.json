@@ -1,0 +1,44 @@
+{
+  "miniprogramRoot": "dist/",
+  "projectname": "aitrip-miniprogram",
+  "description": "AITrip 行程规划微信小程序",
+  "appid": "wx72c71092c6f1fa74",
+  "setting": {
+    "urlCheck": false,
+    "es6": false,
+    "enhance": false,
+    "compileHotReLoad": false,
+    "postcss": false,
+    "minified": false,
+    "nodeModules": true,
+    "autoAudits": false,
+    "uglifyFileName": false,
+    "checkSiteMap": false,
+    "uploadWithSourceMap": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "compileWorklet": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
+  },
+  "compileType": "miniprogram",
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {},
+  "libVersion": "3.16.1"
+}

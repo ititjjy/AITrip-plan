@@ -12,7 +12,7 @@ import { Skeleton } from '../components/ui/skeleton'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../components/ui/table'
-import { Search, Eye, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { Search, Eye, ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react'
 import type { POI, L1Category, CategoryNode, POIReviewStatus, ScoreGrade } from '../types'
 import { L1_CATEGORIES, L1_LABELS, SCORE_GRADE_CONFIG, getScoreGrade } from '../types'
 
@@ -43,6 +43,8 @@ export default function POIBrowser() {
   const [scoreGrade, setScoreGrade] = useState<ScoreGrade | ''>(
     (searchParams.get('scoreGrade') as ScoreGrade) || ''
   )
+  const [reprocessing, setReprocessing] = useState(false)
+  const [reprocessMsg, setReprocessMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const debouncedQuery = useDebounce(query, 300)
 
@@ -107,9 +109,39 @@ export default function POIBrowser() {
 
   const totalPages = Math.ceil(total / pageSize)
 
+  const handleReprocess = async () => {
+    if (!city) return
+    setReprocessing(true)
+    setReprocessMsg(null)
+    try {
+      const endpoint = l1 ? '/reprocess/category' : '/reprocess/city'
+      const body = l1 ? { cityId: city, category: l1 } : { cityId: city }
+      await api.post(endpoint, body)
+      setReprocessMsg({ ok: true, text: `已提交重新合并任务，可前往「数据操作日志」查看进度` })
+    } catch {
+      setReprocessMsg({ ok: false, text: '提交失败，请重试' })
+    }
+    setReprocessing(false)
+  }
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">POI 浏览</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">POI 浏览</h1>
+        {city && (
+          <Button variant="outline" size="sm" onClick={handleReprocess} disabled={reprocessing}>
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${reprocessing ? 'animate-spin' : ''}`} />
+            {reprocessing ? '提交中...' : (l1 ? `重新合并「${L1_LABELS[l1 as L1Category]?.zh || l1}」类目` : '重新合并该城市')}
+          </Button>
+        )}
+      </div>
+      {reprocessMsg && (
+        <div className={`rounded-md border px-4 py-2 text-sm ${
+          reprocessMsg.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'
+        }`}>
+          {reprocessMsg.text}
+        </div>
+      )}
 
       {/* Filters */}
       <Card className="p-4 space-y-3">

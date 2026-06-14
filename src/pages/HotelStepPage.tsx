@@ -159,7 +159,10 @@ const SORT_LABELS: Record<SortKey, string> = {
 
 /* ── Amenity quick icons ── */
 const AMENITY_ICONS: Record<string, ElementType> = {
-  'Wi-Fi': Wifi, '停车场': Car, '泳池': Waves, '健身房': Dumbbell,
+  'Wi-Fi': Wifi, 'WiFi': Wifi, 'wifi': Wifi, 'WIFI': Wifi, '无线网络': Wifi, '免费Wi-Fi': Wifi, '免费WiFi': Wifi,
+  '停车场': Car, '免费停车': Car, '收费停车': Car, '停车': Car,
+  '泳池': Waves, '游泳池': Waves, '室内泳池': Waves, '室外泳池': Waves, '恒温泳池': Waves,
+  '健身房': Dumbbell, '健身中心': Dumbbell, '健身室': Dumbbell,
 }
 
 export default function HotelStepPage() {

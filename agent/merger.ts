@@ -32,6 +32,59 @@ const MERGE_THRESHOLD = 0.90
 const CROSS_CATEGORY_ENABLED = true
 const MAX_TAGS = 6
 
+/* ── 语言检测辅助函数 ── */
+
+/** 检测字符串是否主要是中文（排除含日文假名/韩文的文本） */
+function isChinese(text: string): boolean {
+  if (!text) return false
+  // 含日文假名（平假名/片假名）→ 不是中文
+  if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return false
+  // 含韩文 → 不是中文
+  if (/[\uac00-\ud7af\u1100-\u11ff]/.test(text)) return false
+  const cjk = text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []
+  return cjk.length > text.length * 0.3
+}
+
+/** 检测字符串是否主要是拉丁字母（英文等） */
+function isLatin(text: string): boolean {
+  if (!text) return false
+  const latin = text.match(/[a-zA-Z]/g) || []
+  return latin.length > text.length * 0.3
+}
+
+/** 检测字符串是否含日文假名 */
+function hasJapanese(text: string): boolean {
+  if (!text) return false
+  return /[\u3040-\u309f\u30a0-\u30ff]/.test(text)
+}
+
+/** 名称重排：确保 namePrimary=中文, nameZh=当地语言, nameEn=英文
+ *
+ * 核心判断逻辑：
+ *   如果 nameZh 有值、且是中文、且与 namePrimary 不同，
+ *   则 nameZh 视为中文名，namePrimary 视为当地语言名，交换两者。
+ *   nameZh 不是中文时（如被误填为日文），不视为有效中文名，不交换。
+ */
+function rearrangeNames(poi: RawPOI): void {
+  const nameZh = poi.nameZh?.trim() || ''
+  const namePrimary = poi.namePrimary?.trim() || ''
+  // nameZh 必须是中文且与 namePrimary 不同才视为有效中文名
+  const zhIsValid = nameZh && nameZh !== namePrimary && isChinese(nameZh)
+
+  if (zhIsValid) {
+    poi.namePrimary = nameZh
+    poi.nameZh = (namePrimary && namePrimary !== nameZh) ? namePrimary : ''
+  } else if (nameZh && nameZh === namePrimary) {
+    // namePrimary 和 nameZh 相同 → 国内城市场景，nameZh 留空
+    poi.nameZh = ''
+  } else if (nameZh && !isChinese(nameZh)) {
+    // nameZh 不是中文（如被误填为日文/英文）→ 清空，避免歧义
+    // namePrimary 保持原值
+    poi.nameZh = ''
+  }
+  // 没有有效中文名时，namePrimary 保持原值（当地语言名或英文名）
+}
+
 const SOURCE_RELIABILITY: Record<string, number> = {
   ai: 3,
   spark: 3,
@@ -682,7 +735,10 @@ interface MergedEntry {
 
 function mergeGroup(group: RawPOI[]): MergedEntry {
   if (group.length === 1) {
-    return { raw: { ...group[0] }, conflictReport: detectConflicts(group) }
+    const single = { ...group[0] }
+    // 单源 POI 也需要名称重排：确保 namePrimary 是中文名
+    rearrangeNames(single)
+    return { raw: single, conflictReport: detectConflicts(group) }
   }
 
   // 选择最佳基础 POI: 优先非 AI 来源中信息最丰富的
@@ -708,9 +764,52 @@ function mergeGroup(group: RawPOI[]): MergedEntry {
   base.lat = roundCoord(wLat / totalWeight)
   base.lng = roundCoord(wLng / totalWeight)
 
-  // 三名: 从各来源填补
-  base.nameZh = group.find(p => p.nameZh && p.nameZh.trim())?.nameZh || base.nameZh
-  base.nameEn = group.find(p => p.nameEn && p.nameEn.trim())?.nameEn || base.nameEn
+  // ── 三名合并：namePrimary=中文, nameZh=当地语言, nameEn=英文 ──
+  //
+  // 策略:
+  //   1. 从各来源收集中文名、英文名、当地语言名
+  //   2. namePrimary 优先中文名（用户默认中文主名称）
+  //   3. nameZh 存当地语言名（日文/韩文等；国内城市与 namePrimary 相同则留空）
+  //   4. nameEn 存英文名
+
+  // 收集中文名：
+  //   优先从 nameZh（nameZh 是中文且 != namePrimary，说明是中文翻译名）
+  //   其次从 namePrimary 中检测中文（无假名、无韩文）
+  const zhName =
+    group.find(p => p.nameZh?.trim() && p.nameZh.trim() !== (p.namePrimary?.trim() || '') && isChinese(p.nameZh.trim()))?.nameZh?.trim() ||
+    group.find(p => p.namePrimary && isChinese(p.namePrimary))?.namePrimary ||
+    ''
+  // 收集英文名
+  const enName =
+    group.find(p => p.nameEn?.trim())?.nameEn?.trim() ||
+    group.find(p => p.namePrimary && isLatin(p.namePrimary) && !isChinese(p.namePrimary))?.namePrimary ||
+    ''
+  // 收集当地语言名（namePrimary 中非中文、非拉丁的，如日文/韩文）
+  // 也包含 namePrimary 含日文假名但 nameZh 与之不同的情况
+  const localName =
+    group.find(p => {
+      const np = p.namePrimary?.trim() || ''
+      return np && np !== zhName && np !== enName && !isLatin(np) && (hasJapanese(np) || !isChinese(np))
+    })?.namePrimary?.trim() ||
+    group.find(p => {
+      const np = p.namePrimary?.trim() || ''
+      return np && np !== zhName && np !== enName && !isChinese(np)
+    })?.namePrimary?.trim() ||
+    ''
+
+  // 应用名称策略
+  if (zhName) {
+    base.namePrimary = zhName
+    // nameZh = 当地语言名（如果与中文名不同）
+    base.nameZh = (localName && localName !== zhName) ? localName : ''
+  } else {
+    // 没有中文名时，namePrimary 保持 base 原值（当地语言名或英文名）
+    // nameZh 存当地语言名（如果 namePrimary 是英文名）
+    if (localName && isLatin(base.namePrimary)) {
+      base.nameZh = localName
+    }
+  }
+  base.nameEn = enName || base.nameEn
 
   // 描述: 取最长
   base.description = group.reduce((best, p) =>

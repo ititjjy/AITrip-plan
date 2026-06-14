@@ -1,0 +1,19 @@
+.index {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+}
+
+.search-hero {
+  background: linear-gradient(180deg, #FFF0ED 0%, #FDF9F6 100%);
+}
+
+.search-bar {
+  z-index: 10;
+}
+
+.domestic-list {
+  max-height: 70vh;
+}
+
+.international-list {
+  max-height: 70vh;
+}

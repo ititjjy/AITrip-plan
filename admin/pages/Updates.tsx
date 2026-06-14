@@ -1,24 +1,24 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
 import { formatDate, formatDuration } from '../lib/formatters'
-import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
-import { Select } from '../components/ui/select'
+import { Button } from '../components/ui/button'
 import { Progress } from '../components/ui/progress'
 import { Skeleton } from '../components/ui/skeleton'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../components/ui/table'
-import { RefreshCw, Play, Clock } from 'lucide-react'
-import type { UpdateJob, City } from '../types'
-import { L1_CATEGORIES, L1_LABELS } from '../types'
+import { RefreshCw, Clock, PlayCircle, AlertTriangle } from 'lucide-react'
+import type { UpdateJob } from '../types'
+import { L1_LABELS } from '../types'
 
 export default function Updates() {
   const [jobs, setJobs] = useState<UpdateJob[]>([])
   const [loading, setLoading] = useState(true)
-  const [cities, setCities] = useState<City[]>([])
-  const [showBatchDialog, setShowBatchDialog] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitMsg, setSubmitMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const fetchJobs = useCallback(() => {
     api.get<{ data: UpdateJob[] }>('/updates')
@@ -29,9 +29,6 @@ export default function Updates() {
 
   useEffect(() => {
     fetchJobs()
-    api.get<{ data: City[] }>('/cities')
-      .then((res) => setCities(res.data || []))
-      .catch(() => {})
   }, [fetchJobs])
 
   // Auto-refresh for running jobs
@@ -42,6 +39,20 @@ export default function Updates() {
     return () => clearInterval(timer)
   }, [jobs, fetchJobs])
 
+  const handleReprocessAll = async () => {
+    setShowConfirm(false)
+    setSubmitting(true)
+    setSubmitMsg(null)
+    try {
+      await api.post('/reprocess/all', {})
+      setSubmitMsg({ ok: true, text: '全量重新合并任务已提交！37个城市正在后台处理，页面将每 3 秒自动刷新。有已有数据的城市将进入「待确认更新」页面。' })
+      fetchJobs()
+    } catch {
+      setSubmitMsg({ ok: false, text: '提交失败，请重试' })
+    }
+    setSubmitting(false)
+  }
+
   const statusBadge = (status: string) => {
     switch (status) {
       case 'completed': return <Badge variant="success">完成</Badge>
@@ -51,15 +62,50 @@ export default function Updates() {
     }
   }
 
+  const jobTypeLabel = (job: UpdateJob) => {
+    const mode = (job.config as any).mode === 'reprocess' ? 'Reprocess' : (job.type === 'batch' ? '批量' : '定向')
+    const cat = (job.config as any).category
+    const poi = (job.config as any).poiId
+    if (cat) return `${mode} / ${L1_LABELS[cat as keyof typeof L1_LABELS]?.zh || cat}`
+    if (poi) return `${mode} / 单POI`
+    return mode
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">数据更新</h1>
-        <Button onClick={() => setShowBatchDialog(true)}>
-          <Play className="mr-2 h-4 w-4" />
-          批量更新
-        </Button>
+        <div className="flex items-center gap-3">
+          <Clock className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-bold">数据操作日志</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowConfirm(true)}
+            disabled={submitting || jobs.some(j => j.status === 'running')}
+          >
+            <PlayCircle className="h-4 w-4 mr-1.5" />
+            全量重新合并 (37 城市)
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchJobs} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            刷新
+          </Button>
+        </div>
       </div>
+
+      {submitMsg && (
+        <div className={`rounded-md border px-4 py-3 text-sm ${
+          submitMsg.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'
+        }`}>
+          {submitMsg.text}
+        </div>
+      )}
+
+      <p className="text-sm text-muted-foreground">
+        记录所有 Reprocess 合并操作的执行日志。全量重新合并：无数据的城市直接入库，已有数据的城市进入「待确认更新」。
+      </p>
 
       {/* Running Jobs */}
       {jobs.filter((j) => j.status === 'running').length > 0 && (
@@ -74,10 +120,7 @@ export default function Updates() {
             {jobs.filter((j) => j.status === 'running').map((job) => (
               <div key={job.id} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span>
-                    {job.type === 'batch' ? '批量更新' : '定向更新'} — {job.config.city || job.config.country || '全部'}
-                    {job.config.l1 && ` (${L1_LABELS[job.config.l1 as keyof typeof L1_LABELS]?.zh || job.config.l1})`}
-                  </span>
+                  <span>{jobTypeLabel(job)} — {(job.config as any).cityId || (job.config as any).city || '全部'}</span>
                   <span className="text-muted-foreground">
                     {job.progress && `${job.progress.current}/${job.progress.total}`}
                   </span>
@@ -95,7 +138,7 @@ export default function Updates() {
       {/* Job History */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">更新历史</CardTitle>
+          <CardTitle className="text-base">操作记录</CardTitle>
         </CardHeader>
         {loading ? (
           <CardContent className="space-y-3">
@@ -107,10 +150,10 @@ export default function Updates() {
               <TableRow>
                 <TableHead className="w-[60px]">ID</TableHead>
                 <TableHead>类型</TableHead>
-                <TableHead>配置</TableHead>
+                <TableHead>城市</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>进度</TableHead>
-                <TableHead>创建时间</TableHead>
+                <TableHead>时间</TableHead>
                 <TableHead>耗时</TableHead>
               </TableRow>
             </TableHeader>
@@ -122,11 +165,9 @@ export default function Updates() {
                 return (
                   <TableRow key={job.id}>
                     <TableCell className="font-mono text-xs">{job.id}</TableCell>
-                    <TableCell>{job.type === 'batch' ? '批量' : '定向'}</TableCell>
+                    <TableCell className="text-sm">{jobTypeLabel(job)}</TableCell>
                     <TableCell className="text-sm">
-                      {job.config.city || job.config.country || '全部'}
-                      {job.config.l1 && ` / ${L1_LABELS[job.config.l1 as keyof typeof L1_LABELS]?.zh || job.config.l1}`}
-                      {job.config.poiName && ` / ${job.config.poiName}`}
+                      {(job.config as any).scope === 'all' ? '全部城市' : ((job.config as any).cityId || (job.config as any).city || '全部')}
                     </TableCell>
                     <TableCell>{statusBadge(job.status)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
@@ -142,7 +183,7 @@ export default function Updates() {
               {jobs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    暂无更新任务
+                    暂无操作记录
                   </TableCell>
                 </TableRow>
               )}
@@ -151,89 +192,30 @@ export default function Updates() {
         )}
       </Card>
 
-      {/* Batch Update Dialog */}
-      {showBatchDialog && (
-        <BatchUpdateDialog
-          cities={cities}
-          onClose={() => setShowBatchDialog(false)}
-          onStarted={() => { setShowBatchDialog(false); fetchJobs() }}
-        />
+      {/* Confirm Dialog */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0" />
+              <h3 className="text-lg font-semibold">全量重新合并</h3>
+            </div>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>即将对 <strong>37 个城市</strong>的全部原始数据重新执行合并加工，不调用任何采集 API。</p>
+              <p className="text-blue-600">当前 <strong>22 个城市</strong>已有 Server DB 数据，合并结果将存入「待确认更新」临时表。</p>
+              <p className="text-emerald-600">另外 <strong>15 个城市</strong>尚无 Server DB 数据，合并完成后直接入库。</p>
+              <p className="text-amber-700">该操作耗时较长（预计 5-10 分钟），请在「数据操作日志」页面查看进度。</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowConfirm(false)}>取消</Button>
+              <Button onClick={handleReprocessAll} disabled={submitting}>
+                <PlayCircle className="h-4 w-4 mr-1" />
+                确认全量合并
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
-  )
-}
-
-function BatchUpdateDialog({ cities, onClose, onStarted }: { cities: City[]; onClose: () => void; onStarted: () => void }) {
-  const [country, setCountry] = useState('')
-  const [cityId, setCityId] = useState('')
-  const [l1, setL1] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-
-  const countries = [...new Set(cities.map((c) => c.country).filter(Boolean))]
-  const filteredCities = country ? cities.filter((c) => c.country === country) : cities
-
-  const handleSubmit = async () => {
-    setSubmitting(true)
-    setError('')
-    try {
-      const config: Record<string, string> = {}
-      if (country) config.country = country
-      if (cityId) config.city = cityId
-      if (l1) config.l1 = l1
-      await api.post('/updates/batch', config)
-      onStarted()
-    } catch (e: any) {
-      setError(e.message || '启动更新失败')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-4 text-lg font-semibold">批量数据更新</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
-          选择更新范围（留空表示全部），然后通过 Agent CLI 执行数据采集。
-        </p>
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium">国家</label>
-            <Select
-              options={countries.map((c) => ({ value: c, label: c }))}
-              placeholder="全部国家"
-              value={country}
-              onChange={(e) => { setCountry(e.target.value); setCityId('') }}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">城市</label>
-            <Select
-              options={filteredCities.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
-              placeholder="全部城市"
-              value={cityId}
-              onChange={(e) => setCityId(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">一级分类</label>
-            <Select
-              options={L1_CATEGORIES.map((c) => ({ value: c, label: L1_LABELS[c].zh }))}
-              placeholder="全部分类"
-              value={l1}
-              onChange={(e) => setL1(e.target.value)}
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>取消</Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? '启动中...' : '开始更新'}
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }

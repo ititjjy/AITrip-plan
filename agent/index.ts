@@ -32,6 +32,7 @@ import {
   getPendingUpdateCount, deletePendingUpdate, applyPendingUpdate,
   insertCollectionBatch, updateCollectionBatch,
 } from './db.js'
+import { resetAllFallbacks, getFallbackSummary } from './model-fallback.js'
 import { runWithConcurrency } from './utils.js'
 import { type L1Category, type CityInfo as SourceCityInfo, type RawPOI, type SourceCollector } from './sources/base.js'
 import { L1_CATEGORIES, L1_LABELS } from './categories.js'
@@ -292,6 +293,10 @@ function processRawData(
 /* ── 命令: collect ── */
 
 async function cmdCollect(args: CLIArgs): Promise<void> {
+  // 新采集周期开始，重置模型降级状态（免费额度可能已刷新）
+  resetAllFallbacks()
+  console.log(`[Model Fallback] 降级状态已重置，当前模型:\n${getFallbackSummary()}`)
+
   // --skip-collect: 跳过 API 采集阶段，直接用已存储的 raw data 重处理
   if (args.skipCollect) {
     console.log(`[collect --skip-collect] Skipping API collection, loading raw data from DB...`)

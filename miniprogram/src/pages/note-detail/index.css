@@ -1,0 +1,288 @@
+/* 游记详情 - 文章式串联 */
+.note-detail {
+  min-height: 100vh;
+  background-color: #FDF9F6;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.note-detail-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #FDF9F6;
+}
+
+/* 封面 */
+.note-cover {
+  position: relative;
+  height: 480rpx;
+  overflow: hidden;
+}
+.note-cover-img {
+  width: 100%;
+  height: 100%;
+}
+.note-cover-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40rpx 32rpx;
+  background: linear-gradient(to top, rgba(28,25,23,0.7), transparent);
+}
+.note-cover-city {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.8);
+  display: block;
+  margin-bottom: 8rpx;
+  letter-spacing: 4rpx;
+}
+.note-cover-title {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #ffffff;
+  display: block;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
+}
+.note-cover-placeholder {
+  padding: 60rpx 32rpx 40rpx;
+  background: linear-gradient(135deg, #E8735A, #E8A44A);
+}
+.note-cover-placeholder .note-cover-city {
+  color: rgba(255,255,255,0.7);
+}
+.note-cover-placeholder .note-cover-title {
+  color: #ffffff;
+  text-shadow: none;
+}
+
+/* 作者行 */
+.note-author-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 32rpx;
+  background: #ffffff;
+  border-bottom: 1rpx solid #E7E0D8;
+}
+.note-author-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #FFF0ED;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.note-author-info {
+  flex: 1;
+}
+.note-author-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1C1917;
+  display: block;
+}
+.note-author-meta {
+  font-size: 22rpx;
+  color: #7A7068;
+  display: block;
+  margin-top: 4rpx;
+}
+
+/* 引言 */
+.note-intro {
+  margin: 24rpx 32rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  border-left: 6rpx solid #E8735A;
+  box-shadow: 0 1px 3px rgba(28,25,23,0.04), 0 4px 12px rgba(28,25,23,0.04);
+}
+.note-intro-text {
+  font-size: 28rpx;
+  color: #1C1917;
+  line-height: 1.7;
+}
+
+/* 每天区块 */
+.note-day {
+  padding: 0 32rpx;
+  margin-bottom: 16rpx;
+}
+
+/* 天分隔 + 标题 */
+.note-day-header {
+  padding: 24rpx 0 16rpx;
+}
+.note-day-divider {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.note-day-line {
+  flex: 1;
+  height: 2rpx;
+  background: #E7E0D8;
+}
+.note-day-badge {
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #E8735A, #E8A44A);
+  padding: 6rpx 20rpx;
+  flex-shrink: 0;
+}
+.note-day-date {
+  font-size: 24rpx;
+  color: #7A7068;
+  display: block;
+  text-align: center;
+  margin-top: 8rpx;
+}
+
+/* 酒店 */
+.note-hotel {
+  display: flex;
+  align-items: center;
+  margin: 16rpx 0;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: #FDF5EC;
+}
+.note-hotel-name {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #1C1917;
+  display: block;
+}
+.note-hotel-addr {
+  font-size: 22rpx;
+  color: #7A7068;
+  display: block;
+  margin-top: 4rpx;
+}
+
+/* POI 串联 */
+.note-poi {
+  display: flex;
+}
+.note-poi-timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 20rpx;
+  padding-top: 4rpx;
+}
+.note-poi-dot {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.note-poi-line {
+  width: 4rpx;
+  flex: 1;
+  background: #E7E0D8;
+  margin-top: 8rpx;
+  min-height: 16rpx;
+}
+.note-poi-body {
+  flex: 1;
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+  border: 1rpx solid #E7E0D8;
+  box-shadow: 0 1px 3px rgba(28,25,23,0.04), 0 4px 12px rgba(28,25,23,0.04);
+}
+.note-poi-top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+.note-poi-time {
+  font-size: 22rpx;
+  color: #7A7068;
+}
+.note-poi-type {
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+.note-poi-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1C1917;
+  display: block;
+  margin-bottom: 8rpx;
+}
+.note-poi-img {
+  width: 100%;
+  height: 240rpx;
+  border-radius: 12rpx;
+  margin-bottom: 12rpx;
+}
+.note-poi-desc {
+  font-size: 26rpx;
+  color: #7A7068;
+  line-height: 1.6;
+  display: block;
+  margin-bottom: 8rpx;
+}
+.note-poi-meta {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
+.note-poi-meta-item {
+  font-size: 22rpx;
+  color: #7A7068;
+}
+.note-poi-empty {
+  padding: 24rpx;
+  text-align: center;
+}
+
+/* 行程概要 */
+.note-summary {
+  margin: 24rpx 32rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  border: 1rpx solid #E7E0D8;
+  box-shadow: 0 1px 3px rgba(28,25,23,0.04), 0 4px 12px rgba(28,25,23,0.04);
+}
+.note-summary-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1C1917;
+  display: block;
+  margin-bottom: 20rpx;
+}
+.note-summary-grid {
+  display: flex;
+  gap: 0;
+}
+.note-summary-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+}
+.note-summary-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #E8735A;
+  display: block;
+}
+.note-summary-label {
+  font-size: 22rpx;
+  color: #7A7068;
+  display: block;
+  margin-top: 4rpx;
+}

@@ -1,0 +1,432 @@
+/* 行程规划页 - 暖珊瑚设计系统 */
+.planner-page {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+}
+
+/* 顶部信息栏 */
+.planner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background: var(--card-color);
+  border-bottom: 1rpx solid var(--border-color);
+}
+.planner-header-left {
+  flex: 1;
+  min-width: 0;
+}
+.planner-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--fg-color);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.planner-subtitle {
+  font-size: 24rpx;
+  color: var(--fg-secondary);
+  margin-top: 4rpx;
+  display: block;
+}
+.planner-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.planner-budget-badge {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  background: var(--muted-bg);
+  border-radius: 16rpx;
+  padding: 8rpx 16rpx;
+}
+.planner-budget-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--fg-color);
+}
+.planner-save-btn {
+  border-radius: 16rpx;
+  padding: 8rpx 24rpx;
+  background: linear-gradient(135deg, #E8735A, #D4553D);
+}
+
+/* 按天/总览切换 */
+.view-mode-tabs {
+  display: flex;
+  gap: 0;
+  padding: 16rpx 32rpx;
+  background: var(--card-color);
+  border-bottom: 1rpx solid var(--border-color);
+}
+.view-mode-tab {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0;
+  border-radius: 16rpx;
+  transition: all 0.2s;
+}
+.view-mode-tab-active {
+  background: var(--gradient-hero);
+  box-shadow: 0 4rpx 16rpx rgba(232, 115, 90, 0.3);
+}
+
+/* 跳过提示 */
+.skipped-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 16rpx 32rpx;
+  background: #FFFBEB;
+  border-bottom: 1rpx solid #FDE68A;
+}
+.skipped-banner-tag {
+  flex-shrink: 0;
+  border-radius: 8rpx;
+  background: #FDE68A;
+  padding: 4rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #92400E;
+}
+.skipped-banner-content {
+  flex: 1;
+}
+.skipped-banner-text {
+  font-size: 24rpx;
+  color: #92400E;
+  font-weight: 500;
+}
+.skipped-banner-names {
+  font-size: 24rpx;
+  color: #B45309;
+  margin-left: 8rpx;
+}
+
+/* 日期选择器 */
+.day-selector {
+  background: var(--card-color);
+  border-bottom: 1rpx solid var(--border-color);
+}
+.day-selector-inner {
+  display: inline-flex;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+}
+.day-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 20rpx;
+  padding: 12rpx 24rpx;
+  min-width: 100rpx;
+  background: var(--muted-bg);
+  transition: all 0.2s;
+}
+.day-tab-active {
+  background: linear-gradient(135deg, #E8735A, #E8A44A);
+  box-shadow: 0 4rpx 16rpx rgba(232, 115, 90, 0.3);
+}
+.day-tab-week {
+  font-size: 20rpx;
+  color: var(--fg-secondary);
+}
+.day-tab-week-active {
+  color: rgba(255,255,255,0.7);
+}
+.day-tab-date {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--fg-color);
+  margin-top: 4rpx;
+}
+.day-tab-date-active {
+  color: #ffffff;
+}
+.day-tab-count {
+  font-size: 18rpx;
+  color: var(--fg-secondary);
+  margin-top: 4rpx;
+}
+.day-tab-count-active {
+  color: rgba(255,255,255,0.6);
+}
+
+/* 当日行程 */
+.day-content {
+  height: calc(100vh - 400rpx);
+}
+.day-items {
+  padding: 24rpx 32rpx;
+}
+
+/* 酒店卡片 */
+.hotel-card {
+  display: flex;
+  align-items: center;
+  border-radius: 20rpx;
+  background: var(--card-color);
+  border: 1rpx solid var(--border-color);
+  padding: 20rpx;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 24rpx;
+}
+.hotel-info {
+  flex: 1;
+  min-width: 0;
+}
+.hotel-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--fg-color);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hotel-address {
+  font-size: 22rpx;
+  color: var(--fg-secondary);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4rpx;
+}
+.hotel-detail-btn {
+  border-radius: 12rpx;
+  background: #FFF0ED;
+  padding: 8rpx 16rpx;
+}
+
+/* POI卡片 */
+.poi-card {
+  display: flex;
+  margin-bottom: 4rpx;
+}
+.poi-timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 20rpx;
+  padding-top: 4rpx;
+}
+.poi-timeline-dot {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.poi-timeline-line {
+  width: 4rpx;
+  flex: 1;
+  background: var(--border-color);
+  margin-top: 8rpx;
+  min-height: 20rpx;
+}
+.poi-content {
+  flex: 1;
+  border-radius: 20rpx;
+  background: var(--card-color);
+  border: 1rpx solid var(--border-color);
+  padding: 20rpx;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16rpx;
+}
+.poi-content:active {
+  box-shadow: var(--shadow-card-hover);
+  border-color: #E8735A;
+}
+.poi-content-top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.poi-time {
+  font-size: 22rpx;
+  color: var(--fg-secondary);
+}
+.poi-type-tag {
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+.poi-ai-tag {
+  border-radius: 8rpx;
+  background: linear-gradient(135deg, #E8735A, #E8A44A);
+  padding: 2rpx 12rpx;
+  font-size: 18rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+.poi-name-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.poi-thumb {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+.poi-thumb-placeholder {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.poi-name-info {
+  flex: 1;
+  min-width: 0;
+}
+.poi-name {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--fg-color);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poi-sub {
+  font-size: 22rpx;
+  color: var(--fg-secondary);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4rpx;
+}
+.poi-meta {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: 12rpx;
+}
+.poi-meta-item {
+  font-size: 22rpx;
+  color: var(--fg-secondary);
+}
+
+/* 日备注 */
+.day-notes {
+  margin-top: 16rpx;
+  border-radius: 16rpx;
+  background: #FFFBEB;
+  padding: 20rpx;
+}
+
+/* 空态 */
+.day-empty {
+  padding: 120rpx 0;
+  text-align: center;
+}
+.day-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #E8735A, #D4553D);
+  padding: 16rpx 32rpx;
+}
+
+/* 空行程 */
+.planner-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+.planner-empty-icon {
+  font-size: 96rpx;
+  display: block;
+  margin-bottom: 24rpx;
+}
+.planner-empty-text {
+  font-size: 28rpx;
+  color: var(--fg-secondary);
+  display: block;
+  margin-bottom: 32rpx;
+}
+.planner-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #E8735A, #D4553D);
+  padding: 20rpx 48rpx;
+}
+
+/* ── 总览模式 ── */
+.overview-content {
+  height: calc(100vh - 340rpx);
+}
+.overview-day {
+  margin: 16rpx 32rpx;
+  border-radius: 20rpx;
+  background: var(--card-color);
+  border: 1rpx solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.overview-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 24rpx;
+  background: var(--card-color);
+}
+.overview-day-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.overview-day-badge {
+  border-radius: 12rpx;
+  background: var(--gradient-hero);
+  padding: 6rpx 16rpx;
+}
+.overview-day-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--fg-color);
+  display: block;
+}
+.overview-day-meta {
+  font-size: 22rpx;
+  color: var(--fg-secondary);
+  display: block;
+  margin-top: 2rpx;
+}
+.overview-day-items {
+  padding: 0 24rpx 20rpx;
+}
+.overview-day-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  padding: 0 24rpx 20rpx;
+}
+.overview-poi-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12rpx;
+  padding: 6rpx 12rpx;
+}

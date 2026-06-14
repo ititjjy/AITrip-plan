@@ -527,9 +527,12 @@ function ConfirmDialog({ type, count, publishing, scoreGrades, onConfirm, onCanc
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            <p>即将发布 <strong>{count}</strong> {type === 'selected-cities' ? '个城市' : '个 POI'} 到 Server DB。</p>
+            <p>即将将 <strong>{count}</strong> {type === 'selected-cities' ? '个城市' : '个 POI'} 的数据写入本地 Server DB。</p>
             <p className="mt-2 text-amber-600">
-              此操作将覆盖服务端已有的当前季节数据，请确认数据已经过审核。
+              此操作将覆盖本地 Server DB 中当前的数据，请确认已完成审核。
+            </p>
+            <p className="mt-2 text-blue-600">
+              发布成功后将自动导出 <code className="font-mono text-xs bg-blue-50 px-1 rounded">data-sync/cache-export.json</code> 并执行 git commit，云端服务器在下次拉取时自动同步生效。
             </p>
           </div>
           <div className="flex justify-end gap-2">

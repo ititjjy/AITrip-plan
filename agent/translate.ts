@@ -11,10 +11,12 @@
 
 import { API_KEYS } from './config.js'
 import { RateLimiter, delay } from './utils.js'
+import { getQwenFallback } from './model-fallback.js'
 import type { RawPOI } from './sources/base.js'
 
 const DASHSCOPE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const MODEL = 'qwen-plus'
+/** 动态获取当前千问模型（支持自动降级） */
+function getQwenModel(): string { return getQwenFallback().currentModel }
 
 const BATCH_SIZE = 30
 const rateLimiter = new RateLimiter(500) // 翻译限速 2 req/s
@@ -51,7 +53,7 @@ async function callTranslate(prompt: string): Promise<string> {
         'Authorization': `Bearer ${API_KEYS.dashscope}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: getQwenModel(),
         messages: [
           {
             role: 'system',
@@ -66,10 +68,32 @@ async function callTranslate(prompt: string): Promise<string> {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({})) as any
-      throw new Error(`Translate API HTTP ${response.status}: ${err.error?.message || 'unknown'}`)
+      const errMsg = `Translate API HTTP ${response.status}: ${err.error?.message || err.error?.code || 'unknown'}`
+      // 检查是否需要模型降级
+      const fallback = getQwenFallback()
+      const { degraded, newModel } = fallback.handleApiError(new Error(errMsg))
+      if (degraded && newModel) {
+        console.warn(`  [Translate] 千问模型降级为 ${newModel}`)
+      } else if (degraded && !newModel) {
+        throw new Error(`QWEN_ALL_MODELS_EXHAUSTED: 所有千问模型额度已耗尽`)
+      }
+      throw new Error(errMsg)
     }
 
     const data = await response.json() as any
+
+    // 报告 Token 消耗（预算制降级：额度用完前主动切换）
+    const totalTokens = data.usage?.total_tokens as number | undefined
+    if (totalTokens && totalTokens > 0) {
+      const fallback = getQwenFallback()
+      const result = fallback.reportUsage(totalTokens)
+      if (result?.degraded && result.newModel) {
+        console.warn(`  [Translate] Token预算达阈值，千问模型主动降级为 ${result.newModel}`)
+      } else if (result?.degraded && !result.newModel) {
+        throw new Error(`QWEN_ALL_MODELS_EXHAUSTED: 所有千问模型额度已耗尽`)
+      }
+    }
+
     return data.choices?.[0]?.message?.content?.trim() || ''
   } finally {
     clearTimeout(timeout)

@@ -170,14 +170,15 @@ function buildCategoryPrompt(
 
 直接输出JSON数组，格式如下（不要输出任何说明文字，不要用markdown代码块）：
 [
-  {"name":"当地语言地点名","nameZh":"中文名称","description":"简介","rating":4.5,"duration":90,"cost":0,"address":"地址","lat":35.6762,"lng":139.6503,"tags":["标签1","标签2"],"openTime":"09:00","closeTime":"18:00","recommendReason":"推荐理由","seasonScore":9}
+  {"name":"当地语言地点名","nameZh":"中文名称","nameEn":"英文名称","description":"简介","rating":4.5,"duration":90,"cost":0,"address":"地址","lat":35.6762,"lng":139.6503,"tags":["\u6807\u7b7e1","\u6807\u7b7e2"],"openTime":"09:00","closeTime":"18:00","recommendReason":"推荐理由","seasonScore":9}
 ]
 
 ${mealNote}
 要求：
 1. 地点真实存在，坐标准确，费用为人民币，按seasonScore从高到低排序。
 2. "name"字段使用当地语言的正式名称（如日文、英文、法文等）。
-3. "nameZh"字段填写对应的中文名称或中文翻译，若地点本身就是中文名称则与name相同。`
+3. "nameZh"字段填写对应的中文名称或中文翻译，若地点本身就是中文名称则与name相同。
+4. "nameEn"字段填写地点的英文名称；若地点就是英文名称则与name相同。`
 }
 
 /* ── Response transformer ── */
@@ -185,6 +186,7 @@ ${mealNote}
 interface RawPOI {
   name?: string
   nameZh?: string
+  nameEn?: string
   description?: string
   rating?: number
   duration?: number
@@ -204,6 +206,8 @@ interface POI {
   id: string
   name: string
   nameZh: string
+  nameLocal: string
+  nameEn: string
   type: string
   image: string
   rating: number
@@ -240,7 +244,9 @@ function transformResponse(
       globalIdx++
       const poi: POI = {
         id: `ai-${cityId}-${globalIdx}`,
-        name: String(item.name || `未知地点 ${globalIdx}`),
+        name: String(item.nameZh || item.name || `未知地点 ${globalIdx}`),
+        nameLocal: String(item.name || item.nameZh || `未知地点 ${globalIdx}`),
+        nameEn: String(item.nameEn || item.name || ''),
         nameZh: String(item.nameZh || item.name || `未知地点 ${globalIdx}`),
         type: category,
         image: getImageUrl(category, catIdx),

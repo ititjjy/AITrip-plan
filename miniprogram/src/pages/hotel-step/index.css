@@ -1,0 +1,7 @@
+.hotel-step {
+  padding-bottom: 80px;
+}
+
+.hotel-list {
+  max-height: calc(100vh - 200px);
+}

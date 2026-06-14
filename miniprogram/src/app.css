@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局样式 - 与主站暖珊瑚设计系统对齐 */
+page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
+    Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB',
+    'Microsoft Yahei', sans-serif;
+
+  /* 主色系 - Warm Coral */
+  --primary-color: #E8735A;
+  --primary-light: #FFF0ED;
+  --primary-dark: #D4553D;
+
+  /* 日落橙 - Accent */
+  --sunset-color: #E8A44A;
+  --sunset-light: #FFF3E0;
+
+  /* 海洋蓝 - 互补冷色 */
+  --ocean-color: #14A3C8;
+  --ocean-light: #E0F4FA;
+
+  /* 沙色 - 中性暖色 */
+  --sand-color: #B8986A;
+  --sand-light: #FDF5EC;
+
+  /* 语义色 */
+  --bg-color: #FDF9F6;
+  --card-color: #FFFFFF;
+  --border-color: #E7E0D8;
+  --fg-color: #1C1917;
+  --fg-secondary: #7A7068;
+  --muted-bg: #F5F0EB;
+  --muted-fg: #7A7068;
+
+  /* 渐变 */
+  --gradient-hero: linear-gradient(135deg, #E8735A 0%, #E8A44A 50%, #D4A853 100%);
+  --gradient-warm: linear-gradient(135deg, #FFF0ED 0%, #FFF3E0 100%);
+  --gradient-sunset: linear-gradient(135deg, #E8735A 0%, #D4553D 100%);
+
+  /* 阴影 */
+  --shadow-card: 0 1px 3px rgba(28,25,23,0.04), 0 4px 12px rgba(28,25,23,0.04);
+  --shadow-card-hover: 0 8px 30px rgba(28,25,23,0.08), 0 2px 8px rgba(28,25,23,0.04);
+  --shadow-elegant: 0 10px 40px -12px rgba(232,115,90,0.2);
+
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+}

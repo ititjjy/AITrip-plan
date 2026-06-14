@@ -10,6 +10,7 @@
 import { AGENT_CONFIG, API_KEYS } from '../config.js'
 import { RateLimiter, delay, repairMalformedJSON, repairTruncatedJSON } from '../utils.js'
 import { fillMissingTranslations } from '../translate.js'
+import { getDoubaoFallback } from '../model-fallback.js'
 import type { SourceCollector, CityInfo, L1Category, RawPOI } from './base.js'
 import {
   buildPrompt,
@@ -20,8 +21,8 @@ import {
 } from './ai.js'
 
 const DOUBAO_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
-/** 豆包推荐模型: Doubao 1.5 Pro 32K */
-const DOUBAO_MODEL = 'doubao-1.5-pro-32k-250115'
+/** 动态获取当前豆包模型（支持自动降级） */
+function getDoubaoModel(): string { return getDoubaoFallback().currentModel }
 
 const rateLimiter = new RateLimiter(AGENT_CONFIG.doubaoCategoryDelay ?? AGENT_CONFIG.aiCategoryDelay)
 
@@ -41,7 +42,7 @@ async function callDoubao(prompt: string): Promise<any[]> {
         'Authorization': `Bearer ${API_KEYS.doubaoApiKey}`,
       },
       body: JSON.stringify({
-        model: DOUBAO_MODEL,
+        model: getDoubaoModel(),
         messages: [
           {
             role: 'system',
@@ -56,12 +57,33 @@ async function callDoubao(prompt: string): Promise<any[]> {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({})) as any
-      throw new Error(`HTTP ${response.status}: ${err.error?.message || 'unknown'}`)
+      const errMsg = `HTTP ${response.status}: ${err.error?.message || err.error?.code || 'unknown'}`
+      // 检查是否需要模型降级
+      const fallback = getDoubaoFallback()
+      const { degraded, newModel } = fallback.handleApiError(new Error(errMsg))
+      if (degraded && newModel) {
+        console.warn(`  [Doubao] 模型降级为 ${newModel}，将在此后请求中自动使用`)
+      } else if (degraded && !newModel) {
+        throw new Error(`DOUBAO_ALL_MODELS_EXHAUSTED: 所有豆包模型额度已耗尽`)
+      }
+      throw new Error(errMsg)
     }
 
     const data = await response.json() as any
     const text = data.choices?.[0]?.message?.content
     if (!text) throw new Error('EMPTY_RESPONSE')
+
+    // 报告 Token 消耗（预算制降级：额度用完前主动切换）
+    const totalTokens = data.usage?.total_tokens as number | undefined
+    if (totalTokens && totalTokens > 0) {
+      const fallback = getDoubaoFallback()
+      const result = fallback.reportUsage(totalTokens)
+      if (result?.degraded && result.newModel) {
+        console.warn(`  [Doubao] Token预算达阈值，模型主动降级为 ${result.newModel}`)
+      } else if (result?.degraded && !result.newModel) {
+        throw new Error(`DOUBAO_ALL_MODELS_EXHAUSTED: 所有豆包模型额度已耗尽`)
+      }
+    }
 
     try {
       const parsed = JSON.parse(text)

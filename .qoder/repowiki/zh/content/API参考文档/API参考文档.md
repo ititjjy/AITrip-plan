@@ -14,6 +14,8 @@
 - [src/types/index.ts](file://src/types/index.ts)
 - [package.json](file://package.json)
 - [vercel.json](file://vercel.json)
+- [admin/pages/Cities.tsx](file://admin/pages/Cities.tsx)
+- [wiki/knowledge/city-data-kb.md](file://wiki/knowledge/city-data-kb.md)
 </cite>
 
 ## 目录
@@ -29,7 +31,7 @@
 10. [附录](#附录)
 
 ## 简介
-本API参考文档面向旅行规划Demo的后端服务，覆盖POI查询、旅行规划、用户管理、游记与评论、酒店预订、路线导航等核心能力。文档详细列出所有RESTful端点、请求参数、响应格式、鉴权方式、分页与过滤、错误码说明、版本控制策略与兼容性、以及客户端集成建议。
+本API参考文档面向旅行规划Demo的后端服务，覆盖POI查询、旅行规划、用户管理、游记与评论、酒店预订、路线导航、**城市数据访问**等核心能力。文档详细列出所有RESTful端点、请求参数、响应格式、鉴权方式、分页与过滤、错误码说明、版本控制策略与兼容性、以及客户端集成建议。
 
 ## 项目结构
 后端采用Express + better-sqlite3，按功能模块划分路由与数据层：
@@ -48,6 +50,7 @@ graph TB
 subgraph "客户端"
 FE["前端应用<br/>src/*"]
 AdminFE["管理端应用<br/>admin/*"]
+MiniProgram["小程序客户端<br/>miniprogram/*"]
 end
 subgraph "服务端"
 API["Express 应用<br/>server/index.ts"]
@@ -57,6 +60,7 @@ Qwen["POI生成/缓存<br/>server/qwen.ts"]
 QwenHotels["酒店生成/缓存<br/>server/qwen-hotels.ts"]
 Dedup["POI去重<br/>server/dedup.ts"]
 AdminAPI["管理端路由<br/>server/admin-routes.ts"]
+CityAPI["城市数据API<br/>/api/cities"]
 end
 subgraph "外部服务"
 OSRM["OSRM 路线服务"]
@@ -64,6 +68,7 @@ Doubao["豆包(ARK) API"]
 end
 FE --> API
 AdminFE --> AdminAPI
+MiniProgram --> CityAPI
 API --> Auth
 API --> DB
 API --> Qwen
@@ -73,7 +78,7 @@ API --> OSRM
 Qwen --> Doubao
 ```
 
-图表来源
+**图表来源**
 - [server/index.ts:1-790](file://server/index.ts#L1-L790)
 - [server/admin-routes.ts:1-800](file://server/admin-routes.ts#L1-L800)
 - [server/auth.ts:1-133](file://server/auth.ts#L1-L133)
@@ -82,7 +87,7 @@ Qwen --> Doubao
 - [server/qwen-hotels.ts](file://server/qwen-hotels.ts)
 - [server/dedup.ts](file://server/dedup.ts)
 
-章节来源
+**章节来源**
 - [server/index.ts:1-790](file://server/index.ts#L1-L790)
 - [server/admin-routes.ts:1-800](file://server/admin-routes.ts#L1-L800)
 - [server/auth.ts:1-133](file://server/auth.ts#L1-L133)
@@ -91,14 +96,15 @@ Qwen --> Doubao
 - [vercel.json:1-5](file://vercel.json#L1-L5)
 
 ## 核心组件
-- 路由与端点：提供POI、酒店、用户、旅行计划、游记与评论、预订、路线导航等REST接口
+- 路由与端点：提供POI、酒店、用户、旅行计划、游记与评论、预订、路线导航、**城市数据访问**等REST接口
 - 认证与授权：基于JWT的可选/必需鉴权中间件
 - 数据库层：SQLite表结构与CRUD操作封装
 - 缓存策略：POI/酒店三段式缓存（新鲜/陈旧/过期）与后台刷新
 - 管理端：POI浏览、搜索、评分过滤、发布与对比
 - 外部集成：OSRM路线服务、豆包(ARK)API
+- **城市数据管理**：基于city-registry.json的城市注册表提供移动端和小程序客户端的城市数据需求
 
-章节来源
+**章节来源**
 - [server/index.ts:108-160](file://server/index.ts#L108-L160)
 - [server/admin-routes.ts:707-798](file://server/admin-routes.ts#L707-L798)
 - [server/auth.ts:87-113](file://server/auth.ts#L87-L113)
@@ -107,6 +113,7 @@ Qwen --> Doubao
 ## 架构总览
 - 请求进入Express应用，经鉴权中间件处理后路由到各业务模块
 - POI/酒店数据通过AI生成并缓存至SQLite；若缓存陈旧则触发后台刷新
+- **城市数据通过直接读取city-registry.json文件提供实时城市列表**
 - 管理端通过独立路由对Agent DB与Server DB进行对比与发布
 - OSRM用于路线估算；外部API用于POI/酒店生成
 
@@ -115,23 +122,29 @@ sequenceDiagram
 participant Client as "客户端"
 participant API as "Express 应用"
 participant Auth as "鉴权中间件"
+participant CityFile as "城市注册表文件"
 participant DB as "数据库层"
 participant Cache as "缓存/刷新"
 participant OSRM as "OSRM服务"
 Client->>API : 发起API请求
 API->>Auth : 校验Authorization头
 Auth-->>API : 设置req.user(可选/必需)
+alt 城市数据请求
+API->>CityFile : 读取city-registry.json
+CityFile-->>API : 返回城市列表
+else 其他业务请求
 API->>DB : 查询/写入数据
 DB-->>API : 返回结果
 API->>Cache : 检查/更新缓存
 Cache-->>API : 返回缓存或触发刷新
 API->>OSRM : 获取路线估算
 OSRM-->>API : 返回路线数据
+end
 API-->>Client : 返回JSON响应
 ```
 
-图表来源
-- [server/index.ts:287-308](file://server/index.ts#L287-L308)
+**图表来源**
+- [server/index.ts:108-160](file://server/index.ts#L108-L160)
 - [server/auth.ts:87-113](file://server/auth.ts#L87-L113)
 - [server/db.ts:237-261](file://server/db.ts#L237-L261)
 
@@ -161,14 +174,49 @@ Auth-->>API : req.user可用
 API-->>Client : 返回受保护资源
 ```
 
-图表来源
+**图表来源**
 - [server/auth.ts:37-113](file://server/auth.ts#L37-L113)
 - [server/index.ts:318-401](file://server/index.ts#L318-L401)
 
-章节来源
+**章节来源**
 - [server/auth.ts:19-81](file://server/auth.ts#L19-L81)
 - [server/auth.ts:87-113](file://server/auth.ts#L87-L113)
 - [server/index.ts:318-401](file://server/index.ts#L318-L401)
+
+### 城市数据访问
+
+**新增** 本节介绍新增的城市数据访问功能，为移动端和小程序客户端提供城市列表查询能力。
+
+- 端点：GET /api/cities
+- 方法：GET
+- 功能：从city-registry.json文件读取城市信息，返回完整的城市列表
+- 响应格式：包含success标志和data数组的城市对象
+- 文件来源：scripts/city-registry.json
+- 适用场景：移动端APP、小程序选择城市、旅行规划起点选择
+
+城市注册表字段规范：
+- id：城市ID（小写英文，如"beijing"）
+- name：城市中文名称
+- nameEn：城市英文名称
+- hotness：城市热度值（0-100，影响采集优先级）
+
+```mermaid
+flowchart TD
+Start(["请求 /api/cities"]) --> LoadFile["读取 city-registry.json"]
+LoadFile --> ParseJSON["解析JSON数据"]
+ParseJSON --> Success{"解析成功？"}
+Success --> |是| ReturnData["返回城市列表"]
+Success --> |否| ReturnError["返回500错误"]
+ReturnData --> End(["结束"])
+ReturnError --> End
+```
+
+**图表来源**
+- [server/index.ts:108-118](file://server/index.ts#L108-L118)
+
+**章节来源**
+- [server/index.ts:108-118](file://server/index.ts#L108-L118)
+- [wiki/knowledge/city-data-kb.md:21-47](file://wiki/knowledge/city-data-kb.md#L21-L47)
 
 ### POI查询与缓存
 - 端点：GET /api/pois/:cityId
@@ -194,11 +242,11 @@ ReturnCache --> End
 Return503 --> End
 ```
 
-图表来源
+**图表来源**
 - [server/index.ts:108-144](file://server/index.ts#L108-L144)
 - [server/db.ts:237-261](file://server/db.ts#L237-L261)
 
-章节来源
+**章节来源**
 - [server/index.ts:108-144](file://server/index.ts#L108-L144)
 - [server/db.ts:237-261](file://server/db.ts#L237-L261)
 
@@ -207,7 +255,7 @@ Return503 --> End
 - 参数：cityName、cityNameEn（查询或请求体）
 - 行为：调用豆包API拉取最新POI并入库
 
-章节来源
+**章节来源**
 - [server/index.ts:146-160](file://server/index.ts#L146-L160)
 - [server/qwen.ts](file://server/qwen.ts)
 
@@ -216,7 +264,7 @@ Return503 --> End
 - 参数：cityName、cityNameEn（查询字符串）
 - 行为：与POI类似，支持缓存与后台刷新
 
-章节来源
+**章节来源**
 - [server/index.ts:186-212](file://server/index.ts#L186-L212)
 - [server/db.ts:430-454](file://server/db.ts#L430-L454)
 
@@ -228,7 +276,7 @@ Return503 --> End
 - 重置密码：POST /api/auth/reset-password（邮箱、验证码、新密码）
 - 修改昵称：PUT /api/auth/nickname（需鉴权）
 
-章节来源
+**章节来源**
 - [server/index.ts:318-410](file://server/index.ts#L318-L410)
 - [server/auth.ts:19-81](file://server/auth.ts#L19-L81)
 
@@ -254,7 +302,7 @@ Return503 --> End
   - 创建/更新：POST /api/trips/:id/micro-notes（需鉴权）
   - 删除：DELETE /api/trips/:id/micro-notes/:noteId（需鉴权）
 
-章节来源
+**章节来源**
 - [server/index.ts:413-665](file://server/index.ts#L413-L665)
 - [server/db.ts:149-233](file://server/db.ts#L149-L233)
 
@@ -265,7 +313,7 @@ Return503 --> End
 - 取消：PUT /api/bookings/:id/cancel（需鉴权，仅本人可见）
 - 更新状态：PUT /api/bookings/:id/status（需鉴权，仅本人可见）
 
-章节来源
+**章节来源**
 - [server/index.ts:216-283](file://server/index.ts#L216-L283)
 - [server/db.ts:458-512](file://server/db.ts#L458-L512)
 
@@ -274,7 +322,7 @@ Return503 --> End
 - 参数：coords（经度,纬度,经度,纬度，逗号分隔）
 - 行为：代理OSRM服务，返回驾车与公共交通估算
 
-章节来源
+**章节来源**
 - [server/index.ts:287-308](file://server/index.ts#L287-L308)
 
 ### 管理端API
@@ -292,19 +340,20 @@ Return503 --> End
 - 发布：POST /api/admin/publish/city、POST /api/admin/publish/pois
 - 发布校验：GET /api/admin/publish/validate/:id
 
-章节来源
+**章节来源**
 - [server/admin-routes.ts:444-798](file://server/admin-routes.ts#L444-L798)
 
 ### 数据模型与类型
 - 用户、旅行计划、游记、评论、微游记、酒店、预订等类型定义见前端类型文件
 
-章节来源
+**章节来源**
 - [src/types/index.ts:154-239](file://src/types/index.ts#L154-L239)
 
 ## 依赖关系分析
 - 服务端依赖：Express、better-sqlite3、cors、dotenv
 - 管理端HTTP封装：admin/lib/api.ts统一前缀与错误处理
 - 部署重写：vercel.json将/api/*重写到/api
+- **城市数据文件**：scripts/city-registry.json提供静态城市数据源
 
 ```mermaid
 graph LR
@@ -312,17 +361,20 @@ Express["Express"] --> Routes["路由模块"]
 Routes --> Auth["鉴权中间件"]
 Routes --> DBLayer["数据库层"]
 Routes --> Cache["缓存/刷新"]
+Routes --> CityFile["城市注册表文件"]
 Routes --> OSRM["OSRM代理"]
 AdminFE["管理端前端"] --> AdminAPI["/api/admin/*"]
+MiniProgram["小程序前端"] --> CityAPI["/api/cities"]
 AdminAPI --> Routes
+CityAPI --> CityFile
 ```
 
-图表来源
+**图表来源**
 - [server/index.ts:29-53](file://server/index.ts#L29-L53)
 - [admin/lib/api.ts:1-33](file://admin/lib/api.ts#L1-L33)
 - [vercel.json:1-5](file://vercel.json#L1-L5)
 
-章节来源
+**章节来源**
 - [package.json:26-43](file://package.json#L26-L43)
 - [admin/lib/api.ts:1-33](file://admin/lib/api.ts#L1-L33)
 - [vercel.json:1-5](file://vercel.json#L1-L5)
@@ -335,8 +387,9 @@ AdminAPI --> Routes
 - 后台刷新：过期时立即返回旧数据，后台异步刷新，避免超时
 - 响应字段：fromCache、refreshing、stale、cacheAgeHours、currentSeason
 - 管理端搜索：支持关键词、分类、评分等级过滤与分页
+- **城市数据缓存**：城市注册表为静态文件，客户端可自行缓存，减少重复请求
 
-章节来源
+**章节来源**
 - [server/index.ts:64-100](file://server/index.ts#L64-L100)
 - [server/index.ts:116-126](file://server/index.ts#L116-L126)
 - [server/admin-routes.ts:707-798](file://server/admin-routes.ts#L707-L798)
@@ -350,10 +403,11 @@ AdminAPI --> Routes
   - 404：资源不存在
   - 500：内部错误
   - 503：服务端未配置API Key且无缓存
-- 鉴权失败：返回“AUTH_REQUIRED”或“TOKEN_INVALID”
+  - **500（城市数据）**：无法读取城市注册表文件
+- 鉴权失败：返回"AUTH_REQUIRED"或"TOKEN_INVALID"
 - 验证码：10分钟有效期，一次性使用
 
-章节来源
+**章节来源**
 - [server/index.ts:129-143](file://server/index.ts#L129-L143)
 - [server/index.ts:219-221](file://server/index.ts#L219-L221)
 - [server/index.ts:261-268](file://server/index.ts#L261-L268)
@@ -361,7 +415,7 @@ AdminAPI --> Routes
 - [server/auth.ts:102-113](file://server/auth.ts#L102-L113)
 
 ## 结论
-本API以模块化设计实现旅行规划核心能力，结合三段式缓存与后台刷新提升可用性，提供可选/必需鉴权与完善的错误处理。管理端提供POI浏览、搜索、评分过滤与发布流程，便于内容治理。客户端可通过统一的HTTP封装与类型定义快速集成。
+本API以模块化设计实现旅行规划核心能力，结合三段式缓存与后台刷新提升可用性，提供可选/必需鉴权与完善的错误处理。**新增的城市数据访问API为移动端和小程序客户端提供了高效的城市列表查询能力**，通过直接读取city-registry.json文件实现低延迟的数据获取。管理端提供POI浏览、搜索、评分过滤与发布流程，便于内容治理。客户端可通过统一的HTTP封装与类型定义快速集成。
 
 ## 附录
 
@@ -405,6 +459,8 @@ AdminAPI --> Routes
   - PUT /api/bookings/:id/status
 - 路线导航
   - GET /api/transit/route?coords=lon,lat,lon,lat
+- **城市数据**（新增）
+  - GET /api/cities
 - 管理端
   - GET /api/admin/stats
   - GET /api/admin/cities
@@ -425,7 +481,7 @@ AdminAPI --> Routes
   - POST /api/admin/publish/pois
   - GET /api/admin/publish/validate/:id
 
-章节来源
+**章节来源**
 - [server/index.ts:108-665](file://server/index.ts#L108-L665)
 - [server/admin-routes.ts:444-798](file://server/admin-routes.ts#L444-L798)
 
@@ -433,8 +489,9 @@ AdminAPI --> Routes
 - 可选鉴权：Authorization: Bearer <token>
 - 必需鉴权：同上，缺失或过期返回401
 - 资源归属：旅行计划、微游记、评论、预订均按用户ID校验
+- **城市数据访问**：无需鉴权，支持匿名访问
 
-章节来源
+**章节来源**
 - [server/auth.ts:87-113](file://server/auth.ts#L87-L113)
 - [server/index.ts:414-416](file://server/index.ts#L414-L416)
 - [server/index.ts:464-466](file://server/index.ts#L464-L466)
@@ -447,17 +504,19 @@ AdminAPI --> Routes
 - 分页：limit/offset（游记列表），page/pageSize（管理端POI）
 - 排序：管理端支持按评分等级过滤（A/B/C/D）
 - 过滤：城市、分类(L1/L2/L3)、关键词搜索、评分范围
+- **城市数据**：支持客户端侧过滤（如按国家、地区筛选）
 
-章节来源
+**章节来源**
 - [server/index.ts:560-564](file://server/index.ts#L560-L564)
 - [server/admin-routes.ts:707-798](file://server/admin-routes.ts#L707-L798)
 
 ### 错误码说明
 - 成功：success=true
 - 常见错误：MISSING_FIELDS、INVALID_EMAIL、WEAK_PASSWORD、EMAIL_EXISTS、INVALID_CREDENTIALS、USER_NOT_FOUND、MISSING_NICKNAME、INVALID_STATUS、ALREADY_CANCELLED、CANNOT_CANCEL、NOT_FOUND、FORBIDDEN、COMMENTS_DISABLED、EMPTY_CONTENT、COMMENT_NOT_FOUND、NO_API_KEY、API_ERROR、AUTH_REQUIRED、TOKEN_INVALID
+- **城市数据错误**：CITY_REGISTRY_ERROR（无法读取城市注册表）
 - 警告：warning字段提示降级使用缓存
 
-章节来源
+**章节来源**
 - [server/index.ts:319-401](file://server/index.ts#L319-L401)
 - [server/index.ts:219-221](file://server/index.ts#L219-L221)
 - [server/index.ts:261-268](file://server/index.ts#L261-L268)
@@ -468,23 +527,67 @@ AdminAPI --> Routes
 - 项目版本：0.3.2
 - 部署重写：/api/* 重写到 /api，保持单一入口
 - 建议：未来新增端点以 /api/v1/ 前缀扩展，保留现有端点不变
+- **城市数据API**：作为独立端点提供，不影响现有API版本
 
-章节来源
+**章节来源**
 - [package.json:4](file://package.json#L4)
 - [vercel.json:2-4](file://vercel.json#L2-L4)
 
 ### 客户端集成示例与SDK
 - 管理端HTTP封装：admin/lib/api.ts 提供统一的GET/POST/PUT/DELETE方法，自动拼接 /api/admin 前缀并抛出带状态码的异常
+- **城市数据客户端**：可直接调用GET /api/cities获取城市列表，支持本地缓存策略
 - 建议：前端在拦截器中统一注入Authorization头，捕获ApiError并提示用户
 
-章节来源
+**章节来源**
 - [admin/lib/api.ts:1-33](file://admin/lib/api.ts#L1-L33)
+- [admin/pages/Cities.tsx:23-29](file://admin/pages/Cities.tsx#L23-L29)
 
 ### 限流、错误处理与调试技巧
 - 限流：可在客户端或网关层增加请求频率限制
 - 错误处理：统一解析4xx/5xx响应，读取message或error字段
-- 调试：关注服务端日志中的缓存去重统计、后台刷新触发、OSRM代理错误
+- 调试：关注服务端日志中的缓存去重统计、后台刷新触发、OSRM代理错误、**城市注册表文件读取错误**
+- **城市数据调试**：检查scripts/city-registry.json文件是否存在、格式是否正确、编码是否为UTF-8
 
-章节来源
+**章节来源**
 - [server/index.ts:122-125](file://server/index.ts#L122-L125)
 - [server/index.ts:290-307](file://server/index.ts#L290-L307)
+- [server/index.ts:108-118](file://server/index.ts#L108-L118)
+
+### 城市数据文件规范
+
+**新增** 本节详细说明城市注册表文件的结构和字段规范。
+
+城市注册表文件位置：scripts/city-registry.json
+
+文件结构示例：
+```json
+[
+  {
+    "id": "beijing",
+    "name": "北京",
+    "nameEn": "Beijing",
+    "hotness": 95
+  },
+  {
+    "id": "paris", 
+    "name": "巴黎",
+    "nameEn": "Paris",
+    "hotness": 85
+  }
+]
+```
+
+字段说明：
+- id：城市ID（小写英文，如"beijing"、"paris"），用作系统内部唯一标识
+- name：城市中文名称
+- nameEn：城市英文名称（首字母大写）
+- hotness：城市热度值（0-100），影响采集批次优先级
+
+热度值参考标准：
+- 极热门：90-100（如北京、上海、巴黎、东京）
+- 热门：70-89（如成都、杭州、首尔、新加坡）
+- 普通：40-69（二线城市、普通国际城市）
+- 冷门：0-39（小众目的地）
+
+**章节来源**
+- [wiki/knowledge/city-data-kb.md:21-63](file://wiki/knowledge/city-data-kb.md#L21-L63)
