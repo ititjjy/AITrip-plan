@@ -678,6 +678,9 @@ router.get('/categories', (_req: Request, res: Response) => {
   res.json({ success: true, data: loadCategoryTree() })
 })
 
+// mapAgentPOI 添加的派生字段，对比 reviewStatus 时需要剔除，否则永远与 Server DB 不等
+const MAPPED_DERIVED_KEYS = new Set(['name', 'aliases', 'duration', 'openingHours', 'images', 'cost', 'seasons'])
+
 /** Attach reviewStatus to an array of POIs (must have _cityId) */
 function attachReviewStatus(pois: any[]): any[] {
   // Group by city
@@ -687,18 +690,31 @@ function attachReviewStatus(pois: any[]): any[] {
     if (!cityGroups.has(cid)) cityGroups.set(cid, [])
     cityGroups.get(cid)!.push(poi)
   }
+
+  // Load raw agent POIs per city for accurate comparison (before mapAgentPOI transforms)
+  const agentRawCache = new Map<string, Map<string, any>>()
+  const agentDB = getAgentDB()
+  for (const cityId of cityGroups.keys()) {
+    const row = agentDB.prepare('SELECT data FROM city_pois WHERE city_id = ?').get(cityId) as { data: string } | undefined
+    if (row) {
+      const rawPois: any[] = JSON.parse(row.data)
+      agentRawCache.set(cityId, new Map(rawPois.map((p: any) => [p.id, p])))
+    }
+  }
+
   // Load server POIs per city and classify
   const result: any[] = []
   for (const [cityId, cityPOIs] of cityGroups) {
     const { pois: serverPOIs } = loadServerPOIs(cityId)
     const serverMap = new Map(serverPOIs.map((p: any) => [p.id, p]))
+    const rawMap = agentRawCache.get(cityId)
     for (const poi of cityPOIs) {
       const serverPOI = serverMap.get(poi.id)
       let status: 'new' | 'updated' | 'published' = 'new'
       if (serverPOI) {
-        // Compare mapped fields (exclude internal _cityId)
-        const { _cityId: _, ...agentClean } = poi
-        const agentStr = JSON.stringify(agentClean)
+        // 用 Agent DB 原始数据（发布时存的格式）对比 Server DB，避免 mapAgentPOI 派生字段干扰
+        const rawPOI = rawMap?.get(poi.id)
+        const agentStr = JSON.stringify(rawPOI ?? poi)
         const serverStr = JSON.stringify(serverPOI)
         status = agentStr !== serverStr ? 'updated' : 'published'
       }
@@ -842,7 +858,10 @@ router.get('/pois/:id', (req: Request, res: Response) => {
   const serverPOI = serverPOIs.find((p: any) => p.id === foundPOI.id)
   let reviewStatus: 'new' | 'updated' | 'published' = 'new'
   if (serverPOI) {
-    reviewStatus = JSON.stringify(foundPOI) !== JSON.stringify(serverPOI) ? 'updated' : 'published'
+    // 用 Agent DB 原始数据对比，避免 mapAgentPOI 派生字段干扰
+    const rawRow = getAgentDB().prepare('SELECT data FROM city_pois WHERE city_id = ?').get(foundCityId) as { data: string } | undefined
+    const rawPOI = rawRow ? (JSON.parse(rawRow.data) as any[]).find((p) => p.id === foundPOI.id) : null
+    reviewStatus = JSON.stringify(rawPOI ?? foundPOI) !== JSON.stringify(serverPOI) ? 'updated' : 'published'
   }
 
   const registry = loadCityRegistry()

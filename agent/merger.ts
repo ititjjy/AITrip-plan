@@ -17,6 +17,7 @@ import {
   compositeSimilarity,
   stringSimilarity,
   isInvalidPOI,
+  getSemanticGroup,
   type CompositeResult,
 } from './similarity.js'
 import {
@@ -453,8 +454,8 @@ function detectConflicts(group: RawPOI[]): ConflictReport {
 
   // 3. address
   compare('address',
-    p => !!p.address?.trim(),
-    (a, b) => stringSimilarity(a.address, b.address) < CONFLICT_THRESHOLDS.address,
+    p => !!String(p.address || '').trim(),
+    (a, b) => stringSimilarity(String(a.address || ''), String(b.address || '')) < CONFLICT_THRESHOLDS.address,
   )
 
   // 4. categoryL1
@@ -549,7 +550,189 @@ export function computePOIScore(merged: RawPOI, report: ConflictReport): POIScor
   }
 }
 
+/**
+ * 计算 POI 热门度得分（用于最终排序）
+ * 公式: 0.4*综合评分 + 0.3*rating + 0.2*知名度 + 0.1*多源数
+ */
+function computeHotnessScore(poi: RawPOI, report: ConflictReport): number {
+  const completeness = computeCompleteness(poi)
+  const confidence = computeConfidence(poi, report)
+  const qualityBonus = computeQualityBonus(poi)
+  const totalScore = COMPLETENESS_FACTOR * completeness + CONFIDENCE_FACTOR * confidence + qualityBonus
+
+  // rating 因子 (0-30分)
+  const ratingScore = (poi.rating || 0) * 6  // 5分制 → 30分
+
+  // 知名度因子 (0-20分)
+  let popularityScore = 0
+  // OSM wikidata/wikipedia 标签
+  if ((poi as any).popularity) popularityScore += 20
+  // Foursquare popularity 字段 (如果存在)
+  if ((poi as any).fsqPopularity) popularityScore += Math.min((poi as any).fsqPopularity * 2, 20)
+  // 多源印证 = 更可能是知名地标
+  popularityScore += Math.min(report.sourceCount * 5, 15)
+
+  // 无名小店惩罚
+  if ((poi as any).isLowQuality) {
+    popularityScore -= 15
+  }
+
+  // 多源数因子 (0-10分)
+  const sourceScore = Math.min(report.sourceCount * 2, 10)
+
+  return totalScore * 0.4 + ratingScore * 0.3 + popularityScore * 0.2 + sourceScore * 0.1
+}
+
 /* ═══════════════════════ 1. Pre-filter ═══════════════════════ */
+
+/** AI 来源 — 坐标可信度较低，需要用可信来源校正 */
+const AI_SOURCES = new Set(['spark', 'doubao', 'qwen', 'ai', 'siliconflow'])
+/** 可信坐标来源 */
+const TRUSTED_COORD_SOURCES = new Set(['amap', 'osm', 'foursquare', 'google'])
+
+/**
+ * AI 坐标修正：用可信来源（amap/osm/foursquare）的同名坐标校正 AI 来源的异常坐标。
+ * 如果 AI 坐标与可信来源同名 POI 相差超过 5km，则认为 AI 坐标不可信，用最近的可信坐标替换。
+ */
+function correctAICoordinates(pois: RawPOI[]): void {
+  // 先收集可信来源的名称→坐标映射
+  const trustedCoords = new Map<string, { lat: number; lng: number }>()
+  for (const poi of pois) {
+    if (!TRUSTED_COORD_SOURCES.has(poi.source)) continue
+    const key = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+    if (!key || key.length < 2) continue
+    if (!trustedCoords.has(key)) {
+      trustedCoords.set(key, { lat: poi.lat, lng: poi.lng })
+    }
+  }
+
+  if (trustedCoords.size === 0) return
+
+  // 对 AI 来源做坐标校验和修正
+  for (const poi of pois) {
+    if (!AI_SOURCES.has(poi.source)) continue
+    const key = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+    if (!key || key.length < 2) continue
+
+    const trusted = trustedCoords.get(key)
+    if (!trusted) continue
+
+    const dist = haversineDistance(poi.lat, poi.lng, trusted.lat, trusted.lng)
+    if (dist > 5) {
+      // 坐标偏差超过 5km → 用可信坐标替换（保留该 POI 的描述/标签等信息，仅修正坐标）
+      poi.lat = trusted.lat
+      poi.lng = trusted.lng
+    }
+  }
+}
+
+/**
+ * 检测并修正"坐标污染"来源：
+ * 如果某个 AI 来源中，超过 30% 的 POI 使用相同坐标，说明该来源坐标批量造假/占位，
+ * 对这些 POI 逐一尝试用可信来源（精确匹配或名称包含匹配）修正坐标。
+ * 修正失败的 POI 将坐标标记为 (0, 0)，在 preFilter 中被过滤掉。
+ */
+function fixCoordinatePollution(pois: RawPOI[]): void {
+  // 按来源分组，找出坐标集中度超标的来源
+  const sourceGroups = new Map<string, RawPOI[]>()
+  for (const poi of pois) {
+    if (!AI_SOURCES.has(poi.source)) continue
+    const grp = sourceGroups.get(poi.source) || []
+    grp.push(poi)
+    sourceGroups.set(poi.source, grp)
+  }
+
+  // 构建可信来源名称→坐标（精确 + 包含关系）
+  const trustedList: { key: string; lat: number; lng: number }[] = []
+  for (const poi of pois) {
+    if (!TRUSTED_COORD_SOURCES.has(poi.source)) continue
+    const key = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+    if (key.length >= 2) trustedList.push({ key, lat: poi.lat, lng: poi.lng })
+  }
+
+  for (const [, group] of sourceGroups) {
+    if (group.length < 5) continue
+
+    // 统计坐标分布
+    const coordCount = new Map<string, number>()
+    for (const poi of group) {
+      const ck = `${poi.lat.toFixed(3)}|${poi.lng.toFixed(3)}`
+      coordCount.set(ck, (coordCount.get(ck) || 0) + 1)
+    }
+
+    // 找出最多条目的坐标
+    const sorted = [...coordCount.entries()].sort((a, b) => b[1] - a[1])
+    const [topCoord, topCount] = sorted[0]
+
+    // 超过 30% 相同坐标 → 坐标污染
+    if (topCount / group.length < 0.3) continue
+
+    const [topLat, topLng] = topCoord.split('|').map(Number)
+
+    for (const poi of group) {
+      if (poi.lat.toFixed(3) !== topLat.toFixed(3) || poi.lng.toFixed(3) !== topLng.toFixed(3)) continue
+
+      // 此 POI 的坐标是污染坐标，尝试修正
+      const aiKey = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+      let fixed = false
+
+      for (const trusted of trustedList) {
+        const isMatch = trusted.key === aiKey ||
+          (aiKey.length >= 2 && trusted.key.includes(aiKey)) ||
+          (trusted.key.length >= 2 && aiKey.includes(trusted.key))
+        if (isMatch) {
+          poi.lat = trusted.lat
+          poi.lng = trusted.lng
+          fixed = true
+          break
+        }
+      }
+
+      if (!fixed) {
+        // 无法修正 → 标记为无效坐标，preFilter 将过滤掉
+        poi.lat = 0
+        poi.lng = 0
+      }
+    }
+  }
+}
+
+/**
+ * 跨名称坐标修正：针对"故宫" vs "故宫博物院"这类简称↔全称，
+ * 用可信来源中**名称包含关系**的条目坐标来校正 AI 来源的异常坐标。
+ */
+function correctAICoordinatesByContainment(pois: RawPOI[]): void {
+  // 收集可信来源 POI 的名称+坐标
+  const trustedPOIs: { key: string; lat: number; lng: number }[] = []
+  for (const poi of pois) {
+    if (!TRUSTED_COORD_SOURCES.has(poi.source)) continue
+    const key = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+    if (key.length >= 2) trustedPOIs.push({ key, lat: poi.lat, lng: poi.lng })
+  }
+  if (trustedPOIs.length === 0) return
+
+  for (const poi of pois) {
+    if (!AI_SOURCES.has(poi.source)) continue
+    const aiKey = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+    if (aiKey.length < 2) continue
+
+    // 已经被精确匹配过的跳过
+    for (const trusted of trustedPOIs) {
+      // 名称包含关系（"故宫" in "故宫博物院" 或反向）
+      const isContained =
+        (aiKey.length >= 2 && trusted.key.includes(aiKey)) ||
+        (trusted.key.length >= 2 && aiKey.includes(trusted.key))
+      if (!isContained) continue
+
+      const dist = haversineDistance(poi.lat, poi.lng, trusted.lat, trusted.lng)
+      if (dist > 5) {
+        poi.lat = trusted.lat
+        poi.lng = trusted.lng
+        break
+      }
+    }
+  }
+}
 
 function preFilter(
   pois: RawPOI[],
@@ -558,9 +741,50 @@ function preFilter(
   const valid: RawPOI[] = []
   let filtered = 0
 
+  // 同源内部去重：相同来源中名称+坐标完全相同的只保留第一条（忽略类目差异）
+  // 语义等价组：如果两个 POI 名称属于同一语义组（故宫=紫禁城）且坐标相同，也视为重复
+  const sourceSeen = new Map<string, Set<string>>()
+  const deduped: RawPOI[] = []
   for (const poi of pois) {
+    const src = poi.source || ''
+    if (!sourceSeen.has(src)) sourceSeen.set(src, new Set())
+    const seen = sourceSeen.get(src)!
+    // key = 名称（优先用语义组ID，不含类目），坐标保留2位小数精度（约1km范围内视为同一地点）
+    // 不纳入 categoryL1，避免同一地点被多个类目重复采集（foursquare常见问题）
+    const nameKey = getSemanticGroup(poi.namePrimary || '') || String(poi.namePrimary || '').trim()
+    const key = `${nameKey}|${poi.lat.toFixed(2)}|${poi.lng.toFixed(2)}`
+    if (seen.has(key)) {
+      filtered++
+      continue
+    }
+    seen.add(key)
+    deduped.push(poi)
+  }
+
+  for (const poi of deduped) {
     // 无效 POI 检测
     if (isInvalidPOI(poi)) {
+      filtered++
+      continue
+    }
+
+    // 过滤非旅游相关的本地生活服务（邮局、银行、医院、加油站、租车、美容美发、洗浴推拿等）
+    const tagsStr = (poi.tags || []).join(' ')
+    const nameStr = String(poi.namePrimary || poi.nameZh || '').toLowerCase()
+    if (
+      tagsStr.includes('邮局') || tagsStr.includes('邮政') ||
+      tagsStr.includes('银行') || tagsStr.includes('ATM') ||
+      tagsStr.includes('医院') || tagsStr.includes('诊所') || tagsStr.includes('药店') ||
+      tagsStr.includes('加油站') || tagsStr.includes('加气站') ||
+      tagsStr.includes('派出所') || tagsStr.includes('公安局') ||
+      tagsStr.includes('居委会') || tagsStr.includes('街道办') ||
+      tagsStr.includes('税务') || tagsStr.includes('社保') ||
+      tagsStr.includes('租车') || tagsStr.includes('汽车租赁') || tagsStr.includes('汽车服务') ||
+      tagsStr.includes('美容美发') || tagsStr.includes('洗浴推拿') || tagsStr.includes('按摩') ||
+      nameStr.includes('邮政所') || nameStr.includes('邮政局') ||
+      nameStr.includes('储蓄所') || nameStr.includes('营业所') ||
+      nameStr.includes('租车') || nameStr.includes('推拿') || nameStr.includes('美容')
+    ) {
       filtered++
       continue
     }
@@ -593,8 +817,9 @@ function geoBucketKey(lat: number, lng: number): string {
 function adjacentBucketKeys(key: string): string[] {
   const [latPart, lngPart] = key.split('|').map(Number)
   const keys: string[] = []
-  for (let dlat = -1; dlat <= 1; dlat++) {
-    for (let dlng = -1; dlng <= 1; dlng++) {
+  // ±2 桶 (约 2.2km)，覆盖大型景区不同坐标标注（如八达岭长城坐标偏差可达 3km）
+  for (let dlat = -2; dlat <= 2; dlat++) {
+    for (let dlng = -2; dlng <= 2; dlng++) {
       keys.push(`${latPart + dlat}|${lngPart + dlng}`)
     }
   }
@@ -659,7 +884,8 @@ function isMergeAllowed(result: CompositeResult): boolean {
   // 阻止明确标记为 fail 的路径
   if (result.path === 'cross-related-fail') return false
   if (result.path === 'cross-unrelated-fail') return false
-  if (result.path === 'same-type-perfect-low-content') return false
+  // same-type-perfect-low-content: 保底分已提到 0.92，允许合并；仅阻止低分情况
+  if (result.path === 'same-type-perfect-low-content' && result.score < MERGE_THRESHOLD) return false
   return true
 }
 
@@ -751,6 +977,12 @@ function mergeGroup(group: RawPOI[]): MergedEntry {
 
   const base: RawPOI = { ...sorted[0] }
 
+  // 保留知名度标记（来自 OSM 的 wikidata/wikipedia）
+  const anyPopularity = group.find(p => (p as any).popularity)?.popularity
+  if (anyPopularity) {
+    (base as any).popularity = anyPopularity
+  }
+
   // 坐标: 可靠性加权平均
   let totalWeight = 0
   let wLat = 0
@@ -773,11 +1005,12 @@ function mergeGroup(group: RawPOI[]): MergedEntry {
   //   4. nameEn 存英文名
 
   // 收集中文名：
-  //   优先从 nameZh（nameZh 是中文且 != namePrimary，说明是中文翻译名）
-  //   其次从 namePrimary 中检测中文（无假名、无韩文）
+  //   优先从 namePrimary 中检测中文（更直接可靠，尤其是 AI 数据的 namePrimary 就是中文名）
+  //   其次从 nameZh（作为辅助翻译名，如 foursquare 的 nameZh）
+  //   排除明显错误的情况（nameZh 是中文但来源不可信的 AI 批量数据）
   const zhName =
-    group.find(p => p.nameZh?.trim() && p.nameZh.trim() !== (p.namePrimary?.trim() || '') && isChinese(p.nameZh.trim()))?.nameZh?.trim() ||
     group.find(p => p.namePrimary && isChinese(p.namePrimary))?.namePrimary ||
+    group.find(p => p.nameZh?.trim() && p.nameZh.trim() !== (p.namePrimary?.trim() || '') && isChinese(p.nameZh.trim()))?.nameZh?.trim() ||
     ''
   // 收集英文名
   const enName =
@@ -983,6 +1216,11 @@ export function mergeAndDeduplicate(
   const totalRaw = allRawPOIs.length
   console.log(`  [Merge] Raw POIs: ${totalRaw}`)
 
+  // ── Step 0: AI 坐标修正 (用可信来源坐标校正 AI 来源异常坐标) ──
+  fixCoordinatePollution(allRawPOIs)       // 先处理批量坐标污染（>30%相同坐标）
+  correctAICoordinates(allRawPOIs)         // 再处理精确名称匹配的个别偏差
+  correctAICoordinatesByContainment(allRawPOIs) // 最后处理简称↔全称的坐标偏差
+
   // ── Step 1: Pre-filter ──
   const { valid: filteredPois, filtered: invalidCount } = preFilter(allRawPOIs, city)
   console.log(`  [Merge] After pre-filter: ${filteredPois.length} (filtered: ${invalidCount})`)
@@ -1005,6 +1243,45 @@ export function mergeAndDeduplicate(
     }
   }
 
+  // ── Step 1.5: AI 来源预分类修正 ──
+  // 在 L1 分组之前，先对 AI 来源 POI 运行 classifier，修正明显错误的分类。
+  // 这样 dedup 阶段就能将不同来源的同名 POI（类目可能不同）放在正确的 L1 组里比较。
+  for (const poi of filteredPois) {
+    // tags 强制覆盖（最高优先级）
+    const tagsStr = (poi.tags || []).join(' ')
+    if (tagsStr.includes('住宿服务')) {
+      poi.categoryL1 = 'hotel'
+      poi.categoryL3 = resolveCategoryL3('hotel', [poi.categoryL3])
+      continue
+    }
+    if (tagsStr.includes('购物服务') || tagsStr.includes('购物相关场所')) {
+      // 例外：名称含明显餐饮关键词的，纠正为food（避免数据源标签错误，如"牛将军雪花牛·火锅烤肉铁板烧"被标为购物服务）
+      const nameLower = String(poi.namePrimary || poi.nameZh || '').toLowerCase()
+      const hasStrongFoodSignal = /火锅|烤肉|铁板烧|烤鸭|烧烤|餐厅|饭店|料理|面馆|菜馆|小馆|食堂/.test(nameLower)
+      if (hasStrongFoodSignal) {
+        poi.categoryL1 = 'food'
+        poi.categoryL3 = resolveCategoryL3('food', [poi.categoryL3])
+        continue
+      }
+      poi.categoryL1 = 'shopping'
+      poi.categoryL3 = resolveCategoryL3('shopping', [poi.categoryL3])
+      continue
+    }
+    if (tagsStr.includes('餐饮服务') || tagsStr.includes('中餐厅') || tagsStr.includes('快餐厅') || tagsStr.includes('外国餐厅')) {
+      poi.categoryL1 = 'food'
+      poi.categoryL3 = resolveCategoryL3('food', [poi.categoryL3])
+      continue
+    }
+    // AI 来源：用 classifier 修正明显错误的分类（置信度 > 0.80）
+    if (AI_SOURCES.has(poi.source)) {
+      const cls = classifyCategory(poi)
+      if (cls.confidence > 0.80 && cls.l1 !== poi.categoryL1) {
+        poi.categoryL1 = cls.l1
+        poi.categoryL3 = resolveCategoryL3(cls.l1, [poi.categoryL3])
+      }
+    }
+  }
+
   // ── Step 2: L1 分组 ──
   const l1Groups = new Map<L1Category, number[]>()
   for (let i = 0; i < filteredPois.length; i++) {
@@ -1018,6 +1295,34 @@ export function mergeAndDeduplicate(
   const globalUF = new UnionFind(filteredPois.length)
   let totalPairs = 0
   const allMergeDetails: MergeDetail[] = []
+
+  // ── Step 2.5: 语义词典跨源去重 ──
+  // 名称属于同一语义组的 POI（如"鸟巢"和"北京国家体育场"），无论地理距离，直接合并。
+  // 这解决了 AI 来源污染坐标导致的地理分桶无法命中问题。
+  {
+    // 按语义组收集 POI 索引
+    const semanticGroups = new Map<string, number[]>()
+    for (let i = 0; i < filteredPois.length; i++) {
+      const group = getSemanticGroup(filteredPois[i].namePrimary || '')
+      if (!group) continue
+      const list = semanticGroups.get(group) || []
+      list.push(i)
+      semanticGroups.set(group, list)
+    }
+    for (const [, indices] of semanticGroups) {
+      if (indices.length <= 1) continue
+      // 同一语义组的所有 POI 合并成一组
+      for (let k = 1; k < indices.length; k++) {
+        globalUF.union(indices[0], indices[k])
+        totalPairs++
+        allMergeDetails.push({
+          indices: [indices[0], indices[k]],
+          path: 'same-type-perfect',
+          score: 0.98,
+        })
+      }
+    }
+  }
 
   // ── Step 3: 组内 Union-Find 去重 ──
   for (const [, indices] of l1Groups) {
@@ -1094,6 +1399,48 @@ export function mergeAndDeduplicate(
   // ── Step 7: 后分类检查 ──
   for (const entry of mergedEntries) {
     const poi = entry.raw
+
+    // ① 基于 tags 的强制覆盖（最高优先级，无视来源和分类器置信度）
+    const tagsStr = (poi.tags || []).join(' ')
+    const hasHotelTag = tagsStr.includes('住宿服务')
+    const hasShoppingTag = tagsStr.includes('购物服务') || tagsStr.includes('购物相关场所')
+    if (hasHotelTag) {
+      if (poi.categoryL1 !== 'hotel') {
+        poi.categoryL1 = 'hotel'
+        poi.categoryL3 = resolveCategoryL3('hotel', [poi.categoryL3])
+        categoryReclassifications++
+      }
+      continue  // 无论原来是什么分类，都跳过后续 classifyCategory，保护 hotel
+    }
+    if (hasShoppingTag) {
+      // 例外：名称含明显餐饮关键词的，纠正为food（避免数据源标签错误）
+      const nameLower = String(poi.namePrimary || poi.nameZh || '').toLowerCase()
+      const hasStrongFoodSignal = /火锅|烤肉|铁板烧|烤鸭|烧烤|餐厅|饭店|料理|面馆|菜馆|小馆|食堂/.test(nameLower)
+      if (hasStrongFoodSignal) {
+        if (poi.categoryL1 !== 'food') {
+          poi.categoryL1 = 'food'
+          poi.categoryL3 = resolveCategoryL3('food', [poi.categoryL3])
+          categoryReclassifications++
+        }
+        continue  // 跳过后续 classifyCategory
+      }
+      if (poi.categoryL1 !== 'shopping') {
+        poi.categoryL1 = 'shopping'
+        poi.categoryL3 = resolveCategoryL3('shopping', [poi.categoryL3])
+        categoryReclassifications++
+      }
+      continue  // 跳过后续 classifyCategory
+    }
+    const hasFoodTag = tagsStr.includes('餐饮服务') || tagsStr.includes('中餐厅') || tagsStr.includes('快餐厅') || tagsStr.includes('外国餐厅')
+    if (hasFoodTag) {
+      if (poi.categoryL1 !== 'food') {
+        poi.categoryL1 = 'food'
+        poi.categoryL3 = resolveCategoryL3('food', [poi.categoryL3])
+        categoryReclassifications++
+      }
+      continue  // 跳过后续 classifyCategory
+    }
+
     const classification = classifyCategory(poi)
 
     // AI 来源: 降低阈值到 0.65，分类器置信度超过此值时覆盖 AI 的批次分类
@@ -1114,7 +1461,17 @@ export function mergeAndDeduplicate(
     }
   }
 
-  // ── 按 L1 类目分组 & 排序 & 截取 top N ──
+  // ── 餐饮/购物类目：标记无名小店 ──
+  for (const entry of mergedEntries) {
+    const name = String(entry.raw.namePrimary || '').trim()
+    const l1 = entry.raw.categoryL1
+    if ((l1 === 'food' || l1 === 'shopping') && name.length < 3) {
+      // 标记为低质量，但不删除（让排序将其自然沉底）
+      (entry.raw as any).isLowQuality = true
+    }
+  }
+
+  // ── 按 L1 类目分组 & 综合热门度排序 & 截取 top N ──
   const grouped = new Map<L1Category, MergedEntry[]>()
   for (const entry of mergedEntries) {
     const l1 = entry.raw.categoryL1
@@ -1131,8 +1488,12 @@ export function mergeAndDeduplicate(
   for (const l1 of L1_CATEGORIES) {
     const items = grouped.get(l1) || []
 
-    // 按评分排序 (高的在前)
-    items.sort((a, b) => (b.raw.rating || 0) - (a.raw.rating || 0))
+    // 按综合热门度排序（解决 OSM 无 rating 导致知名 POI 被挤掉的问题）
+    items.sort((a, b) => {
+      const scoreA = computeHotnessScore(a.raw, a.conflictReport)
+      const scoreB = computeHotnessScore(b.raw, b.conflictReport)
+      return scoreB - scoreA
+    })
 
     // 截取目标数量
     const selected = items.slice(0, targetPerCategory)

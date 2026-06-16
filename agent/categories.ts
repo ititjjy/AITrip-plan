@@ -309,7 +309,7 @@ export function osmTagsToCategory(tags: Record<string, string>): { l1: L1Categor
   if (tags.amenity === 'restaurant') return { l1: 'food', l3: 'food.local.signature' }
   if (tags.amenity === 'cafe') return { l1: 'food', l3: 'food.cafe.coffee' }
   if (tags.amenity === 'fast_food') return { l1: 'food', l3: 'food.local.street' }
-  if (tags.amenity === 'bar' || tags.amenity === 'pub') return { l1: 'food', l3: 'food.bar.pub' }
+  if (tags.amenity === 'bar' || tags.amenity === 'pub') return { l1: 'entertainment', l3: 'entertainment.nightlife.bar' }
   if (tags.amenity === 'food_court') return { l1: 'food', l3: 'food.market.foodcourt' }
 
   // 购物
@@ -357,7 +357,7 @@ export function externalCategoryToL3(
   if (/temple|church|shrine|mosque/.test(lower)) return { l1: 'scenic', l3: 'scenic.historical.temple' }
   if (/restaurant|dining/.test(lower)) return { l1: 'food', l3: 'food.local.signature' }
   if (/cafe|coffee|tea/.test(lower)) return { l1: 'food', l3: 'food.cafe.coffee' }
-  if (/bar|pub|lounge|nightclub/.test(lower)) return { l1: 'food', l3: 'food.bar.pub' }
+  if (/bar|pub|lounge/.test(lower)) return { l1: 'entertainment', l3: 'entertainment.nightlife.bar' }
   if (/mall|shopping|store|market/.test(lower)) return { l1: 'shopping', l3: 'shopping.mall.comprehensive' }
   if (/amusement|theme|water.park/.test(lower)) return { l1: 'entertainment', l3: 'entertainment.theme.amusement' }
   if (/spa|wellness|massage/.test(lower)) return { l1: 'experience', l3: 'experience.wellness.spa' }

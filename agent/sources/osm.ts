@@ -36,11 +36,18 @@ const CATEGORY_QUERIES: Record<L1Category, string> = {
     nwr["amenity"="fast_food"]["name"](around:{radius},{lat},{lng});
     nwr["amenity"~"bar|pub"]["name"](around:{radius},{lat},{lng});
     nwr["amenity"="food_court"](around:{radius},{lat},{lng});
+    nwr["amenity"="bakery"](around:{radius},{lat},{lng});
+    nwr["amenity"="ice_cream"](around:{radius},{lat},{lng});
+    nwr["amenity"="bistro"](around:{radius},{lat},{lng});
   `,
   shopping: `
     nwr["shop"~"mall|department_store|supermarket"](around:{radius},{lat},{lng});
     nwr["amenity"="marketplace"](around:{radius},{lat},{lng});
     nwr["shop"~"gift|souvenir|clothes|shoes|electronics|antiques|craft"](around:{radius},{lat},{lng});
+    nwr["shop"="bookshop"](around:{radius},{lat},{lng});
+    nwr["shop"="convenience"](around:{radius},{lat},{lng});
+    nwr["shop"="department_store"](around:{radius},{lat},{lng});
+    nwr["shop"="mall"](around:{radius},{lat},{lng});
   `,
   entertainment: `
     nwr["tourism"~"theme_park|aquarium|casino"](around:{radius},{lat},{lng});
@@ -167,6 +174,7 @@ function osmElementToPOI(element: any): RawPOI | null {
     operatingHours: parseOperatingHours(tags.opening_hours),
     source: 'osm',
     sourceId: `${element.type}/${element.id}`,
+    popularity: tags.wikidata || tags.wikipedia ? 1 : 0,
   }
 }
 

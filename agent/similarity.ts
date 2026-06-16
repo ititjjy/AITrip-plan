@@ -109,6 +109,73 @@ const GEO_SUFFIXES = [
 ]
 
 /**
+ * 语义等价词典：同一地点的不同称谓
+ * key = 规范化后的名称（小写去空格），value = 等价组ID
+ */
+const SEMANTIC_EQUIVALENTS: Map<string, string> = new Map([
+  // 北京 — 故宫
+  ['故宫', 'beijing-forbidden-city'],
+  ['紫禁城', 'beijing-forbidden-city'],
+  ['故宫博物院', 'beijing-forbidden-city'],
+  ['北京故宫博物院', 'beijing-forbidden-city'],
+  ['forbiddencity(palacemuseum)', 'beijing-forbidden-city'],
+  ['故宫(博物院)', 'beijing-forbidden-city'],
+  ['forbiddencity(palacemuseum)(故宫（博物院）)', 'beijing-forbidden-city'],
+  ['forbiddencity(palacemuseum)(故宫(博物院))', 'beijing-forbidden-city'],
+  ['forbiddencity', 'beijing-forbidden-city'],
+  ['palacemuseum', 'beijing-forbidden-city'],
+  ['ciudadprohibida', 'beijing-forbidden-city'],   // 西班牙语"禁城"
+  // 北京 — 天安门
+  ['天安门广场', 'beijing-tiananmen'],
+  ['天安门', 'beijing-tiananmen'],
+  ['tiananmensquare', 'beijing-tiananmen'],
+  // 北京 — 八达岭长城
+  ['八达岭长城', 'beijing-badaling'],
+  ['八达岭', 'beijing-badaling'],
+  ['badalinggreatwall', 'beijing-badaling'],
+  // 北京 — 鸟巢
+  ['国家体育场', 'beijing-stadium'],
+  ['鸟巢', 'beijing-stadium'],
+  ['国家体育场(鸟巢)', 'beijing-stadium'],
+  ['鸟巢(国家体育场)', 'beijing-stadium'],
+  ['鸟巢国家体育场', 'beijing-stadium'],      // 去括号后的形式
+  ['北京国家体育场', 'beijing-stadium'],
+  // 北京 — 中国国家博物馆
+  ['中国国家博物馆', 'beijing-nationalmuseum'],
+  ['国家博物馆', 'beijing-nationalmuseum'],
+  ['中国历史博物馆', 'beijing-nationalmuseum'],
+  // 北京 — 南锣鼓巷
+  ['南锣鼓巷', 'beijing-nanluoguxiang'],
+  ['nanluoguxiang', 'beijing-nanluoguxiang'],
+  // 上海
+  ['外滩', 'shanghai-bund'],
+  ['thebund', 'shanghai-bund'],
+  // 西安
+  ['兵马俑', 'xian-terracotta'],
+  ['秦始皇兵马俑', 'xian-terracotta'],
+  ['秦始皇帝陵博物院', 'xian-terracotta'],
+  // 成都
+  ['大熊猫繁育研究基地', 'chengdu-panda'],
+  ['成都大熊猫繁育研究基地', 'chengdu-panda'],
+  ['pandabase', 'chengdu-panda'],
+  // 杭州
+  ['西湖', 'hangzhou-westlake'],
+  ['westlake', 'hangzhou-westlake'],
+])
+
+/**
+ * 获取名称的语义等价组 ID（用于去重时识别不同名称但同一地点）
+ * 返回组 ID 或 undefined（不在词典中）
+ */
+export function getSemanticGroup(name: string): string | undefined {
+  const normalized = name.toLowerCase()
+    .replace(/[\s\u3000]+/g, '')
+    .replace(/[（(]/g, '(')
+    .replace(/[）)]/g, ')')
+  return SEMANTIC_EQUIVALENTS.get(normalized)
+}
+
+/**
  * 字符串相似度 (0-1)
  *
  * 1 = 完全相同, 0 = 完全不同
@@ -134,12 +201,19 @@ export function stringSimilarity(a: string, b: string): number {
   if (na === nb) return 1
   if (na.length === 0 && nb.length === 0) return 1
 
+  // 语义等价词典匹配：故宫=紫禁城=故宫博物院 等
+  const groupA = SEMANTIC_EQUIVALENTS.get(na)
+  const groupB = SEMANTIC_EQUIVALENTS.get(nb)
+  if (groupA && groupB && groupA === groupB) return 0.98
+
   // 子串包含判定
   if (na.length > 0 && nb.length > 0) {
     const [shorter, longer] = na.length <= nb.length ? [na, nb] : [nb, na]
     if (longer.includes(shorter)) {
       const containRatio = shorter.length / longer.length
-      const minSim = containRatio >= 0.6 ? 0.92 : 0.85
+      // 短串至少2字符且比例≥0.4时视为高相似（"故宫" in "故宫博物院"，2/5=0.4）
+      // 比例≥0.6 时给 0.92，0.4-0.6 之间给 0.90，确保进入 Path B/A
+      const minSim = containRatio >= 0.6 ? 0.92 : (containRatio >= 0.3 && shorter.length >= 2 ? 0.90 : 0.85)
       return Math.max(containRatio, minSim)
     }
   }
@@ -344,15 +418,26 @@ export function compositeSimilarity(a: RawPOI, b: RawPOI): CompositeResult {
       if (cSim >= 0.70) {
         return { score: nSim, path: 'same-type-perfect', details }
       }
-      // 名字归一化后完全相同 (nSim=1.0) 且地理距离 ≤2km (geoSim≥0.06) 时视为同一地点
+      // 名字归一化后完全相同 (nSim=1.0) 且地理距离 ≤10km (geoSim≥0.02) 时视为同一地点
       // 避免仅因 contentSim 数据缺失而漏合并（AI 数据通常缺少 tags/cost）
-      // 大型公园/景区不同入口坐标偏差可能达到 1-2km
-      if (nSim >= 1.0 && gSim >= 0.06) {
+      // 大型公园/景区不同入口坐标偏差可能达到 1-5km（如八达岭长城不同标注点偏差 3km）
+      if (nSim >= 1.0 && gSim >= 0.02) {
         return { score: nSim, path: 'same-type-perfect', details }
       }
+      // 语义等价词典命中（如故宫=紫禁城）→ 无条件合并
+      // 语义词典里只放全局唯一地标，不会有重名风险，不需要地理验证
+      // normalize 方式与 stringSimilarity 保持一致（全角括号→半角，不删括号内容）
+      const normSemanticKey = (s: string) =>
+        s.toLowerCase().replace(/[\s\u3000]+/g, '').replace(/[（(]/g, '(').replace(/[）)]/g, ')')
+      const groupA = SEMANTIC_EQUIVALENTS.get(normSemanticKey(a.namePrimary || ''))
+      const groupB = SEMANTIC_EQUIVALENTS.get(normSemanticKey(b.namePrimary || ''))
+      if (groupA && groupB && groupA === groupB) {
+        return { score: 0.95, path: 'same-type-perfect', details }
+      }
       // 名称高度相似但内容数据缺失时，仍给予较高保底分以避免漏合并
+      // 0.92 > MERGE_THRESHOLD(0.90)，确保此路径能触发合并
       return {
-        score: Math.max(0.88, nSim * 0.50 + cSim * 0.50),
+        score: Math.max(0.92, nSim * 0.50 + cSim * 0.50),
         path: 'same-type-perfect-low-content',
         details,
       }
@@ -363,7 +448,22 @@ export function compositeSimilarity(a: RawPOI, b: RawPOI): CompositeResult {
       if (gSim >= 0.06 && cSim >= 0.50) {
         return { score: nSim, path: 'same-type-high', details }
       }
-      // 地理远或内容差 → 降级到常规路径
+      // 名称高度相似 + 坐标合理（≤5km），但内容字段缺失（AI数据常见）→ 视为同一地点
+      // 大型地标/景区不同来源坐标偏差可能达到1-2km，内容数据也可能缺失
+      if (gSim >= 0.02) {
+        // 直接包含关系（"故宫" in "故宫博物院"）且坐标合理 → 大概率同一地点
+        const na2 = a.namePrimary?.toLowerCase().replace(/[\s\u3000]+/g, '') || ''
+        const nb2 = b.namePrimary?.toLowerCase().replace(/[\s\u3000]+/g, '') || ''
+        const isContained = (na2.length > 1 && nb2.includes(na2)) || (nb2.length > 1 && na2.includes(nb2))
+        if (isContained) {
+          return { score: 0.92, path: 'same-type-high', details }
+        }
+        // 内容数据缺失但名称相似 → 较低置信度合并
+        if (cSim < 0.50) {
+          return { score: nSim * 0.8 + gSim * 0.2, path: 'same-type-high', details }
+        }
+      }
+      // 地理远 → 降级到常规路径
     }
 
     // Path E: 常规加权
@@ -378,6 +478,18 @@ export function compositeSimilarity(a: RawPOI, b: RawPOI): CompositeResult {
 
   // Path C: 密切相关对
   if (isCloselyRelated(a.categoryL1, b.categoryL1)) {
+    // 语义词典命中（全局唯一地标）→ 无条件合并
+    const normSK = (s: string) =>
+      s.toLowerCase().replace(/[\s\u3000]+/g, '').replace(/[（(]/g, '(').replace(/[）)]/g, ')')
+    const sgA = SEMANTIC_EQUIVALENTS.get(normSK(a.namePrimary || ''))
+    const sgB = SEMANTIC_EQUIVALENTS.get(normSK(b.namePrimary || ''))
+    if (sgA && sgB && sgA === sgB) {
+      return { score: 0.95, path: 'cross-related', details }
+    }
+    // 完全同名 + 地理合理（≤10km）→ 直接合并，忽略 cSim（AI数据常缺少tags/cost）
+    if (nSim >= 1.0 && gSim >= 0.02) {
+      return { score: nSim, path: 'cross-related', details }
+    }
     if (nSim >= 0.90 && cSim >= 0.65 && gSim >= 0.06) {
       return { score: nSim, path: 'cross-related', details }
     }

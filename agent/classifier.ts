@@ -55,9 +55,9 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
   food: {
     suffixes: [
       '餐厅', '饭店', '食堂', '料理店', '菜馆', '小馆', '面馆',
-      '咖啡馆', '咖啡厅', '茶馆', '甜品店', '酒吧', '酒馆',
+      '咖啡馆', '咖啡厅', '茶馆', '甜品店', '酒馆',
       '烤鸭店', '奶茶店', '饮品店', '轻食店', '果汁店', '面包房',
-      'restaurant', 'cafe', 'coffee shop', 'bistro', 'diner', 'eatery', 'pub', 'bar',
+      'restaurant', 'cafe', 'coffee shop', 'bistro', 'diner', 'eatery', '餐吧',
       'bakery', 'juice bar', 'tea house',
       '餐廳', '料理',
     ],
@@ -71,6 +71,7 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
     descWords: [
       '招牌菜', '特色菜', '主厨', '口味', '食材', '新鲜',
       '人均', '套餐', '菜单', '推荐菜', '果木挂炉', '烤制',
+      '餐饮', '餐厅', '中餐', '快餐', '西餐厅', '日料', '韩料', '烧烤', '火锅', '烤鸭', '铁板烧', '烤肉',
       'chef', 'menu', 'dish', 'flavor', 'ingredient', 'signature',
       'healthy food', 'salad', 'sandwich', 'cold-pressed juice',
     ],
@@ -97,9 +98,9 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
   entertainment: {
     suffixes: [
       '乐园', '游乐园', '赌场', '剧院', '影院', '体育馆',
-      '夜总会', '俱乐部', 'KTV', '剧场', '小剧场',
+      '夜总会', '俱乐部', 'KTV', '剧场', '小剧场', '酒吧',
       'park', 'casino', 'theater', 'theatre', 'cinema', 'stadium',
-      'arena', 'club',
+      'arena', 'club', 'pub', 'bar', 'lounge',
       '樂園',
     ],
     nameWords: [
@@ -221,8 +222,10 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
   ],
   scenic: [
     // 商业综合体/购物中心 → shopping
+    // 注意：'广场' 不能直接排除，会误伤天安门广场、西湖广场等历史/景点广场
+    // 只有明确商业综合体词才排除，且必须配合描述词确认
     {
-      nameExcludes: ['天地', '广场', '中心', 'MALL', 'Mall', 'mall', '商城', '商业区', '商业综合体'],
+      nameExcludes: ['MALL', 'Mall', 'mall', '商城', '商业区', '商业综合体', '购物广场', '商业广场', '购物中心'],
       descExcludes: ['商业', '品牌', '购物', '零售', '店铺', '百货'],
       boostCategory: 'shopping',
       boostScore: 8,
@@ -254,6 +257,18 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
       boostCategory: 'experience',
       boostScore: 10,
     },
+    // 租车/汽车服务 → 排除出 scenic（无对应类目，降至兜底）
+    {
+      nameExcludes: ['租车', '汽车租赁', '汽车服务', '驾校', '洗车'],
+      boostCategory: 'shopping',
+      boostScore: 3,
+    },
+    // 医疗/卫生服务 → 排除出 scenic
+    {
+      nameExcludes: ['卫生服务站', '卫生院', '卫生所', '诊所', '医院', '医疗', '药房', '药店', '牙科', '口腔'],
+      boostCategory: 'experience',
+      boostScore: 2,
+    },
   ],
   shopping: [
     // 餐饮场所 → food (购物类目严格排除食品饮料类)
@@ -279,7 +294,9 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
     },
     // 景点/地标 → scenic
     {
-      nameExcludes: ['公园', '寺', '庙', '博物馆', '美术馆', '纪念馆', '遗址', '古迹', '长城', '鸟巢', '水立方', '奥林匹克'],
+      nameExcludes: ['公园', '寺', '庙', '博物馆', '美术馆', '纪念馆', '遗址', '古迹', '长城', '鸟巢', '水立方', '奥林匹克',
+        '天安门', '故宫', '紫禁城', '颐和园', '圆明园', '天坛', '地坛', '雍和宫',
+        '西湖', '外滩', '东方明珠', '玉龙雪山', '布达拉宫'],
       descExcludes: ['著名景点', '地标', '文化遗产', '历史建筑', '文物保护单位', '游泳场馆', '世界文化遗产'],
       boostCategory: 'scenic',
       boostScore: 12,

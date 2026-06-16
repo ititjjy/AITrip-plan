@@ -1,6 +1,6 @@
 {
   "currentIndex": {
-    "qwen": 6,
+    "qwen": 7,
     "doubao": 18
   },
   "exhaustedModels": {
@@ -10,7 +10,8 @@
       "qwen3-max-preview",
       "qwen3-max-2025-09-23",
       "qwen3-235b-a22b-thinking-2507",
-      "qwen3-235b-a22b-instruct-2507"
+      "qwen3-235b-a22b-instruct-2507",
+      "deepseek-v3.2-exp"
     ],
     "doubao": [
       "deepseek-v4-pro-260425",
@@ -34,7 +35,8 @@
       "qwen3-max-preview": 817758,
       "qwen3-max-2025-09-23": 510043,
       "qwen3-235b-a22b-instruct-2507": 564255,
-      "deepseek-v3.2-exp": 92563
+      "deepseek-v3.2-exp": 571752,
+      "qwen3-235b-a22b": 199770
     },
     "doubao": {
       "deepseek-v4-pro-260425": 53796,
@@ -47,6 +49,6 @@
       "doubao-seed-1-6-flash-250828": 359010
     }
   },
-  "updatedAt": "2026-06-13T14:12:21.446Z",
+  "updatedAt": "2026-06-16T10:34:16.899Z",
   "lastFullResetMonth": {}
 }

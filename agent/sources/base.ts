@@ -84,6 +84,8 @@ export interface RawPOI {
   source: string
   /** 来源原始 ID */
   sourceId?: string
+  /** 知名度标识 (1=有 wikidata/wikipedia 引用, 0=无) */
+  popularity?: number
 }
 
 /* ── 数据源采集器接口 ── */

@@ -15,7 +15,13 @@ dist-server/
 data-sync/*.tmp
 data-sync/*.log
 
+# Agent 采集数据库（大文件，不进 Git）
+agent/data/agent.db
+agent/data/agent.db-shm
+agent/data/agent.db-wal
+
 # 小程序编译产物
 miniprogram/dist/
 miniprogram/node_modules/
 miniprogram/.temp/
+travel.db

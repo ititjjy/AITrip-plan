@@ -365,15 +365,14 @@ export default function HotelStepPage() {
     setActiveMarkerId(hotel.id)
   }
 
+  const handleApplyToCurrentDay = () => {
+    if (!currentDayHotel) return
+    dispatch({ type: 'SET_DAY_HOTEL', payload: { dayIndex: activeDayIdx, hotel: currentDayHotel } })
+  }
+
   const handleApplyToAll = () => {
     if (!currentDayHotel) return
     const indices = days.map((_, i) => i)
-    dispatch({ type: 'SET_DAYS_HOTEL', payload: { dayIndices: indices, hotel: currentDayHotel } })
-  }
-
-  const handleApplyToRemaining = () => {
-    if (!currentDayHotel) return
-    const indices = days.map((_, i) => i).filter((i) => i >= activeDayIdx)
     dispatch({ type: 'SET_DAYS_HOTEL', payload: { dayIndices: indices, hotel: currentDayHotel } })
   }
 
@@ -764,11 +763,11 @@ export default function HotelStepPage() {
                     <p className="text-sm font-semibold text-foreground">{currentDayHotel.name}</p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">{currentDayHotel.address}</p>
                     <div className="mt-2 flex gap-1.5">
+                      <button onClick={handleApplyToCurrentDay} className="flex items-center gap-1 rounded-lg bg-card border border-border px-2 py-1 text-[10px] font-medium text-foreground hover:bg-secondary transition-smooth">
+                        <Copy className="h-3 w-3" /> 应用到当天
+                      </button>
                       <button onClick={handleApplyToAll} className="flex items-center gap-1 rounded-lg bg-card border border-border px-2 py-1 text-[10px] font-medium text-foreground hover:bg-secondary transition-smooth">
                         <Copy className="h-3 w-3" /> 应用到全部天
-                      </button>
-                      <button onClick={handleApplyToRemaining} className="flex items-center gap-1 rounded-lg bg-card border border-border px-2 py-1 text-[10px] font-medium text-foreground hover:bg-secondary transition-smooth">
-                        <Copy className="h-3 w-3" /> 应用到之后
                       </button>
                     </div>
                   </div>
@@ -889,7 +888,7 @@ export default function HotelStepPage() {
                 days={days}
                 onRemoveHotel={handleRemoveHotel}
                 onApplyAll={handleApplyToAll}
-                onApplyRemaining={handleApplyToRemaining}
+                onApplyCurrentDay={handleApplyToCurrentDay}
                 serverLoading={serverLoading}
               />
 
@@ -1052,12 +1051,12 @@ function HotelListItem({ hotel, isSelected, onSelect, onLocate, onViewDetail }: 
 }
 
 /* ── Mobile search overlay (shown on lg:hidden screens) ── */
-function MobileSearchOverlay({ searchQuery, setSearchQuery, search, clearResults, searchLoading, searchResults, cityHotels, currentDayHotel, onSelectHotel, onLocate, onViewDetail, activeDayIdx, days, onRemoveHotel, onApplyAll, onApplyRemaining, serverLoading }: {
+function MobileSearchOverlay({ searchQuery, setSearchQuery, search, clearResults, searchLoading, searchResults, cityHotels, currentDayHotel, onSelectHotel, onLocate, onViewDetail, activeDayIdx, days, onRemoveHotel, onApplyAll, onApplyCurrentDay, serverLoading }: {
   searchQuery: string; setSearchQuery: (v: string) => void; search: (q: string) => void; clearResults: () => void
   searchLoading: boolean; searchResults: HotelPOI[]; cityHotels: HotelPOI[]
   currentDayHotel: HotelPOI | null | undefined; onSelectHotel: (h: HotelPOI) => void; onLocate: (h: HotelPOI) => void; onViewDetail: (h: HotelPOI) => void
   activeDayIdx: number; days: { dayNumber: number; hotel?: HotelPOI | null }[]
-  onRemoveHotel: () => void; onApplyAll: () => void; onApplyRemaining: () => void; serverLoading: boolean
+  onRemoveHotel: () => void; onApplyAll: () => void; onApplyCurrentDay: () => void; serverLoading: boolean
 }) {
   const [open, setOpen] = useState(false)
 
@@ -1124,6 +1123,7 @@ function MobileSearchOverlay({ searchQuery, setSearchQuery, search, clearResults
                   <p className="text-sm font-semibold text-foreground truncate">{currentDayHotel.name}</p>
                 </div>
                 <div className="flex gap-1.5 shrink-0">
+                  <button onClick={onApplyCurrentDay} className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium hover:bg-secondary">当天</button>
                   <button onClick={onApplyAll} className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium hover:bg-secondary">全部天</button>
                   <button onClick={onRemoveHotel} className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-destructive hover:bg-secondary">移除</button>
                 </div>

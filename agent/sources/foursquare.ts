@@ -22,8 +22,8 @@ const rateLimiter = new RateLimiter(AGENT_CONFIG.foursquareInterval)
 
 const CATEGORY_IDS: Record<L1Category, string[]> = {
   scenic: ['10000', '16000'],       // Arts & Entertainment, Landmarks
-  food: ['13000'],                   // Food
-  shopping: ['17000'],               // Shops & Services
+  food: ['13000', '13032', '13033', '13035', '13065'],  // Food, Chinese Restaurant, Japanese Restaurant, Italian Restaurant, Dessert Shop
+  shopping: ['17000', '17114', '17115', '17116', '17117'],  // Shops & Services, Shopping Mall, Department Store, Supermarket, Convenience Store
   entertainment: ['10000', '16034'], // Arts & Entertainment, Nightlife
   experience: ['18000', '16000'],   // Outdoors & Recreation, some Landmarks
   hotel: ['19000'],                  // Travel & Transportation
@@ -118,12 +118,26 @@ function getDefaultL3(l1: L1Category): string {
 
 /* ── API 调用 ── */
 
+interface SearchResult {
+  results: any[]
+  context?: {
+    geo_bounds?: {
+      circle?: {
+        center?: { latitude: number; longitude: number }
+        radius?: number
+      }
+    }
+    cursor?: string
+  }
+}
+
 async function searchPlaces(
   lat: number,
   lng: number,
   categoryIds: string[],
   limit: number = 50,
-): Promise<any[]> {
+  offset: number = 0,
+): Promise<SearchResult> {
   await rateLimiter.wait()
 
   const params = new URLSearchParams({
@@ -132,6 +146,11 @@ async function searchPlaces(
     categories: categoryIds.join(','),
     limit: String(Math.min(limit, 50)),
   })
+
+  // 分页：使用 offset 参数
+  if (offset > 0) {
+    params.set('offset', String(offset))
+  }
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), AGENT_CONFIG.foursquareTimeout)
@@ -151,8 +170,8 @@ async function searchPlaces(
       throw new Error(`Foursquare HTTP ${response.status}: ${err.error || 'unknown'}`)
     }
 
-    const data = await response.json() as { results?: any[] }
-    return data.results || []
+    const data = await response.json() as SearchResult
+    return data
   } finally {
     clearTimeout(timeout)
   }
@@ -169,22 +188,36 @@ export class FoursquareCollector implements SourceCollector {
 
   async collect(city: CityInfo, categories: L1Category[]): Promise<RawPOI[]> {
     const allPOIs: RawPOI[] = []
+    const MAX_PAGES = 3
+    const PAGE_SIZE = 50
 
     for (const category of categories) {
       try {
         const categoryIds = CATEGORY_IDS[category] || []
         console.log(`  [Foursquare] Searching ${category} for ${city.name}...`)
 
-        const places = await searchPlaces(city.lat, city.lng, categoryIds)
-        let count = 0
-        for (const place of places) {
-          const poi = transformPlace(place, category)
-          if (poi) {
-            allPOIs.push(poi)
-            count++
+        let categoryCount = 0
+        for (let page = 1; page <= MAX_PAGES; page++) {
+          const offset = (page - 1) * PAGE_SIZE
+          const data = await searchPlaces(city.lat, city.lng, categoryIds, PAGE_SIZE, offset)
+          const places = data.results || []
+
+          // 无结果则提前退出
+          if (places.length === 0) break
+
+          for (const place of places) {
+            const poi = transformPlace(place, category)
+            if (poi) {
+              allPOIs.push(poi)
+              categoryCount++
+            }
           }
+
+          // 本页结果不足一页，说明已到末尾
+          if (places.length < PAGE_SIZE) break
         }
-        console.log(`  [Foursquare] ${category}: ${count} POIs`)
+
+        console.log(`  [Foursquare] ${category}: ${categoryCount} POIs`)
       } catch (err) {
         console.error(`  [Foursquare] ${category} failed:`, (err as Error).message)
       }

@@ -21,8 +21,8 @@ const rateLimiter = new RateLimiter(AGENT_CONFIG.amapInterval)
 
 const CATEGORY_TYPES: Record<L1Category, string> = {
   scenic: '110000',       // 风景名胜
-  food: '050000',         // 餐饮服务
-  shopping: '060000',     // 购物服务
+  food: '050100|050200|050300|050500|050600',  // 中餐厅|外国餐厅|快餐|咖啡厅|茶艺馆
+  shopping: '060100|060200|060400|060600',     // 购物中心|百货商场|超市|专卖店
   entertainment: '080000|070000',  // 体育休闲 + 生活服务(部分娱乐)
   experience: '140000|090000',     // 科教文化 + 医疗保健(部分体验)
   hotel: '100000',        // 住宿服务
@@ -203,7 +203,7 @@ export class AmapCollector implements SourceCollector {
         console.log(`  [Amap] Searching ${category} for ${city.name}...`)
 
         let categoryCount = 0
-        for (let page = 1; page <= 3; page++) {
+        for (let page = 1; page <= 5; page++) {
           const { pois, count } = await searchPOIs(city.lat, city.lng, typeCode, page)
 
           for (const poi of pois) {
