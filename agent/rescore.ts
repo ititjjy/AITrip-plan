@@ -17,7 +17,7 @@ const DB_PATH = path.join(__dirname, 'data', 'agent.db')
 
 /* ── Scoring Config (mirrors merger.ts) ── */
 
-const L1_CATEGORIES = ['scenic', 'food', 'shopping', 'entertainment', 'experience', 'hotel']
+const L1_CATEGORIES = ['scenic', 'food', 'shopping', 'entertainment', 'experience', 'hotel', 'lifestyle']
 
 const COMPLETENESS_WEIGHTS: Record<string, number> = {
   coords: 3, namePrimary: 3, address: 3, categoryL1: 3,
@@ -65,13 +65,10 @@ function computeScore(poi: any) {
   const confidence = computeConfidence(poi)
   const total = Math.round(COMPLETENESS_FACTOR * completeness + CONFIDENCE_FACTOR * confidence)
 
-  // Infer source list from id or source field
+  // Infer source list from source field (IDs are now pure numbers, no source prefix)
   const sources: string[] = []
   if (poi.source) {
     sources.push(poi.source)
-  } else if (poi.id) {
-    const prefix = poi.id.split('-')[0]
-    if (prefix) sources.push(prefix)
   }
 
   return {

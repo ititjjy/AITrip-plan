@@ -80,10 +80,15 @@ export default function PlaceSelectionPage() {
 
   const loadPOIs = async () => {
     const trip = tripRef.current
-    if (!trip?.cityId) return
+    if (!trip?.cityId) {
+      console.log('[PlaceSelection] loadPOIs: 无 cityId，跳过加载')
+      return
+    }
+    console.log(`[PlaceSelection] loadPOIs: cityId=${trip.cityId}, cityName=${trip.cityName}`)
     setLoading(true)
     try {
       const res = await api.getPOIs(trip.cityId, trip.cityName, city?.nameEn || trip.cityName)
+      console.log(`[PlaceSelection] 响应: success=${res.success}, dataLength=${res.data?.length ?? 'undefined'}, generating=${res.generating}`)
       if (res.success && res.data) {
         const attractions: Attraction[] = res.data.map((p: any) => ({
           id: p.id,

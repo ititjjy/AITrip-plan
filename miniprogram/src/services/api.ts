@@ -28,6 +28,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         ...header,
       },
       success: (res) => {
+        console.log(`[API] ${method} ${BASE_URL}${url}`, `status=${res.statusCode}`, `dataLength=${Array.isArray((res.data as any)?.data) ? (res.data as any).data.length : 'N/A'}`)
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data as T)
         } else if (res.statusCode === 401) {

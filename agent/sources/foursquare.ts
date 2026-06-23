@@ -24,12 +24,38 @@ const CATEGORY_IDS: Record<L1Category, string[]> = {
   scenic: ['10000', '16000'],       // Arts & Entertainment, Landmarks
   food: ['13000', '13032', '13033', '13035', '13065'],  // Food, Chinese Restaurant, Japanese Restaurant, Italian Restaurant, Dessert Shop
   shopping: ['17000', '17114', '17115', '17116', '17117'],  // Shops & Services, Shopping Mall, Department Store, Supermarket, Convenience Store
-  entertainment: ['10000', '16034'], // Arts & Entertainment, Nightlife
+  entertainment: [
+    '10000',  // Arts & Entertainment
+    '10001',  // Concert Hall
+    '10002',  // Music Venue
+    '10003',  // Performing Arts Venue
+    '10004',  // Movie Theater
+    '10008',  // Comedy Club
+    '10025',  // karaoke bar
+    '10032',  // Theme Park
+    '10033',  // Water Park
+    '10035',  // Aquarium
+    '10043',  // Bowling Alley
+    '16000',  // Nightlife Spot
+    '16001',  // Bar
+    '16003',  // Lounge
+    '16004',  // Nightclub
+    '16006',  // Speakeasy
+  ],
   experience: ['18000', '16000'],   // Outdoors & Recreation, some Landmarks
   hotel: ['19000'],                  // Travel & Transportation
 }
 
 /* ── Foursquare 响应 → RawPOI ── */
+
+/** entertainment 采集时排除的 sub-category（10000 Arts & Entertainment / 16000 Nightlife Spot 太宽泛） */
+const EXCLUDE_ENTERTAINMENT_SUBCATS = [
+  'Photo Studio', 'Photography Studio', 'Art Gallery', 'Art Museum',
+  'Gym', 'Fitness Center', 'Swimming Pool', 'Sports Club',
+  'Recreation Center',
+  'Bookstore', 'Library', 'School', 'College',
+  'Cultural Center', 'Community Center',
+]
 
 function transformPlace(place: any, l1: L1Category): RawPOI | null {
   const name = place.name
@@ -45,16 +71,24 @@ function transformPlace(place: any, l1: L1Category): RawPOI | null {
   // 提取标签 & 尝试映射 L3
   const tags: string[] = []
   let l3 = `${l1}.${getDefaultL2(l1)}.${getDefaultL3(l1)}`
+  let mainCatName = ''
   if (place.categories) {
     for (const cat of place.categories.slice(0, 3)) {
       const catName = cat.short_name || cat.name || ''
       if (catName) tags.push(catName)
+      if (!mainCatName) mainCatName = catName
       // 尝试用 Foursquare category name 映射 L3
       const mapped = externalCategoryToL3('foursquare', catName)
       if (mapped && mapped.l1 === l1) {
         l3 = mapped.l3
       }
     }
+  }
+
+  // 过滤：entertainment 中排除非娱乐性质的 sub-category
+  if (l1 === 'entertainment') {
+    const exclude = EXCLUDE_ENTERTAINMENT_SUBCATS.some(k => mainCatName.toLowerCase().includes(k.toLowerCase()))
+    if (exclude) return null
   }
 
   // 费用估算 (Foursquare: 1=cheap, 2=moderate, 3=expensive, 4=very expensive)

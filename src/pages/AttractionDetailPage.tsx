@@ -19,7 +19,6 @@ const typeColors: Record<string, string> = {
   food: 'bg-red-100 text-red-700',
   shopping: 'bg-violet-100 text-violet-700',
   activity: 'bg-cyan-100 text-cyan-700',
-  transport: 'bg-slate-100 text-slate-700',
   hotel: 'bg-indigo-100 text-indigo-700',
 }
 

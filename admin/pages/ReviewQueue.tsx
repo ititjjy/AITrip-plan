@@ -429,6 +429,7 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
                   <TableRow>
                     <TableHead className="w-10" />
                     <TableHead className="w-20">状态</TableHead>
+                    <TableHead className="w-[60px]">ID</TableHead>
                     <TableHead>名称</TableHead>
                     <TableHead className="w-28">分类</TableHead>
                     <TableHead className="w-20">数据评分</TableHead>
@@ -454,6 +455,11 @@ function CityRow({ city, expanded, selected, onToggle, onSelect, detail, detailL
                         </TableCell>
                         <TableCell>
                           <Badge variant={status.variant}>{status.label}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {poi.id}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{poi.name}</div>

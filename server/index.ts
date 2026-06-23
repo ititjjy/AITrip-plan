@@ -129,7 +129,9 @@ app.get('/api/pois/:cityId', async (req, res) => {
       if (stats.removedCount > 0) {
         console.log(`[Dedup] ${cityId}: 去重移除 ${stats.removedCount} 个重复POI`)
       }
-      return res.json({ success: true, data: dedupedCached, fromCache: true })
+      // 过滤掉 lifestyle 类目（后台管理用，不对前端用户透出）
+      const visiblePOIs = dedupedCached.filter((p: any) => (p.categoryL1 || p.type) !== 'lifestyle')
+      return res.json({ success: true, data: visiblePOIs, fromCache: true })
     }
     // 数据库中无数据
     return res.json({ success: true, data: [], fromCache: false })

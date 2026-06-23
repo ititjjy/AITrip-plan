@@ -32,7 +32,6 @@ export default function BudgetPanel() {
     { key: 'hotel', label: '住宿', icon: Hotel, color: 'text-purple-500' },
     { key: 'activity', label: '体验活动', icon: Ticket, color: 'text-primary' },
     { key: 'shopping', label: '购物', icon: ShoppingBag, color: 'text-ocean' },
-    { key: 'transport', label: '交通', icon: Car, color: 'text-muted-foreground' },
   ]
 
   return (

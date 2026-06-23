@@ -51,15 +51,16 @@ const CATEGORY_QUERIES: Record<L1Category, string> = {
   `,
   entertainment: `
     nwr["tourism"~"theme_park|aquarium|casino"](around:{radius},{lat},{lng});
-    nwr["leisure"~"water_park|stadium|sports_centre"](around:{radius},{lat},{lng});
-    nwr["amenity"~"nightclub|theatre"](around:{radius},{lat},{lng});
+    nwr["leisure"="water_park"](around:{radius},{lat},{lng});
+    nwr["amenity"~"nightclub|theatre|cinema|bowling_alley|karaoke_bar"](around:{radius},{lat},{lng});
+    nwr["leisure"="amusement_arcade"](around:{radius},{lat},{lng});
   `,
   experience: `
     nwr["tourism"~"museum|gallery|spa"](around:{radius},{lat},{lng});
     nwr["sport"~"diving|surfing|skiing|climbing|cycling"](around:{radius},{lat},{lng});
     nwr["amenity"~"public_bath|spa"](around:{radius},{lat},{lng});
     nwr["natural"="hot_spring"](around:{radius},{lat},{lng});
-    nwr["leisure"~"golf_course|horse_riding"](around:{radius},{lat},{lng});
+    nwr["leisure"~"golf_course|horse_riding|sports_centre|stadium|ice_rink|fitness_centre"](around:{radius},{lat},{lng});
   `,
   hotel: `
     nwr["tourism"~"hotel|hostel|guest_house|motel|camp_site|alpine_hut"](around:{radius},{lat},{lng});

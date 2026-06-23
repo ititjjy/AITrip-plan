@@ -698,6 +698,47 @@ function fixCoordinatePollution(pois: RawPOI[]): void {
 }
 
 /**
+ * AI 来源之间交叉坐标修正：同名 POI 在不同 AI 来源中，
+ * 如果某个 AI 来源的坐标明显偏离其他 AI 来源的坐标簇（>5km），
+ * 则用坐标簇中心来修正异常坐标。
+ */
+function correctAICoordinatesCrossAI(pois: RawPOI[]): void {
+  // 收集所有 AI 来源的名称→坐标列表
+  const aiNameCoords = new Map<string, { source: string; lat: number; lng: number }[]>()
+  for (const poi of pois) {
+    if (!AI_SOURCES.has(poi.source)) continue
+    const key = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+    if (!key || key.length < 2) continue
+    const list = aiNameCoords.get(key) || []
+    list.push({ source: poi.source, lat: poi.lat, lng: poi.lng })
+    aiNameCoords.set(key, list)
+  }
+
+  for (const [name, coords] of aiNameCoords) {
+    if (coords.length < 2) continue
+
+    // 计算坐标簇中心（中位数）
+    const lats = coords.map(c => c.lat).sort((a, b) => a - b)
+    const lngs = coords.map(c => c.lng).sort((a, b) => a - b)
+    const medianLat = lats[Math.floor(lats.length / 2)]
+    const medianLng = lngs[Math.floor(lngs.length / 2)]
+
+    // 找出偏离簇中心 >5km 的条目，在原始 pois 中修正
+    for (const poi of pois) {
+      if (!AI_SOURCES.has(poi.source)) continue
+      const poiKey = String(poi.namePrimary || '').trim().toLowerCase().replace(/[\s\u3000]+/g, '')
+      if (poiKey !== name) continue
+
+      const dist = haversineDistance(poi.lat, poi.lng, medianLat, medianLng)
+      if (dist > 5) {
+        poi.lat = medianLat
+        poi.lng = medianLng
+      }
+    }
+  }
+}
+
+/**
  * 跨名称坐标修正：针对"故宫" vs "故宫博物院"这类简称↔全称，
  * 用可信来源中**名称包含关系**的条目坐标来校正 AI 来源的异常坐标。
  */
@@ -768,7 +809,7 @@ function preFilter(
       continue
     }
 
-    // 过滤非旅游相关的本地生活服务（邮局、银行、医院、加油站、租车、美容美发、洗浴推拿等）
+    // 过滤非旅游相关的本地生活服务（邮局、银行、医院、加油站、租车、美容美发、洗浴推拿、营业厅等）
     const tagsStr = (poi.tags || []).join(' ')
     const nameStr = String(poi.namePrimary || poi.nameZh || '').toLowerCase()
     if (
@@ -783,7 +824,27 @@ function preFilter(
       tagsStr.includes('美容美发') || tagsStr.includes('洗浴推拿') || tagsStr.includes('按摩') ||
       nameStr.includes('邮政所') || nameStr.includes('邮政局') ||
       nameStr.includes('储蓄所') || nameStr.includes('营业所') ||
-      nameStr.includes('租车') || nameStr.includes('推拿') || nameStr.includes('美容')
+      nameStr.includes('租车') || nameStr.includes('推拿') || nameStr.includes('美容') ||
+      // 新增：通讯/电力/水务营业厅
+      nameStr.includes('营业厅') || nameStr.includes('供电所') || nameStr.includes('水务') ||
+      nameStr.includes('联通') || nameStr.includes('移动') || nameStr.includes('电信') ||
+      // 新增：车管所/驾校/培训机构
+      nameStr.includes('车管所') || nameStr.includes('驾校') ||
+      nameStr.includes('培训中心') || nameStr.includes('辅导班') || nameStr.includes('补习班') ||
+      // 新增：卫生所/卫生院/卫生室
+      nameStr.includes('卫生所') || nameStr.includes('卫生院') || nameStr.includes('卫生室') ||
+      // 新增：药房/药店（名字中）
+      nameStr.includes('药房') || nameStr.includes('药店') ||
+      // 新增：政府机关/公共服务
+      nameStr.includes('办事处') || nameStr.includes('管理局') || nameStr.includes('委员会') ||
+      nameStr.includes('公积金') || nameStr.includes('公证处') || nameStr.includes('领事馆') ||
+      // 新增：培训学校（职业技能培训等）
+      nameStr.includes('培训学校') || nameStr.includes('职业技能培训') ||
+      // 新增：景点子建筑（应合并到父景点，不应独立成 POI）
+      (nameStr.includes('配殿') && ((poi.address || '').includes('太庙') || (poi.address || '').includes('故宫') || (poi.address || '').includes('景山公园'))) ||
+      (nameStr.includes('寝殿') && ((poi.address || '').includes('太庙') || (poi.address || '').includes('故宫'))) ||
+      (nameStr.includes('享殿') && (poi.address || '').includes('太庙')) ||
+      (nameStr.includes('光荣榜') && (poi.address || '').includes('故宫'))
     ) {
       filtered++
       continue
@@ -1134,7 +1195,7 @@ function rawToPOI(raw: RawPOI, city: CityInfo, index: number, score?: POIScore):
   const path = resolveCategoryPath(raw.categoryL3)
 
   const poi: POI = {
-    id: `${raw.source || 'agent'}-${city.id}-${index}`,
+    id: String(city.numberCode * 10000 + index),
     namePrimary: raw.namePrimary,
     nameZh: raw.nameZh || '',
     nameEn: raw.nameEn || '',
@@ -1219,7 +1280,8 @@ export function mergeAndDeduplicate(
   // ── Step 0: AI 坐标修正 (用可信来源坐标校正 AI 来源异常坐标) ──
   fixCoordinatePollution(allRawPOIs)       // 先处理批量坐标污染（>30%相同坐标）
   correctAICoordinates(allRawPOIs)         // 再处理精确名称匹配的个别偏差
-  correctAICoordinatesByContainment(allRawPOIs) // 最后处理简称↔全称的坐标偏差
+  correctAICoordinatesByContainment(allRawPOIs) // 处理简称↔全称的坐标偏差
+  correctAICoordinatesCrossAI(allRawPOIs)  // 最后处理 AI 来源之间的交叉修正
 
   // ── Step 1: Pre-filter ──
   const { valid: filteredPois, filtered: invalidCount } = preFilter(allRawPOIs, city)

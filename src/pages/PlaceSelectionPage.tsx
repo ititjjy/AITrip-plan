@@ -77,10 +77,10 @@ function createPlaceIcon(type: Attraction['type'], isSelected: boolean, isHighli
   const colorMap: Record<string, string> = {
     scenic: 'hsl(12 76% 61%)', food: 'hsl(28 87% 62%)',
     shopping: 'hsl(260 60% 55%)', activity: 'hsl(199 89% 48%)',
-    hotel: 'hsl(220 70% 55%)', transport: 'hsl(150 60% 45%)',
+    hotel: 'hsl(220 70% 55%)',
   }
   const emojiMap: Record<string, string> = {
-    scenic: '🏛️', food: '🍜', shopping: '🛍️', activity: '🎯', hotel: '🏨', transport: '🚗',
+    scenic: '🏛️', food: '🍜', shopping: '🛍️', activity: '🎯', hotel: '🏨',
   }
   const color = colorMap[type] || 'hsl(12 76% 61%)'
   const emoji = emojiMap[type] || '📍'
@@ -282,7 +282,7 @@ export default function PlaceSelectionPage() {
   /* ── Derived data ── */
   const allAttractions = useMemo(() => {
     if (!city) return []
-    return getAttractions(city.id).filter((a) => a.type !== 'hotel' && a.type !== 'transport')
+    return getAttractions(city.id).filter((a) => a.type !== 'hotel')
   }, [city, poiLoaded])
 
   const categoryAttractions = useMemo(() => {

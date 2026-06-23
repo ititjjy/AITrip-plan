@@ -145,14 +145,14 @@ async function collectCity(
 
   console.log(`\n━━━ ${city.name} (${city.nameEn}) [hotness:${city.hotness}] ━━━`)
 
-  // 并行调用所有数据源
-  const sourcePromises = collectors.map(async (collector) => {
+  // 串行调用所有数据源（避免并发触发 API 限流）
+  for (const collector of collectors) {
     const sourceStart = Date.now()
     try {
       const available = await collector.isAvailable()
       if (!available) {
         console.log(`  [${collector.name}] Skipped (not available)`)
-        return
+        continue
       }
 
       const rawPOIs = await collector.collect(city, categories)
@@ -183,7 +183,7 @@ async function collectCity(
       if (rawPOIs.length > 0) {
         hasSuccess = true
         console.log(`  [${collector.name}] ${rawPOIs.length} POIs in ${duration}ms`)
-        return rawPOIs
+        allRawPOIs.push(...rawPOIs)
       }
     } catch (err) {
       const duration = Date.now() - sourceStart
@@ -197,14 +197,6 @@ async function collectCity(
         duration_ms: duration,
       })
       console.error(`  [${collector.name}] Failed: ${(err as Error).message}`)
-    }
-    return []
-  })
-
-  const results = await Promise.allSettled(sourcePromises)
-  for (const result of results) {
-    if (result.status === 'fulfilled' && result.value) {
-      allRawPOIs.push(...result.value)
     }
   }
 

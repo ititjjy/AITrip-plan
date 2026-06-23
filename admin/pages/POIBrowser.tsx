@@ -254,6 +254,7 @@ export default function POIBrowser() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[60px]">ID</TableHead>
                 <TableHead>名称</TableHead>
                 <TableHead>审核状态</TableHead>
                 <TableHead>数据评分</TableHead>
@@ -268,6 +269,11 @@ export default function POIBrowser() {
             <TableBody>
               {pois.map((poi) => (
                 <TableRow key={poi.id} className="cursor-pointer" onClick={() => navigate(`/pois/${poi.id}?city=${city}`)}>
+                  <TableCell>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {poi.id}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">{poi.name}</div>
@@ -316,7 +322,7 @@ export default function POIBrowser() {
               ))}
               {pois.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     {query ? '没有找到匹配的 POI' : '暂无数据'}
                   </TableCell>
                 </TableRow>

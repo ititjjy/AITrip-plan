@@ -1,7 +1,7 @@
 {
   "currentIndex": {
     "qwen": 7,
-    "doubao": 18
+    "doubao": 0
   },
   "exhaustedModels": {
     "qwen": [
@@ -36,7 +36,7 @@
       "qwen3-max-2025-09-23": 510043,
       "qwen3-235b-a22b-instruct-2507": 564255,
       "deepseek-v3.2-exp": 571752,
-      "qwen3-235b-a22b": 199770
+      "qwen3-235b-a22b": 418689
     },
     "doubao": {
       "deepseek-v4-pro-260425": 53796,
@@ -49,6 +49,6 @@
       "doubao-seed-1-6-flash-250828": 359010
     }
   },
-  "updatedAt": "2026-06-16T10:34:16.899Z",
+  "updatedAt": "2026-06-16T16:32:53.615Z",
   "lastFullResetMonth": {}
 }

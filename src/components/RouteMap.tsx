@@ -72,7 +72,6 @@ const typeColor: Record<string, string> = {
   food: '#ef4444',
   shopping: '#8b5cf6',
   activity: '#06b6d4',
-  transport: '#64748b',
   hotel: '#6366f1',
 }
 

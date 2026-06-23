@@ -42,7 +42,7 @@ export const AGENT_CONFIG = {
   aiTimeout: 300_000,
 
   // 速率限制 (毫秒间隔)
-  osmInterval: 10_000,       // Overpass 公平使用: 10s
+  osmInterval: 20_000,       // Overpass 公平使用: 20s (避免429限流)
   foursquareInterval: 1_000, // 1 req/s
   googleInterval: 500,       // 2 req/s
   amapInterval: 1000,        // 1 req/s (个人账号 QPS=5, 并发3城需保守)
@@ -137,6 +137,8 @@ export interface CityInfo {
   continent: string
   country: string
   province: string
+  /** 城市数字编码（基于registry顺序，从1开始），用于生成纯数字POI ID */
+  numberCode: number
 }
 
 let cachedCities: CityInfo[] | null = null
@@ -159,7 +161,7 @@ export function loadCities(): CityInfo[] {
     coordsMap = JSON.parse(fs.readFileSync(coordsPath, 'utf-8'))
   }
 
-  cachedCities = registry.map((c: any) => {
+  cachedCities = registry.map((c: any, idx: number) => {
     const coords = coordsMap[c.id]
     const country = coords?.country ?? c.country ?? ''
     const isDomestic = coords?.isDomestic ?? c.isDomestic ?? (country === '中国')
@@ -174,6 +176,7 @@ export function loadCities(): CityInfo[] {
       continent: coords?.continent ?? (isDomestic ? '亚洲' : ''),
       country,
       province: coords?.province ?? (isDomestic ? country : ''),
+      numberCode: idx + 1, // 从1开始，基于registry顺序
     }
   })
 

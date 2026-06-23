@@ -723,7 +723,6 @@ export function getAttractionTypeLabel(type: Attraction['type']): string {
     food: '美食',
     hotel: '住宿',
     shopping: '购物',
-    transport: '交通',
     activity: '体验',
   }
   return labels[type]
@@ -735,7 +734,6 @@ export function getAttractionTypeIcon(type: Attraction['type']): string {
     food: '🍜',
     hotel: '🏨',
     shopping: '🛍️',
-    transport: '🚗',
     activity: '🎯',
   }
   return icons[type]

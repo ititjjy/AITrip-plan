@@ -118,10 +118,11 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
 
   experience: {
     suffixes: [
-      '体验', '工坊', '课程', '中心', '基地', '会馆',
+      '体验', '工坊', '课程', '基地', '会馆',
       '温泉', 'SPA', 'spa',
-      'workshop', 'class', 'studio', 'center', 'experience',
+      'workshop', 'class', 'studio', 'experience',
       '体験', '工房',
+      // 注意：'中心' 已移除 — 太宽泛，会命中医院、学校、体育中心
     ],
     nameWords: [
       '徒步', '登山', '潜水', '冲浪', '滑雪', '骑行', '露营',
@@ -156,6 +157,29 @@ const KEYWORDS: Record<L1Category, CategoryKeywords> = {
       '入住', '退房', '房间', '前台', '客房', '早餐',
       '设施', '泳池', '健身房', '停车场',
       'check-in', 'check-out', 'rooms', 'breakfast', 'amenities',
+    ],
+  },
+
+  lifestyle: {
+    suffixes: [
+      '事务所', '律师事务所', '会计师事务所', '培训中心', '培训学校',
+      '办事处', '管理局', '委员会', '派出所', '税务局',
+      '公证处', '领事馆', '大使馆', '海关',
+      'firm', 'office', 'agency', 'training center', 'school',
+    ],
+    nameWords: [
+      '律师', '会计', '审计', '公证', '税务', '代理',
+      '培训', '辅导', '补习', '驾校', '学车', '考证',
+      '政府', '办事', '管理', '街道', '社区',
+      '房产中介', '链家', '我爱我家', '麦田', '售票处', '存包处',
+      '物流', '快递', '维修', '营业厅', '供电所', '水务',
+      '银行', '支行', '储蓄所', '邮局', '邮政',
+      '彩票', '充电', '充电桩', '养老', '照料',
+    ],
+    descWords: [
+      '法律服务', '会计服务', '审计服务', '培训', '辅导',
+      '行政', '管理', '办事', '窗口', '公共服务',
+      '中介', '租赁', '寄存', '票务', '维修',
     ],
   },
 }
@@ -250,6 +274,20 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
       boostCategory: 'entertainment',
       boostScore: 10,
     },
+    // 培训学校/职业技能培训 → lifestyle
+    {
+      nameExcludes: ['培训学校', '职业技能培训', '技能培训学校'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // 铛铛车/观光车 → experience
+    {
+      nameExcludes: ['铛铛车', '观光车', '游览车'],
+      boostCategory: 'experience',
+      boostScore: 12,
+      forceExclude: true,
+    },
     // 体验活动 → experience
     {
       nameExcludes: ['探秘', '夜游', '灯光秀', '嘉年华', '冰雪嘉年华', '夜航', '乘船观演', '山地学院', '四季山地学院'],
@@ -310,6 +348,59 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
     },
   ],
 
+  // E-001~E-010: entertainment 类目排除规则
+  entertainment: [
+    // E-001: 照相/摄影/妆造服务 → shopping 或排除
+    {
+      nameExcludes: ['照相馆', '摄影', '写真', '妆造', '化妆', '美甲', '美发', '理发店', '美容'],
+      boostCategory: 'shopping',
+      boostScore: 10,
+      forceExclude: true,
+    },
+    // E-002: 糕饼/甜品/烘焙零售 → food
+    {
+      nameExcludes: ['糕饼铺', '糕点', '饼铺', '烘焙', '甜品店', '蛋糕店', '面包房'],
+      boostCategory: 'food',
+      boostScore: 12,
+      forceExclude: true,
+    },
+    // E-003: 体育场馆/游泳馆/健身房/高尔夫 → 排除（不应在entertainment）
+    {
+      nameExcludes: ['游泳馆', '游泳池', '体育中心', '体育场', '球场', '篮球场', '足球场', '网球馆', '羽毛球馆', '健身房', '健身中心', '高尔夫'],
+      boostCategory: 'experience',
+      boostScore: 5,
+      forceExclude: true,
+    },
+    // E-004: 学校/培训/教育 → 排除
+    {
+      nameExcludes: ['学校', '大学', '学院', '中学', '小学', '幼儿园', '培训中心', '培训班', '辅导班', '补习班', '自习室'],
+      boostCategory: 'experience',
+      boostScore: 5,
+      forceExclude: true,
+    },
+    // E-005: 生活服务 → lifestyle
+    {
+      nameExcludes: ['邮局', '邮政', '营业厅', '供电所', '水务', '银行', '支行', '车管所', '驾校', '存包处', '售票处', '物流', '维修', '充电桩', '彩票', '养老', '敬老院', '康养', '干休所', '老年家园', '护理站', '颐养', '养老院'],
+      boostCategory: 'lifestyle',
+      boostScore: 10,
+      forceExclude: true,
+    },
+    // E-006: 律师事务所/会计师事务所 → lifestyle
+    {
+      nameExcludes: ['律师事务所', '会计师事务所', '审计事务所', '税务师事务所', '公证处'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // E-007: 房产中介 → lifestyle
+    {
+      nameExcludes: ['链家', '我爱我家', '麦田房产', '房产中介', '房地产'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+  ],
+
   // P-011~P-016: experience 类目排除规则（forceExclude 强制负分）
   // 地点型/商业型/娱乐型 POI 不应归入体验类
   experience: [
@@ -352,6 +443,122 @@ const CATEGORY_EXCLUSIONS: Partial<Record<L1Category, ExclusionRule[]>> = {
       nameExcludes: ['欢乐谷', '主题乐园', '游乐园', '游乐场', '嘉年华'],
       boostCategory: 'entertainment',
       boostScore: 12,
+      forceExclude: true,
+    },
+    // P-017: 医院/诊所/药店/医疗美容 → 排除出experience
+    {
+      nameExcludes: ['医院', '诊所', '卫生所', '卫生院', '卫生室', '药房', '药店', '牙科', '口腔', '医美', '整形', '体检中心', '急救中心', '疾控中心'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-018: 学校/培训机构 → lifestyle
+    {
+      nameExcludes: ['学校', '大学', '学院', '中学', '小学', '幼儿园', '培训中心', '培训班', '辅导班', '补习班', '驾校', '自习室', '培训'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-019: 政府机关/公共服务 → lifestyle
+    {
+      nameExcludes: ['政府', '办事处', '管理局', '委员会', '派出所', '税务局', '社保', '公积金', '公证处', '领事馆', '大使馆', '海关'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-020: 银行/金融/邮政/通讯营业厅 → lifestyle
+    {
+      nameExcludes: ['银行', '支行', '储蓄所', '营业所', '邮局', '邮政', '营业厅', '联通', '移动', '电信', '供电所', '水务'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-021: 职业/考试培训机构 → lifestyle
+    {
+      nameExcludes: ['会计培训', '法考', '考研', '雅思', '托福', '公考', '驾校', '学车', '考证', '辅导班', '补习班', '培训机构'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-022: 管理/行政/服务机构（带"中心"的行政机构）→ lifestyle
+    {
+      nameExcludes: ['管理中心', '服务中心', '行政中心', '文物管理中心', '文化遗产中心', '社区中心', '街道办事处'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-023: 研究院/出版社/杂志社/档案馆 → lifestyle
+    {
+      nameExcludes: ['研究院', '研究所', '出版社', '杂志社', '报社', '档案馆', '图书馆', '文史馆', '研究会'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-024: 房产中介/售票处/存包处/物流 → lifestyle
+    {
+      nameExcludes: ['链家', '我爱我家', '麦田', '房产中介', '售票处', '存包处', '行李寄存', '物流', '快递', '维修'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-025: 报社/出版社/传媒集团/媒体机构 → lifestyle
+    {
+      nameExcludes: ['报社', '日报', '晚报', '晨报', '传媒集团', '出版社', '杂志社', '融媒体中心', '法制报道'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // P-026: 会展中心/国际会展中心 → lifestyle
+    {
+      nameExcludes: ['会展中心', '国际会展中心', '会议中心'],
+      boostCategory: 'lifestyle',
+      boostScore: 15,
+      forceExclude: true,
+    },
+  ],
+
+  // L-001~L-005: lifestyle 类目排除规则（防止旅游类POI被错归生活服务）
+  lifestyle: [
+    // L-001: 景点/公园/古迹 → scenic
+    {
+      nameExcludes: ['公园', '寺', '庙', '博物馆', '美术馆', '纪念馆', '遗址', '古迹', '长城', '故宫', '颐和园', '天坛', '西湖', '外滩'],
+      boostCategory: 'scenic',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // L-002: 餐饮 → food
+    {
+      nameExcludes: ['餐厅', '饭店', '菜馆', '食堂', '面馆', '咖啡馆', '茶馆', '甜品店', '酒吧', '烧烤', '火锅', '烤鸭店', '奶茶店'],
+      boostCategory: 'food',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // L-003: 购物 → shopping
+    {
+      nameExcludes: ['商场', '百货', '市场', '超市', '店铺', '商城', '购物中心', '奥特莱斯'],
+      boostCategory: 'shopping',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // L-004: 娱乐 → entertainment
+    {
+      nameExcludes: ['乐园', '游乐园', '剧院', '影院', 'KTV', '剧场', '酒吧', '脱口秀', 'Live House'],
+      boostCategory: 'entertainment',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // L-005: 体验 → experience
+    {
+      nameExcludes: ['体验', '工坊', '温泉', 'SPA', '徒步', '登山', '潜水', '滑雪', '露营', '瑜伽'],
+      boostCategory: 'experience',
+      boostScore: 15,
+      forceExclude: true,
+    },
+    // L-006: 酒店 → hotel
+    {
+      nameExcludes: ['酒店', '旅馆', '客栈', '民宿', '宾馆', '公寓', '度假村', '旅舍'],
+      boostCategory: 'hotel',
+      boostScore: 15,
       forceExclude: true,
     },
   ],
@@ -446,7 +653,7 @@ function getSourceWeight(source: string): number {
 export function classifyCategory(poi: RawPOI): ClassifyResult {
   const scores: Record<L1Category, number> = {
     scenic: 0, food: 0, shopping: 0,
-    entertainment: 0, experience: 0, hotel: 0,
+    entertainment: 0, experience: 0, hotel: 0, lifestyle: 0,
   }
 
   const namePrimary = (poi.namePrimary || '').toLowerCase()
@@ -557,8 +764,8 @@ export function resolveCategoryConflict(
     }
   }
 
-  // 最终回退: 优先级 scenic > experience > entertainment > food > shopping > hotel
-  const priority: L1Category[] = ['scenic', 'experience', 'entertainment', 'food', 'shopping', 'hotel']
+  // 最终回退: 优先级 scenic > experience > entertainment > food > shopping > hotel > lifestyle
+  const priority: L1Category[] = ['scenic', 'experience', 'entertainment', 'food', 'shopping', 'hotel', 'lifestyle']
   for (const l1 of priority) {
     if (voteCount.has(l1)) {
       return { l1, l3: pickBestL3(l1, pois), method: 'weighted' }
@@ -612,6 +819,7 @@ function getDefaultL2(l1: L1Category): string {
   const map: Record<L1Category, string> = {
     scenic: 'modern', food: 'local', shopping: 'mall',
     entertainment: 'theme', experience: 'outdoor', hotel: 'comfort',
+    lifestyle: 'daily',
   }
   return map[l1]
 }

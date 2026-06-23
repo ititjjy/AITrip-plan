@@ -12,7 +12,7 @@
  */
 
 import type { RawPOI, POI, CityInfo, SourceCollector, POIScore } from './sources/base.js'
-import { AGENT_CONFIG } from './config.js'
+import { AGENT_CONFIG, loadCities } from './config.js'
 import { getAllCityStats } from './db.js'
 import { calculatePriorities } from './scheduler.js'
 import { compositeSimilarity, isInvalidPOI } from './similarity.js'
@@ -315,7 +315,7 @@ function poiToRawPOI(poi: POI): RawPOI {
     operatingHours: poi.operatingHours,
     bestSeasons: poi.bestSeasons,
     monthlyIndex: poi.monthlyIndex,
-    source: poi.id.split('-')[0] || 'agent',
+    source: poi.source || 'agent',
   }
 }
 
@@ -393,7 +393,7 @@ function augmentPOI(existing: POI, newData: RawPOI): POI {
     operatingHours: updated.operatingHours,
     bestSeasons: updated.bestSeasons,
     monthlyIndex: updated.monthlyIndex,
-    source: updated.id.split('-')[0] || 'agent',
+    source: updated.source || raw.source || 'agent',
   }
   updated.score = scoreForRawPOI(raw)
 
@@ -404,9 +404,10 @@ function augmentPOI(existing: POI, newData: RawPOI): POI {
 function rawToMinimalPOI(raw: RawPOI, cityId: string, index: number): POI {
   const path = resolveCategoryPath(raw.categoryL3)
   const score = scoreForRawPOI(raw)
+  const cityNumberCode = loadCities().find(c => c.id === cityId)?.numberCode || 1
 
   return {
-    id: `${raw.source || 'agent'}-${cityId}-${index}`,
+    id: String(cityNumberCode * 10000 + index),
     namePrimary: raw.namePrimary,
     nameZh: raw.nameZh || '',
     nameEn: raw.nameEn || '',

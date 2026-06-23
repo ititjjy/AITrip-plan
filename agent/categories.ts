@@ -14,10 +14,10 @@ export interface CategoryNode {
 
 /* ═══════════════════════ 一级类目 ═══════════════════════ */
 
-export type L1Category = 'scenic' | 'food' | 'shopping' | 'entertainment' | 'experience' | 'hotel'
+export type L1Category = 'scenic' | 'food' | 'shopping' | 'entertainment' | 'experience' | 'hotel' | 'lifestyle'
 
 export const L1_CATEGORIES: L1Category[] = [
-  'scenic', 'food', 'shopping', 'entertainment', 'experience', 'hotel',
+  'scenic', 'food', 'shopping', 'entertainment', 'experience', 'hotel', 'lifestyle',
 ]
 
 export const L1_LABELS: Record<L1Category, { zh: string; en: string }> = {
@@ -27,6 +27,7 @@ export const L1_LABELS: Record<L1Category, { zh: string; en: string }> = {
   entertainment: { zh: '娱乐', en: 'Entertainment' },
   experience:    { zh: '体验', en: 'Experiences' },
   hotel:         { zh: '酒店', en: 'Accommodation' },
+  lifestyle:     { zh: '生活服务', en: 'Lifestyle Services' },
 }
 
 /* ═══════════════════════ 完整类目树 ═══════════════════════ */
@@ -219,6 +220,25 @@ export const CATEGORY_TREE: CategoryNode[] = [
         { id: 'hotel.special.tent', label: '帐篷/营地', labelEn: 'Glamping & Tents' },
         { id: 'hotel.special.treehouse', label: '树屋/船屋', labelEn: 'Treehouses & Houseboats' },
         { id: 'hotel.special.homestay', label: '家庭旅馆', labelEn: 'Homestays' },
+      ]},
+    ],
+  },
+
+  // ── 7. 生活服务（后台管理用，不对前端用户透出）──
+  {
+    id: 'lifestyle', label: '生活服务', labelEn: 'Lifestyle Services',
+    children: [
+      { id: 'lifestyle.gov', label: '行政机构', labelEn: 'Government', children: [
+        { id: 'lifestyle.gov.default', label: '其他行政机构', labelEn: 'Other Government' },
+      ]},
+      { id: 'lifestyle.professional', label: '专业事务所', labelEn: 'Professional Services', children: [
+        { id: 'lifestyle.professional.default', label: '其他专业事务所', labelEn: 'Other Professional' },
+      ]},
+      { id: 'lifestyle.education', label: '教育培训', labelEn: 'Education & Training', children: [
+        { id: 'lifestyle.education.default', label: '其他教育培训', labelEn: 'Other Education' },
+      ]},
+      { id: 'lifestyle.daily', label: '日常服务', labelEn: 'Daily Services', children: [
+        { id: 'lifestyle.daily.default', label: '其他日常服务', labelEn: 'Other Daily Services' },
       ]},
     ],
   },

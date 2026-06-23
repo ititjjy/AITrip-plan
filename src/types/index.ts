@@ -79,7 +79,7 @@ export interface Attraction {
   name: string
   /** Chinese name (中文名称) — for international POIs */
   nameZh?: string
-  type: 'scenic' | 'food' | 'hotel' | 'shopping' | 'transport' | 'activity'
+  type: 'scenic' | 'food' | 'hotel' | 'shopping' | 'activity'
   image: string
   rating: number
   duration: number // in minutes
@@ -106,7 +106,7 @@ export interface ItineraryItem {
   endTime: string   // HH:mm
   notes: string
   cost: number
-  type: 'scenic' | 'food' | 'hotel' | 'shopping' | 'transport' | 'activity'
+  type: 'scenic' | 'food' | 'hotel' | 'shopping' | 'activity'
   /** True if this meal was auto-filled from AI recommendations (not user-selected) */
   isAutoFilled?: boolean
   /** Which meal slot this food item occupies */

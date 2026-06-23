@@ -36,10 +36,10 @@ export interface POI {
   score?: POIScore
 }
 
-export type L1Category = 'scenic' | 'food' | 'shopping' | 'entertainment' | 'experience' | 'hotel'
+export type L1Category = 'scenic' | 'food' | 'shopping' | 'entertainment' | 'experience' | 'hotel' | 'lifestyle'
 
 export const L1_CATEGORIES: L1Category[] = [
-  'scenic', 'food', 'shopping', 'entertainment', 'experience', 'hotel',
+  'scenic', 'food', 'shopping', 'entertainment', 'experience', 'hotel', 'lifestyle',
 ]
 
 export const L1_LABELS: Record<L1Category, { zh: string; en: string; color: string }> = {
@@ -49,6 +49,7 @@ export const L1_LABELS: Record<L1Category, { zh: string; en: string; color: stri
   entertainment: { zh: '娱乐', en: 'Entertainment', color: 'bg-purple-100 text-purple-800' },
   experience:    { zh: '体验', en: 'Experience',    color: 'bg-emerald-100 text-emerald-800' },
   hotel:         { zh: '酒店', en: 'Hotel',         color: 'bg-indigo-100 text-indigo-800' },
+  lifestyle:     { zh: '生活服务', en: 'Lifestyle', color: 'bg-gray-100 text-gray-800' },
 }
 
 /* ═══ City ═══ */

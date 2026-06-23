@@ -280,7 +280,9 @@ export default function CreateTripPage() {
   const loadPOIs = async (cityId: string, cityName: string, nameEn: string) => {
     setLoadingStep(true)
     try {
+      console.log(`[loadPOIs] 请求城市: cityId=${cityId}, cityName=${cityName}, nameEn=${nameEn}`)
       const res = await api.getPOIs(cityId, cityName, nameEn)
+      console.log(`[loadPOIs] 响应: success=${res.success}, dataLength=${res.data?.length ?? 'undefined'}, fromCache=${res.fromCache}, generating=${res.generating}`)
       if (res.success && res.data) {
         const attrs: Attraction[] = res.data.map((p: any) => ({
           id: p.id,
